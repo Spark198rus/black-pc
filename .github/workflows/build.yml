@@ -1,0 +1,21 @@
+name: build-loader
+on:
+  workflow_dispatch:
+  push:
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        working-directory: loader
+        run: cmake --preset win32-vs2022
+      - name: Build
+        working-directory: loader
+        run: cmake --build build/win32-vs2022 --config RelWithDebInfo
+      - uses: actions/upload-artifact@v4
+        with:
+          name: black-loader
+          path: |
+            loader/build/win32-vs2022/RelWithDebInfo/black.exe
+            loader/build/win32-vs2022/RelWithDebInfo/blackrt.dll
