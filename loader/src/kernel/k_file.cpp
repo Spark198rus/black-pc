@@ -537,22 +537,24 @@ NTSTATUS __stdcall NtQueryDirectoryFile(HANDLE FileHandle, HANDLE Event, void *A
     std::wstring wmask = ansi_to_wide(mask.data(), mask.size());
     host::UNICODE_STRING us{(USHORT)(wmask.size() * 2), (USHORT)(wmask.size() * 2), wmask.data()};
     alignas(8) uint8_t buf[sizeof(FILE_ID_BOTH_DIR_INFO) + 1024];
-    HANDLE ev = CreateEventW(nullptr, TRUE, FALSE, nullptr);
-    BOOLEAN restart = RestartScan;
-    for (;;) {
-        host::IO_STATUS_BLOCK hio{};
-        NTSTATUS s = host::NtQueryDirectoryFile(FileHandle, ev, nullptr, nullptr, &hio, buf, sizeof buf, 1, TRUE,
-                                                wmask.empty() ? nullptr : &us, restart);
-        if (s == XSTATUS_PENDING) {
-            WaitForSingleObject(ev, INFINITE);
-            s = hio.Status;
-        }
-        restart = FALSE;
-        if (!NT_OK(s)) {
-            CloseHandle(ev);
-            complete(IoStatusBlock, s, 0, Event);
-            return s;
-        }
+	BOOLEAN restart = RestartScan;
+	for (;;) {
+		host::IO_STATUS_BLOCK hio{};
+		NTSTATUS s = host::NtQueryDirectoryFile(
+			FileHandle, nullptr, nullptr, nullptr,
+			&hio, buf, sizeof buf, 1, TRUE,
+			wmask.empty() ? nullptr : &us, restart);
+
+		if (s == XSTATUS_PENDING) {
+			WaitForSingleObject(FileHandle, INFINITE);
+			s = hio.Status;
+		}
+
+		restart = FALSE;
+		if (!NT_OK(s)) {
+			complete(IoStatusBlock, s, 0, Event);
+			return s;
+		}
         // Host FILE_DIRECTORY_INFORMATION: same fields, WCHAR name at offset 64.
         uint32_t name_bytes = *(uint32_t *)(buf + 60);
         const wchar_t *wname = (const wchar_t *)(buf + 64);
@@ -560,7 +562,6 @@ NTSTATUS __stdcall NtQueryDirectoryFile(HANDLE FileHandle, HANDLE Event, void *A
         if ((nchars == 1 && wname[0] == L'.') || (nchars == 2 && wname[0] == L'.' && wname[1] == L'.')) continue;
         uint32_t need = 64 + nchars;
         if (Length < 64) {
-            CloseHandle(ev);
             complete(IoStatusBlock, XSTATUS_BUFFER_TOO_SMALL, 0, Event);
             return XSTATUS_BUFFER_TOO_SMALL;
         }
@@ -570,7 +571,6 @@ NTSTATUS __stdcall NtQueryDirectoryFile(HANDLE FileHandle, HANDLE Event, void *A
         *(uint32_t *)(out + 60) = nchars;
         uint32_t copy = need <= Length ? nchars : Length - 64;
         for (uint32_t i = 0; i < copy; i++) out[64 + i] = wname[i] < 256 ? (char)wname[i] : '_';
-        CloseHandle(ev);
         NTSTATUS rs = copy < nchars ? (NTSTATUS)0x80000005 /* BUFFER_OVERFLOW */ : XSTATUS_SUCCESS;
         complete(IoStatusBlock, rs, 64 + copy, Event);
         return rs;
