@@ -25,6 +25,7 @@ add_library(blackrt SHARED
   src/hooks.cpp
   src/timing.cpp
   src/fov.cpp
+  src/bigbuf.cpp
   src/fe/calls.cpp
   src/fe/vars.cpp
   src/fe/pc_settings.cpp

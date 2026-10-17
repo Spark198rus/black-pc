@@ -98,6 +98,7 @@ struct Config {
     bool ramp = true;          // apply the game's gamma ramp (fades, brightness); --no-ramp = identity
     bool aa = true;            // post-process anti-aliasing on the final picture (--no-aa, F9 toggles)
     bool info_only = false;    // print XBE info and exit
+    uint32_t buf_mb = 4;       // --buf-mb N: size of the two weapon-data buffers in MB (0 = the game's original 0.88 MB)
     bool force = false;        // run even if the XBE is not the build the address tables were made for
     unsigned timeout_s = 0;    // exit after N seconds (0 = never)
     uint32_t watch[4] = {};    // --watch: hardware write breakpoints (Xbox addresses)

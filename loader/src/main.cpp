@@ -7,6 +7,7 @@
 #include "d3d/dispatch.h"
 #include "fe/calls.h"
 #include "fe/pages.h"
+#include "bigbuf.h"
 #include "fov.h"
 #include "hooks.h"
 #include "image.h"
@@ -98,6 +99,7 @@ void usage()
            "  --perf-at S:D     record performance for D seconds from S seconds after the first frame (perf\\)\n"
            "  --timer-vblank    vblank from a 59.94 Hz timer instead of the display's refresh (default: follow a ~60 Hz display)\n"
            "  --force           run an XBE other than the known NTSC-U build\n"
+           "  --buf-mb N        size of the two weapon-data buffers in MB (default 4; 0 = original 0.88 MB)\n"
            "  --verbose         print the whole log on the console too (default: startup, errors, exit; all in the log file)\n";
     if (g_console) fputs(kUsage, stdout);
     else if (!g_cfg.background) MessageBoxW(nullptr, widen(kUsage).c_str(), L"BLACK - command-line options", MB_OK);
@@ -265,6 +267,12 @@ bool parse_args()
             g_cfg.shot_start = (uint32_t)_wtoi(v.c_str());
         }
         else if (a == L"--force") g_cfg.force = true;
+        else if (a == L"--buf-mb") {
+            std::wstring v;
+            if (!next(v)) return false;
+            g_cfg.buf_mb = (uint32_t)_wtoi(v.c_str());
+            if (g_cfg.buf_mb > 16) g_cfg.buf_mb = 16;
+        }
         else if (a == L"--hdd") { if (!next(g_cfg.hdd_dir)) return false; }
         else if (a == L"--log") { if (!next(g_cfg.log_path)) return false; }
         else if (a == L"--symbols") { if (!next(g_cfg.symbols_path)) return false; }
@@ -446,6 +454,7 @@ int run(void *reserve, unsigned reserve_size)
     if (known_build) install_mouselook_patches();
     if (known_build) install_autoaim_patch();
     if (known_build) install_fov_patch();
+    if (known_build) install_bigbuf_patch();
     if (known_build) install_fe_calls();
     if (known_build && g_cfg.pc_menus) { // the in-game PC SETTINGS pages, from the user's own front-end file
         std::wstring cache = g_cfg.port_dir + L"\\cache\\menus";
