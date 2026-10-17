@@ -1,0 +1,67 @@
+1
+00:00:02,000 --> 00:00:05,000
+Valencio: S'il vous plaît, s'il vous plaît, s'il vous plaît, je ne sais pas.
+
+2
+00:00:06,000 --> 00:00:08,000
+Sergent Kellar: Pensez à votre femme et à vos enfants.
+
+3
+00:00:08,000 --> 00:00:10,000
+Valencio: Non, ils n'ont rien à voir avec ça !
+
+4
+00:00:10,000 --> 00:00:13,000
+Sergent Kellar: Ils le feront à moins que vous me disiez où se trouve Lennox.
+
+5
+00:00:17,000 --> 00:00:18,500
+Valencio: Où avez-vous trouvé ça ?
+
+6
+00:00:18,500 --> 00:00:20,000
+Sergent Kellar: Asseyez-vous !
+
+7
+00:00:21,000 --> 00:00:24,000
+Interrogateur: Votre mission était d'éliminer Valencio, pas de le torturer.
+
+8
+00:00:24,000 --> 00:00:25,000
+Sergent Kellar: Que se passe-t-il ici ?
+
+9
+00:00:25,000 --> 00:00:30,000
+Interrogateur: Répondez simplement : avez-vous attaqué le chantier naval en vous fiant aux informations de Valencio ?
+
+10
+00:00:30,000 --> 00:00:32,000
+Sergent Kellar: Oui.
+
+11
+00:00:32,000 --> 00:00:34,000
+Interrogateur: Sous quelle autorité ?
+
+12
+00:00:34,000 --> 00:00:38,000
+Sergent Kellar: Le lieutenant McCarver a informé la division, qui a donné le feu vert à l'opération.
+
+13
+00:00:38,000 --> 00:00:43,000
+Interrogateur: Non. Elle n'a jamais soumis la demande à sa hiérarchie. McCarver faisait l'objet d'une enquête depuis un certain temps.
+
+14
+00:00:43,000 --> 00:00:48,000
+Interrogateur: Votre mission s'achevait à l'aciérie. Vous n'aviez pas l'autorité nécessaire pour mener cette opération.
+
+15
+00:00:49,000 --> 00:00:54,000
+Sergent Kellar: Nous avions un ordre de mission de la Division qui décrivait l'opération. Mon ancienne équipe devait entrer la première et ouvrir le feu.
+
+16
+00:00:54,000 --> 00:00:58,000
+Sergent Kellar: J'accompagnais McCarver et Solomon. Deux équipes, une seule zone.
+
+17
+00:00:58,000 --> 00:01:02,000
+Sergent Kellar: Lennox était la cible.

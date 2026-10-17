@@ -1,0 +1,87 @@
+1
+00:00:03,000 --> 00:00:08,000
+Interrogatore: Ho avuto l'opportunità di parlare con il sergente Solomon.
+
+2
+00:00:08,000 --> 00:00:10,000
+Interrogatore: Un uomo interessante. Non aveva nulla di buono da dire su di lei.
+
+3
+00:00:10,000 --> 00:00:13,000
+Sergente Kellar: Sei un bugiardo.
+
+4
+00:00:15,000 --> 00:00:23,000
+Sergente Solomon: Quando Lennox riapparve dopo il Cairo, le voci si diffusero come un virus.
+
+5
+00:00:23,000 --> 00:00:26,000
+Sergente Solomon: La Divisione cercò di tenere tutto segreto, ma non ci riuscì.
+
+6
+00:00:26,000 --> 00:00:32,000
+Interrogatore: Come ha collegato la vicenda a Seventh Wave?
+
+7
+00:00:32,000 --> 00:00:37,000
+Sergente Solomon: Dopo il disastro di Miami, alla mia squadra fu assegnato il compito di eliminarlo.
+
+8
+00:00:37,000 --> 00:00:41,000
+Sergente Solomon: All’epoca non sapevamo che fosse Lennox. Capimmo tutto solo in seguito.
+
+9
+00:00:41,000 --> 00:00:45,000
+Sergente Solomon: Non sapevamo mai se il bersaglio fosse davvero lui.
+
+10
+00:00:45,000 --> 00:00:52,000
+Sergente Solomon: Era in gamba. Kuwait City, Tokyo… a Kandahar ci mancò poco.
+
+11
+00:00:52,000 --> 00:00:57,000
+Sergente Solomon: Ci siamo andati vicini diverse volte, ma lui ci anticipava sempre.
+
+12
+00:00:57,000 --> 00:01:04,000
+Sergente Solomon: [SFOR / S4?] riuscì infine a eliminarlo nel nord del Pakistan. È sepolto in una valle sperduta.
+
+13
+00:01:04,000 --> 00:01:07,000
+Interrogatore: Cosa ne pensi del Sergente Kellar?
+
+14
+00:01:07,000 --> 00:01:12,000
+Sergente Solomon: Una testa calda. È completamente fuori controllo.
+
+15
+00:01:12,000 --> 00:01:15,000
+Sergente Solomon: Non sa cosa significhi “danno collaterale”.
+
+16
+00:01:15,000 --> 00:01:17,000
+Interrogatore: Mi parli di Valencio. [Domanda esatta non verificata]
+
+17
+00:01:17,000 --> 00:01:19,000
+Sergente Kellar: Non c'è niente da dire.
+
+18
+00:01:19,000 --> 00:01:23,000
+Sergente Kellar: [Alla nostra squadra fu affidato il compito di eliminarlo / la nostra missione era eliminarlo.] Semplice: entrare e uscire.
+
+19
+00:01:23,000 --> 00:01:25,000
+Sergente Kellar: Dopo l’acciaieria, [tornammo / fummo riportati] allo stato Alpha.
+
+20
+00:01:25,000 --> 00:01:27,000
+Sergente Kellar: Valencio era uno dei quattro obiettivi principali, un capo di Seventh Wave.
+
+21
+00:01:27,000 --> 00:01:28,000
+Sergente Kellar: Era sfuggito alla squadra Charlie, quindi ci mandarono a catturarlo.
+
+22
+00:01:28,000 --> 00:01:30,000
+Sergente Kellar: Secondo i servizi, si era rifugiato in un vecchio manicomio.

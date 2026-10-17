@@ -1,0 +1,67 @@
+1
+00:00:02,000 --> 00:00:05,000
+Valencio: Por favor, por favor, por favor, no lo sé.
+
+2
+00:00:06,000 --> 00:00:08,000
+Sargento Kellar: Piensa en tu esposa y tus hijos.
+
+3
+00:00:08,000 --> 00:00:10,000
+Valencio: ¡No, no tienen nada que ver con esto!
+
+4
+00:00:10,000 --> 00:00:13,000
+Sargento Kellar: Lo harán a menos que me digas dónde está Lennox.
+
+5
+00:00:17,000 --> 00:00:18,500
+Valencio: ¿De dónde sacaste eso?
+
+6
+00:00:18,500 --> 00:00:20,000
+Sargento Kellar: ¡Siéntate!
+
+7
+00:00:21,000 --> 00:00:24,000
+Interrogador: Tu misión era eliminar a Valencio, no torturarlo.
+
+8
+00:00:24,000 --> 00:00:25,000
+Sargento Kellar: ¿Qué está pasando aquí?
+
+9
+00:00:25,000 --> 00:00:30,000
+Interrogador: Responde a la pregunta: ¿Atacaste el astillero basándote en la información de Valencio?
+
+10
+00:00:30,000 --> 00:00:32,000
+Sargento Kellar: Sí.
+
+11
+00:00:32,000 --> 00:00:34,000
+Interrogador: ¿Bajo qué autoridad?
+
+12
+00:00:34,000 --> 00:00:38,000
+Sargento Kellar: El teniente McCarver informó a la División y dieron luz verde a la operación.
+
+13
+00:00:38,000 --> 00:00:43,000
+Interrogador: No, no lo hicieron. Ella nunca lo elevó por la cadena de mando. McCarver llevaba tiempo bajo investigación.
+
+14
+00:00:43,000 --> 00:00:48,000
+Interrogador: Tu misión terminó en la acería. No tenías autoridad para llevar a cabo esa operación.
+
+15
+00:00:49,000 --> 00:00:54,000
+Sargento Kellar: Teníamos un expediente de la División que describía la operación. Mi antiguo equipo entraría primero y apretaría el gatillo.
+
+16
+00:00:54,000 --> 00:00:58,000
+Sargento Kellar: Acompañaba a McCarver y Solomon. Dos equipos, una zona.
+
+17
+00:00:58,000 --> 00:01:02,000
+Sargento Kellar: Lennox era el objetivo.

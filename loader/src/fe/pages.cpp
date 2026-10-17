@@ -27,6 +27,7 @@
 #include "fe/pause_ui.h"
 #include "fe/pc_settings.h"
 #include "fe/vars.h"
+#include "language.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -498,7 +499,7 @@ void add_menu_row(Movie &mv, uint32_t textanim, const std::string &label, const 
 
 void options_row(Movie &mv)
 {
-    add_menu_row(mv, mv.character(27), "PC SETTINGS", "PCSettings_Text", 25.9f, 55, 21, 22); // below the Profile row
+    add_menu_row(mv, mv.character(27), narrow(language::pc_settings_title(g_cfg.active_language)), "PCSettings_Text", 25.9f, 55, 21, 22); // below the Profile row
 
     uint32_t script = mv.main_script();
     for (const char *f : {"PagePrepare", "PageRelease", "PageDestruct", "Update"}) mv.rename_function(script, f, std::string(f) + "0");
@@ -565,28 +566,15 @@ void main_menu_quit(Movie &mv, int textanim, float dy, int reveal, uint32_t bar_
     mv.append_control(mv.main, 0, mv.do_action(a.finish()));
 }
 
+void choice_page(Movie &mv, const std::string &title, const std::vector<RowSpec> &rows, const std::string &back, bool wrap, int page_id);
+
 void pc_menu(Movie &mv)
 {
     const auto &groups = pcset::groups();
-    if (groups.size() != 4) throw Error("the PC SETTINGS menu has four rows");
-    literal(mv, mv.character(18), "PC SETTINGS");
-    const int texts[4] = {14, 11, 8, 5}; // rows top to bottom: ControllerSetup, SoundSetup, PictureSetup, Playerprofile
-    for (int i = 0; i < 4; i++) literal(mv, mv.character(texts[i]), groups[i].title);
-    mv.rename_function(mv.main_script(), "PagePrepare", "PagePrepare0");
-    mv.rename_function(mv.main_script(), "Update", "Update0");
-    Classes classes = own_classes_prepare(mv);
-    Asm a(mv);
-    own_classes_script(a, classes, "pcs");
-    heal_update(a, "controllerButton", classes, "pcs");
-    a.function2("PagePrepare", [&groups](Asm &f) {
-        call_function(f, "PagePrepare0");
-        const char *buttons[4] = {"controllerButton", "soundButton", "pictureButton", "Playerprofile"};
-        for (int i = 0; i < 4; i++) set(f, {buttons[i]}, "actionSelectPage", S(groups[i].page));
-        call(f, {"MyMenu"}, "SetFunctionBack"); // no argument: not Options' own back (save and leave)
-        call(f, {"MyMenu"}, "SetPageBack", {S("OptionsMenuXbox")});
-        f.push_true().ret();
-    });
-    mv.append_control(mv.main, 0, mv.do_action(a.finish()));
+    std::vector<RowSpec> rows;
+    for (int i = 0; i < (int)groups.size(); i++)
+        rows.push_back({RowSpec::Link, i, pcset::group_title(i), "", lower(groups[i].page)});
+    choice_page(mv, narrow(language::pc_settings_title(g_cfg.active_language)), rows, "OptionsMenuXbox", true, 200);
 }
 
 struct Slot {
@@ -1048,14 +1036,14 @@ bool fe_build_pages(const std::wstring &game_dir, const std::wstring &out_root)
     Bytes fe;
     bool main_ok = rebuild(game_dir, L"FEMain.bin", [](Container &c) {
         const Bytes options = movie(c, "optionsmenuxbox"), sound = movie(c, "soundsetupxbox");
-        Movie menu(options);
+        Movie menu(sound);
         pc_menu(menu);
         add_movie(c, "pcsettings", menu.build());
         std::string controls;
         int index = 0;
         for (const pcset::Group &g : pcset::groups()) {
             Movie page(sound);
-            choice_page(page, g.title, group_rows(g, false), "PCSettings", true, index++);
+            choice_page(page, pcset::group_title(index), group_rows(g, false), "PCSettings", true, index++);
             add_movie(c, lower(g.page), page.build());
             for (int n : g.rows)
                 if (pcset::link(n)) controls = g.page;

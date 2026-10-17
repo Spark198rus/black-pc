@@ -1,0 +1,87 @@
+1
+00:00:03,000 --> 00:00:08,000
+Interrogator: I had the opportunity to speak with Sergeant Solomon.
+
+2
+00:00:08,000 --> 00:00:10,000
+Interrogator: Interesting man. Didn't have anything good to say about you.
+
+3
+00:00:10,000 --> 00:00:13,000
+Sgt. Kellar: You're a liar.
+
+4
+00:00:15,000 --> 00:00:23,000
+Sgt. Solomon: When Lennox surfaced after Cairo, rumors spread like a virus.
+
+5
+00:00:23,000 --> 00:00:26,000
+Sgt. Solomon: Division tried to keep it under wraps, but they couldn't.
+
+6
+00:00:26,000 --> 00:00:32,000
+Interrogator: How'd you connect it to Seventh Wave?
+
+7
+00:00:32,000 --> 00:00:37,000
+Sgt. Solomon: After the Miami screwup, my crew was assigned to take him out.
+
+8
+00:00:37,000 --> 00:00:41,000
+Sgt. Solomon: At the time, we didn't know it was Lennox. That all came together afterward.
+
+9
+00:00:41,000 --> 00:00:45,000
+Sgt. Solomon: We never knew if the target was really him or not.
+
+10
+00:00:45,000 --> 00:00:52,000
+Sgt. Solomon: He was good. Kuwait City, Tokyo… almost had a shot in Kandahar.
+
+11
+00:00:52,000 --> 00:00:57,000
+Sgt. Solomon: We came close a few times, but he always got the jump on us.
+
+12
+00:00:57,000 --> 00:01:04,000
+Sgt. Solomon: [SFOR / S4?] finally took him out in northern Pakistan. He's buried in some valley.
+
+13
+00:01:04,000 --> 00:01:07,000
+Interrogator: What's your take on Sergeant Kellar?
+
+14
+00:01:07,000 --> 00:01:12,000
+Sgt. Solomon: Hothead. He's fucking out of control.
+
+15
+00:01:12,000 --> 00:01:15,000
+Sgt. Solomon: The guy doesn't know the meaning of “collateral damage.”
+
+16
+00:01:15,000 --> 00:01:17,000
+Interrogator: Tell me about Valencio. [Exact question unverified]
+
+17
+00:01:17,000 --> 00:01:19,000
+Sgt. Kellar: There's nothing to tell.
+
+18
+00:01:19,000 --> 00:01:23,000
+Sgt. Kellar: [Our team was assigned / our mission was] to take him out. Simple: in and out.
+
+19
+00:01:23,000 --> 00:01:25,000
+Sgt. Kellar: After the steelworks, [we were back / upgraded back] to Alpha status.
+
+20
+00:01:25,000 --> 00:01:27,000
+Sgt. Kellar: Valencio was one of the big four targets, a Seventh Wave boss.
+
+21
+00:01:27,000 --> 00:01:28,000
+Sgt. Kellar: He escaped Team Charlie, so we were sent to bring him in.
+
+22
+00:01:28,000 --> 00:01:30,000
+Sgt. Kellar: Intel said he was holed up in an old asylum.

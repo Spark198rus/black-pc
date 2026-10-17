@@ -1,0 +1,71 @@
+1
+00:00:03,000 --> 00:00:06,000
+Vernehmer: Ihnen wurde ausdrücklich befohlen, die Stellung zu halten. Warum haben Sie es nicht getan?
+
+2
+00:00:08,000 --> 00:00:10,000
+Sergeant Kellar: Team Charlie war ausgeschaltet. Ich wollte den Kerl nicht entkommen lassen.
+
+3
+00:00:15,000 --> 00:00:17,000
+Sergeant Kellar: Das Erdgeschoss war gesichert.
+
+4
+00:00:17,000 --> 00:00:19,000
+Sergeant Kellar: Ich hörte oben jemanden.
+
+5
+00:00:20,000 --> 00:00:22,000
+Sergeant Kellar: Ich machte mich auf den Weg nach oben und da sah ich ihn.
+
+6
+00:00:22,000 --> 00:00:24,000
+Sergeant Kellar: Der vierte Typ? Ja, der vierte Typ.
+
+7
+00:00:26,000 --> 00:00:29,000
+Vernehmer: In Ihrem Einsatzbericht steht, er habe Sie überrascht.
+
+8
+00:00:30,000 --> 00:00:32,000
+Vernehmer: Aber er hat nicht geschossen. Warum?
+
+9
+00:00:32,000 --> 00:00:37,000
+Sergeant Kellar: Er war Amerikaner. Kein Russe, kein Deutscher, kein Tschetschene.
+
+10
+00:00:38,000 --> 00:00:41,000
+Vernehmer: Interessant. Woher wissen Sie das?
+
+11
+00:00:41,000 --> 00:00:42,000
+Sergeant Kellar: Er hat mit mir gesprochen.
+
+12
+00:00:42,000 --> 00:00:44,000
+Vernehmer: Was hat dieser Amerikaner zu Ihnen gesagt?
+
+13
+00:00:45,000 --> 00:00:50,000
+Sergeant Kellar: Ich kann mich nicht erinnern. Ein RPG schlug im Gebäude ein. Danach ist alles wie ausgelöscht.
+
+14
+00:00:51,000 --> 00:00:53,000
+Vernehmer: Was war Ihr nächster Auftrag? Gleich zwei Ziele:
+
+15
+00:00:54,000 --> 00:00:57,000
+Sergeant Kellar: Das Waffenlager und den Stützpunkt von Seventh Wave in Naszran zerstören.
+
+16
+00:00:58,000 --> 00:01:02,000
+Vernehmer: Sie sollten sich auf dem Weg zum Ziel mit Leutnant McCarver treffen?
+
+17
+00:01:02,000 --> 00:01:07,000
+Sergeant Kellar: Ja. Es wäre ein Leichtes gewesen, wenn die Karten und die Informationen zum Grenzübergang nicht veraltet gewesen wären.
+
+18
+00:01:07,000 --> 00:01:10,000
+Sergeant Kellar: Das einzig Richtige daran war die Farm.

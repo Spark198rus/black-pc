@@ -1,0 +1,9 @@
+video,cue_index,review_note
+13_N,5,Valencio attribution inferred from scene context; confirm against cutscene audio.
+13_N,6,Speaker for command inferred from scene context; confirm against cutscene audio.
+13_N,8,Speaker attribution inferred from scene transition; confirm against cutscene audio.
+15_N,1,Speaker attribution inferred from scene context; confirm against cutscene audio.
+15_N,2,Speaker attribution inferred from scene context; confirm against cutscene audio.
+09_N,1,Opening speaker inferred from scene context; confirm against cutscene audio.
+09_N,2,Opening speaker inferred from scene context; confirm against cutscene audio.
+09_N,17,Question inferred from scene context; confirm against cutscene audio.

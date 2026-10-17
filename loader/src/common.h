@@ -76,6 +76,8 @@ struct Config {
     float fov = 70.0f;         // horizontal field of view in play, degrees (fov.cpp; --fov, PC SETTINGS; the game's is 70)
     bool skip_movies = true;   // A / START skip any movie, also unseen ones (input/movies.cpp; --no-movie-skip, PC SETTINGS)
     bool known_build = false;  // the XBE is the NTSC-U build the address tables are for (main.cpp)
+    std::string language = "en";        // saved selection (language = locale id in black.ini)
+    std::string active_language = "en"; // immutable for this process; changes apply next launch
     std::wstring game_override; // --game-override: files there replace the game's of the same relative path
     std::wstring menu_cache;    // the port's rebuilt front-end files (fe/pages.cpp), served like --game-override after it
     bool pc_menus = true;       // build the in-game PC SETTINGS pages (--no-pc-menus: the game's own menus only)

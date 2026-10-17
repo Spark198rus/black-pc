@@ -1,5 +1,8 @@
 # Never commit the game, its assets, or Microsoft XDK code. Users supply their own dump.
 game/
+!localization/
+!localization/game/
+!localization/game/*.jsonl
 *.xbe
 *.iso
 *.xiso
@@ -10,6 +13,7 @@ tools/extract-xiso/
 tools/XbSymbolDatabase/
 tools/ghidra-xbe/
 tools/bin/
+__pycache__/
 
 # Ghidra projects hold the analysed game binary
 ghidra/
@@ -43,3 +47,4 @@ perf/
 dist/
 # The port's rebuilt front-end files (made at start from the user's game files)
 cache/
+/loader/language-banks/

@@ -1,0 +1,71 @@
+1
+00:00:03,000 --> 00:00:06,000
+Interrogador: Você recebeu ordem expressa para manter a posição, mas não obedeceu. Por quê?
+
+2
+00:00:08,000 --> 00:00:10,000
+Sargento Kellar: A equipe Charlie estava fora de combate. Eu não ia deixar aquele homem escapar.
+
+3
+00:00:15,000 --> 00:00:17,000
+Sargento Kellar: O corredor e o primeiro andar estavam livres.
+
+4
+00:00:17,000 --> 00:00:19,000
+Sargento Kellar: Ouvi movimento lá em cima e subi.
+
+5
+00:00:20,000 --> 00:00:22,000
+Sargento Kellar: Foi então que o vi.
+
+6
+00:00:22,000 --> 00:00:24,000
+Sargento Kellar: O quarto homem? Sim, o quarto homem.
+
+7
+00:00:26,000 --> 00:00:29,000
+Interrogador: O relatório pós-ação que você entregou diz que ele pegou você desprevenido.
+
+8
+00:00:30,000 --> 00:00:32,000
+Interrogador: Mas ele não atirou. Por quê?
+
+9
+00:00:32,000 --> 00:00:37,000
+Sargento Kellar: Ele era americano. Não era russo, alemão nem checheno.
+
+10
+00:00:38,000 --> 00:00:41,000
+Interrogador: Interessante. Como você sabia?
+
+11
+00:00:41,000 --> 00:00:42,000
+Sargento Kellar: Ele falou comigo.
+
+12
+00:00:42,000 --> 00:00:44,000
+Interrogador: E o que esse americano disse a você?
+
+13
+00:00:45,000 --> 00:00:50,000
+Sargento Kellar: Não me lembro. O RPG atingiu o prédio. Depois disso, tudo ficou em branco.
+
+14
+00:00:51,000 --> 00:00:53,000
+Interrogador: E qual foi sua próxima missão? Uma operação dupla.
+
+15
+00:00:54,000 --> 00:00:57,000
+Sargento Kellar: Destruir o depósito de armas e a fortaleza da Seventh Wave em Naszran.
+
+16
+00:00:58,000 --> 00:01:02,000
+Interrogador: Você recebeu ordens de se encontrar com a tenente McCarver a caminho do objetivo?
+
+17
+00:01:02,000 --> 00:01:07,000
+Sargento Kellar: Sim. Teria sido fácil se os mapas e as informações sobre a travessia da fronteira estivessem atualizados.
+
+18
+00:01:07,000 --> 00:01:10,000
+Sargento Kellar: A única informação correta era a fazenda.

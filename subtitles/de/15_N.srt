@@ -1,0 +1,51 @@
+1
+00:00:03,000 --> 00:00:05,000
+Sergeant Kellar: Wir haben viele gute Leute verloren.
+
+2
+00:00:05,000 --> 00:00:07,000
+Vernehmer: Kameraden aus der Kampfausbildung, richtig?
+
+3
+00:00:08,000 --> 00:00:11,000
+Vernehmer: Ihr Team wurde nach der Mission zurückbeordert.
+
+4
+00:00:11,000 --> 00:00:14,000
+Vernehmer: McCarver hat Sie umgestimmt?
+
+5
+00:00:15,000 --> 00:00:18,000
+Vernehmer: Sie hatten nichts damit zu tun?
+
+6
+00:00:18,000 --> 00:00:19,000
+Sergeant Kellar: Ja.
+
+7
+00:00:19,000 --> 00:00:21,000
+Sergeant Kellar: Ich meine, nein!
+
+8
+00:00:21,000 --> 00:00:24,000
+Vernehmer: Sie [verarschen] mich. Was denn nun?
+
+9
+00:00:24,000 --> 00:00:27,000
+Sergeant Kellar: Wir waren uns alle einig, Lennox zu verfolgen.
+
+10
+00:00:27,000 --> 00:00:29,000
+Vernehmer: Aber Sergeant Solomon wollte raus.
+
+11
+00:00:29,000 --> 00:00:32,000
+Sergeant Kellar: Er ließ sich leicht überzeugen.
+
+12
+00:00:32,000 --> 00:00:36,000
+Sergeant Kellar: Lennox musste gestoppt werden. Er hat meine Freunde umgebracht.
+
+13
+00:00:36,000 --> 00:00:39,000
+Vernehmer: Was war also der Plan?

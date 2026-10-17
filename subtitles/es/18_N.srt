@@ -1,0 +1,91 @@
+1
+00:00:04,000 --> 00:00:06,000
+Sargento Kellar: Lennox está muerto. Yo lo maté.
+
+2
+00:00:06,000 --> 00:00:09,000
+Sargento Kellar: ¿Sabes lo que me dijo la primera vez que nos vimos?
+
+3
+00:00:09,000 --> 00:00:11,000
+Sargento Kellar: Dijo: “No confíes en ellos”.
+
+4
+00:00:11,000 --> 00:00:14,000
+Sargento Kellar: Yo tampoco creo en las coincidencias.
+
+5
+00:00:14,000 --> 00:00:17,000
+Interrogador: Tenían razón contigo, Kellar.
+
+6
+00:00:17,000 --> 00:00:19,000
+Interrogador: ¿En qué tenían razón?
+
+7
+00:00:19,000 --> 00:00:22,000
+Interrogador: Tu previsibilidad. Hiciste todo lo que los psicólogos dijeron que harías.
+
+8
+00:00:22,000 --> 00:00:25,000
+Sargento Kellar: ¿Qué diablos está pasando aquí?
+
+9
+00:00:25,000 --> 00:00:27,000
+Interrogador: Lennox no está muerto. Está muy vivo.
+
+10
+00:00:27,000 --> 00:00:31,000
+Interrogador: Y gracias al lío que creaste, podemos cazarlo sin que el Congreso nos vigile.
+
+11
+00:00:31,000 --> 00:00:34,000
+Interrogador: Nos has dejado las manos libres.
+
+12
+00:00:34,000 --> 00:00:36,000
+Sargento Kellar: ¿De qué estás hablando?
+
+13
+00:00:36,000 --> 00:00:39,000
+Interrogador: Tienes razón.
+
+14
+00:00:40,000 --> 00:00:43,000
+Interrogador: Nada es una coincidencia, sargento Kellar.
+
+15
+00:00:43,000 --> 00:00:46,000
+Interrogador: Voy a destruir a William Lennox y tú me vas a ayudar.
+
+16
+00:00:46,000 --> 00:00:49,000
+Sargento Kellar: ¿Qué pasa con los cargos? ¿Mi juicio?
+
+17
+00:00:49,000 --> 00:00:53,000
+Interrogador: Morirás en un accidente automovilístico en llamas de camino a la audiencia.
+
+18
+00:00:53,000 --> 00:00:57,000
+Interrogador: En lo que a todos respecta, este fiasco terminará con tu muerte.
+
+19
+00:00:56,000 --> 00:01:00,000
+Interrogador: Lo lograste, sargento. Cruzaste la línea de meta.
+
+20
+00:01:00,000 --> 00:01:06,000
+Interrogador: Hace un tiempo, dijiste que querías matar a Lennox con tantas ganas que podías saborearlo.
+
+21
+00:01:06,000 --> 00:01:10,000
+Interrogador: ¿Todavía puedes saborearlo, sargento Kellar?
+
+22
+00:01:10,000 --> 00:01:12,000
+Sargento Kellar: Sí.
+
+23
+00:01:12,000 --> 00:01:16,000
+Interrogador: Entonces comencemos.

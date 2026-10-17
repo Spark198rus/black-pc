@@ -1,0 +1,91 @@
+1
+00:00:04,000 --> 00:00:06,000
+Sergent Kellar: Lennox est mort. Je l'ai tué.
+
+2
+00:00:06,000 --> 00:00:09,000
+Sergent Kellar: Vous savez ce qu'il m'a dit la première fois que nous nous sommes rencontrés ?
+
+3
+00:00:09,000 --> 00:00:11,000
+Sergent Kellar: Il a dit : « Ne leur faites pas confiance. »
+
+4
+00:00:11,000 --> 00:00:14,000
+Sergent Kellar: Je ne crois pas non plus aux coïncidences.
+
+5
+00:00:14,000 --> 00:00:17,000
+Interrogateur: Ils avaient raison à votre sujet, Kellar.
+
+6
+00:00:17,000 --> 00:00:19,000
+Interrogateur: Raison à quel sujet ?
+
+7
+00:00:19,000 --> 00:00:22,000
+Interrogateur: Votre prévisibilité. Vous avez fait tout ce que les psychologues avaient prédit.
+
+8
+00:00:22,000 --> 00:00:25,000
+Sergent Kellar: Qu'est-ce qui se passe, bon sang ?
+
+9
+00:00:25,000 --> 00:00:27,000
+Interrogateur: Lennox n'est pas mort. Il est bien vivant.
+
+10
+00:00:27,000 --> 00:00:31,000
+Interrogateur: Et grâce au désordre que vous avez créé, nous pouvons le traquer sans que le Congrès nous tombe dessus.
+
+11
+00:00:31,000 --> 00:00:34,000
+Interrogateur: Vous nous avez délié les mains.
+
+12
+00:00:34,000 --> 00:00:36,000
+Sergent Kellar: De quoi parlez-vous ?
+
+13
+00:00:36,000 --> 00:00:39,000
+Interrogateur: Vous avez raison.
+
+14
+00:00:40,000 --> 00:00:43,000
+Interrogateur: Rien n'est une coïncidence, sergent Kellar.
+
+15
+00:00:43,000 --> 00:00:46,000
+Interrogateur: Je vais détruire William Lennox et vous allez m'aider.
+
+16
+00:00:46,000 --> 00:00:49,000
+Sergent Kellar: Et les accusations ? Mon procès ?
+
+17
+00:00:49,000 --> 00:00:53,000
+Interrogateur: Vous mourrez dans un accident de voiture en flammes, en route vers l'audience.
+
+18
+00:00:53,000 --> 00:00:57,000
+Interrogateur: Aux yeux de tous, cette débâcle se terminera par votre mort.
+
+19
+00:00:56,000 --> 00:01:00,000
+Interrogateur: Vous avez réussi, sergent. Vous avez franchi la ligne d'arrivée.
+
+20
+00:01:00,000 --> 00:01:06,000
+Interrogateur: Il y a quelque temps, vous avez dit que vous vouliez tellement tuer Lennox que vous en aviez le goût dans la bouche.
+
+21
+00:01:06,000 --> 00:01:10,000
+Interrogateur: En avez-vous encore le goût, sergent Kellar ?
+
+22
+00:01:10,000 --> 00:01:12,000
+Sergent Kellar: Oui.
+
+23
+00:01:12,000 --> 00:01:16,000
+Interrogateur: Alors commençons.

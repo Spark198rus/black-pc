@@ -1,0 +1,87 @@
+1
+00:00:03,000 --> 00:00:08,000
+Interrogateur: J'ai eu l'occasion de parler avec le sergent Solomon.
+
+2
+00:00:08,000 --> 00:00:10,000
+Interrogateur: Un homme intéressant. Il n'avait rien de bon à dire sur vous.
+
+3
+00:00:10,000 --> 00:00:13,000
+Sergent Kellar: Vous êtes un menteur.
+
+4
+00:00:15,000 --> 00:00:23,000
+Sergent Solomon: Après la réapparition de Lennox au Caire, les rumeurs se sont propagées comme un virus.
+
+5
+00:00:23,000 --> 00:00:26,000
+Sergent Solomon: La Division a tenté d'étouffer l'affaire, sans y parvenir.
+
+6
+00:00:26,000 --> 00:00:32,000
+Interrogateur: Comment avez-vous fait le lien avec la Septième Vague ?
+
+7
+00:00:32,000 --> 00:00:37,000
+Sergent Solomon: Après le fiasco de Miami, mon équipe a été chargée de l'éliminer.
+
+8
+00:00:37,000 --> 00:00:41,000
+Sergent Solomon: À l'époque, nous ne savions pas que c'était Lennox. Tout s'est éclairci par la suite.
+
+9
+00:00:41,000 --> 00:00:45,000
+Sergent Solomon: Nous n'avons jamais su si la cible était vraiment lui ou non.
+
+10
+00:00:45,000 --> 00:00:52,000
+Sergent Solomon: Il était doué. Koweït City, Tokyo… On a presque réussi à l'avoir à Kandahar.
+
+11
+00:00:52,000 --> 00:00:57,000
+Sergent Solomon: Nous avons failli l'avoir plusieurs fois, mais il nous prenait toujours de vitesse.
+
+12
+00:00:57,000 --> 00:01:04,000
+Sergent Solomon: [SFOR / S4?] l'a finalement éliminé dans le nord du Pakistan. Il est enterré dans une vallée.
+
+13
+00:01:04,000 --> 00:01:07,000
+Interrogateur: Que pensez-vous du sergent Kellar ?
+
+14
+00:01:07,000 --> 00:01:12,000
+Sergent Solomon: Une tête brûlée. Il est complètement incontrôlable.
+
+15
+00:01:12,000 --> 00:01:15,000
+Sergent Solomon: Ce type ignore complètement ce que signifie « dommages collatéraux ».
+
+16
+00:01:15,000 --> 00:01:17,000
+Interrogateur: Parlez-moi de Valencio. [Question exacte non vérifiée]
+
+17
+00:01:17,000 --> 00:01:19,000
+Sergent Kellar: Il n'y a rien à dire.
+
+18
+00:01:19,000 --> 00:01:23,000
+Sergent Kellar: [Notre équipe avait reçu l'ordre / notre mission consistait] à l'éliminer. Simple : entrer et sortir.
+
+19
+00:01:23,000 --> 00:01:25,000
+Sergent Kellar: Après l'aciérie, [nous étions revenus / nous avions été reclassés] au statut Alpha.
+
+20
+00:01:25,000 --> 00:01:27,000
+Sergent Kellar: Valencio était l'une des quatre cibles majeures, un chef de la Septième Vague.
+
+21
+00:01:27,000 --> 00:01:28,000
+Sergent Kellar: Il a échappé à l'équipe Charlie, alors on nous a envoyés le capturer.
+
+22
+00:01:28,000 --> 00:01:30,000
+Sergent Kellar: Les renseignements disaient qu'il s'était retranché dans un ancien asile.

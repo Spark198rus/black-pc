@@ -1,0 +1,71 @@
+1
+00:00:03,000 --> 00:00:06,000
+Interrogador: Te dijeron específicamente que esperaras, pero no lo hiciste. ¿Por qué?
+
+2
+00:00:08,000 --> 00:00:10,000
+Sargento Kellar: El equipo Charlie había caído. No iba a dejar escapar a ese tipo.
+
+3
+00:00:15,000 --> 00:00:17,000
+Sargento Kellar: La primera planta estaba despejada.
+
+4
+00:00:17,000 --> 00:00:19,000
+Sargento Kellar: Escuché movimiento arriba.
+
+5
+00:00:20,000 --> 00:00:22,000
+Sargento Kellar: Subí y fue entonces cuando lo vi.
+
+6
+00:00:22,000 --> 00:00:24,000
+Sargento Kellar: ¿El cuarto hombre? Sí, el cuarto hombre.
+
+7
+00:00:26,000 --> 00:00:29,000
+Interrogador: En el informe posterior a la misión consta que te tomó por sorpresa.
+
+8
+00:00:30,000 --> 00:00:32,000
+Interrogador: Pero no disparó. ¿Por qué?
+
+9
+00:00:32,000 --> 00:00:37,000
+Sargento Kellar: Era estadounidense. Ni ruso, ni alemán, ni checheno.
+
+10
+00:00:38,000 --> 00:00:41,000
+Interrogador: Interesante. ¿Cómo sabes eso?
+
+11
+00:00:41,000 --> 00:00:42,000
+Sargento Kellar: Me habló.
+
+12
+00:00:42,000 --> 00:00:44,000
+Interrogador: ¿Qué te dijo este americano?
+
+13
+00:00:45,000 --> 00:00:50,000
+Sargento Kellar: No lo recuerdo. Un cohete RPG alcanzó el edificio. Después, no recuerdo nada.
+
+14
+00:00:51,000 --> 00:00:53,000
+Interrogador: ¿Cuál fue tu siguiente misión? Una misión doble:
+
+15
+00:00:54,000 --> 00:00:57,000
+Sargento Kellar: Destruir el alijo de armas y el bastión de la Séptima Ola en Naszran.
+
+16
+00:00:58,000 --> 00:01:02,000
+Interrogador: ¿Te ordenaron reunirte con el teniente McCarver de camino al objetivo?
+
+17
+00:01:02,000 --> 00:01:07,000
+Sargento Kellar: Sí. Habría sido fácil si los mapas y los datos del cruce fronterizo no hubieran estado desactualizados.
+
+18
+00:01:07,000 --> 00:01:10,000
+Sargento Kellar: Lo único correcto era la granja.

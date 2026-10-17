@@ -1,0 +1,103 @@
+1
+00:00:04,000 --> 00:00:07,000
+Interrogador: ¿Cómo supiste que MacCarver tenía información sobre el estadounidense?
+
+2
+00:00:10,000 --> 00:00:14,000
+Teniente MacCarver: Kellar empezó a acribillarme a preguntas sobre la Séptima Ola. Le dije lo que sabía.
+
+3
+00:00:15,000 --> 00:00:16,000
+Interrogador: ¿Y eso qué fue?
+
+4
+00:00:16,000 --> 00:00:23,000
+Teniente MacCarver: Sobre todo rumores. Se decía que un estadounidense dirigía campos de entrenamiento en Afganistán y que un grupo guerrillero filipino tenía un asesor estadounidense.
+
+5
+00:00:24,000 --> 00:00:26,000
+Teniente MacCarver: Ya sabes, historias como esa.
+
+6
+00:00:26,000 --> 00:00:27,000
+Interrogador: ¿Y les creíste?
+
+7
+00:00:27,000 --> 00:00:30,000
+Teniente MacCarver: Al principio, no. Pero luego las lagunas empezaron a llenarse.
+
+8
+00:00:30,000 --> 00:00:32,000
+Interrogador: ¿Qué espacios en blanco?
+
+9
+00:00:32,000 --> 00:00:34,000
+Teniente MacCarver: Operación Cleopatra.
+
+10
+00:00:34,000 --> 00:00:38,000
+Teniente MacCarver: La primera vez que escuché el nombre de William Lennox fue cuando me destinaron a Langley.
+
+11
+00:00:38,000 --> 00:00:42,000
+Teniente MacCarver: Lennox era especialista en asesinatos encubiertos. Asesino.
+
+12
+00:00:42,000 --> 00:00:46,000
+Teniente MacCarver: Cleopatra estaba destinada a evitar un atentado terrorista en el centro de El Cairo.
+
+13
+00:00:46,000 --> 00:00:48,000
+Teniente MacCarver: Fue un desastre.
+
+14
+00:00:48,000 --> 00:00:53,000
+Teniente MacCarver: La bomba explotó y mató a mucha gente, incluido Lennox; al menos, eso creía la División.
+
+15
+00:00:54,000 --> 00:00:57,000
+Teniente MacCarver: Tres meses después, apareció en Moscú.
+
+16
+00:00:57,000 --> 00:00:59,000
+Teniente MacCarver: Dos semanas después, en Seúl.
+
+17
+00:00:59,000 --> 00:01:01,000
+Teniente MacCarver: Luego Belgrado, Belfast, Londres… siempre un paso por delante.
+
+18
+00:01:01,000 --> 00:01:05,000
+Interrogador: ¿Y crees que Lennox está conectado con la Séptima Ola?
+
+19
+00:01:05,000 --> 00:01:09,000
+Teniente MacCarver: ¿Conectado? Él empezó todo.
+
+20
+00:01:13,000 --> 00:01:15,000
+Interrogador: A MacCarver la trajeron ayer.
+
+21
+00:01:15,000 --> 00:01:18,000
+Interrogador: Entonces, ¿cómo supiste que tenía información sobre el estadounidense?
+
+22
+00:01:18,000 --> 00:01:23,000
+Sargento Kellar: El sargento Solomon estaba en nuestra unidad y me avisó. Coincidencia, nada más.
+
+23
+00:01:23,000 --> 00:01:25,000
+Interrogador: No creo en las coincidencias.
+
+24
+00:01:25,000 --> 00:01:27,000
+Interrogador: [¿Cuáles fueron tus misiones para la siguiente operación?]
+
+25
+00:01:27,000 --> 00:01:35,000
+Sargento Kellar: McCarver quería un eje de avance por el este. El plan era cruzar el cementerio en las afueras de Naszran y atacar la planta siderúrgica del otro lado.
+
+26
+00:01:35,000 --> 00:01:39,000
+Sargento Kellar: Estábamos a menos de un kilómetro cuando nos atacaron.

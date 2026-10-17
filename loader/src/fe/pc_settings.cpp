@@ -11,6 +11,7 @@
 #include "fe/vars.h"
 #include "fov.h"
 #include "input/autoaim.h"
+#include "language.h"
 #include "settings.h"
 
 #include <algorithm>
@@ -135,9 +136,16 @@ const Row kRows[] = {
      [](int i) { g_cfg.mouse_sens = 0.25f * (i + 1); }, [](int i) { return number(0.25f * (i + 1), L"%.2f"); }, true},
     {"INVERT MOUSE", 2, [] { return (int)g_cfg.mouse_invert; }, [](int i) { g_cfg.mouse_invert = i != 0; }, [](int i) { return on_off(i); }},
     {"KEY BINDINGS", 1, [] { return 0; }, [](int) {}, [](int) { return std::wstring(); }}, // opens the bindings page
+    {"LANGUAGE", language::locale_count(), [] { return language::locale_index(g_cfg.language); },
+     [](int i) { g_cfg.language = language::locale_id(i); }, [](int i) {
+         std::wstring selected = language::display_name(i);
+         if (g_cfg.language != g_cfg.active_language) selected += L" (NEXT START)";
+         return selected;
+     }},
 };
 constexpr int kRowN = sizeof kRows / sizeof kRows[0];
 constexpr int kKeyBindings = 15;
+constexpr int kLanguageRow = 16;
 
 } // namespace
 
@@ -148,12 +156,19 @@ const std::vector<Group> &groups()
         {"PCDisplay", "DISPLAY", {6, 7, 8, 9}},
         {"PCGame", "AUDIO AND GAME", {10, 11, 12}},
         {"PCControls", "CONTROLS", {13, 14, kKeyBindings}},
+        {"PCLanguage", "LANGUAGE", {kLanguageRow}},
     };
     return g;
 }
 
+const char *group_title(int n) { return language::group_title(n, g_cfg.active_language); }
+
 int count() { return kRowN; }
-const char *label(int n) { return n >= 0 && n < kRowN ? kRows[n].label : ""; }
+const char *label(int n)
+{
+    if (n == kLanguageRow) return language::language_row_caption(g_cfg.active_language);
+    return n >= 0 && n < kRowN ? kRows[n].label : "";
+}
 
 std::wstring value(int n)
 {
@@ -177,7 +192,7 @@ void step(int n, int dir)
 
 bool is_slider(int n) { return n >= 0 && n < kRowN && kRows[n].slider; }
 
-bool restart_only(int n) { return n == 6 || n == 7; } // aspect ratio, frame rate: read by the game at boot
+bool restart_only(int n) { return n == 6 || n == 7 || n == kLanguageRow; } // boot-time settings stay out of pause menu
 
 const char *link(int n) { return n == kKeyBindings ? "PCBindings" : nullptr; }
 

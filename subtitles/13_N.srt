@@ -1,0 +1,67 @@
+1
+00:00:02,000 --> 00:00:05,000
+Valencio: Please, please, please, I don't know.
+
+2
+00:00:06,000 --> 00:00:08,000
+Sgt. Kellar: Think of your wife and children.
+
+3
+00:00:08,000 --> 00:00:10,000
+Valencio: No, they have nothing to do with this!
+
+4
+00:00:10,000 --> 00:00:13,000
+Sgt. Kellar: They will unless you tell me where Lennox is.
+
+5
+00:00:17,000 --> 00:00:18,500
+Valencio: Where did you get that?
+
+6
+00:00:18,500 --> 00:00:20,000
+Sgt. Kellar: Sit down!
+
+7
+00:00:21,000 --> 00:00:24,000
+Interrogator: Your mission was to take out Valencio, not torture him.
+
+8
+00:00:24,000 --> 00:00:25,000
+Sgt. Kellar: What's going on here?
+
+9
+00:00:25,000 --> 00:00:30,000
+Interrogator: Just answer the question: did you hit the dockyard based on Valencio's information?
+
+10
+00:00:30,000 --> 00:00:32,000
+Sgt. Kellar: Yes.
+
+11
+00:00:32,000 --> 00:00:34,000
+Interrogator: Under what authority?
+
+12
+00:00:34,000 --> 00:00:38,000
+Sgt. Kellar: Lieutenant McCarver briefed the Division, and they greenlit the operation.
+
+13
+00:00:38,000 --> 00:00:43,000
+Interrogator: No, they did not. She never went up the chain. McCarver had been under investigation for some time.
+
+14
+00:00:43,000 --> 00:00:48,000
+Interrogator: Your mission ended at the steelworks. You had no authority to execute that operation.
+
+15
+00:00:49,000 --> 00:00:54,000
+Sgt. Kellar: We had a Division docket that outlined the operation. My former team would go in first and pull the trigger.
+
+16
+00:00:54,000 --> 00:00:58,000
+Sgt. Kellar: I was riding shotgun with McCarver and Solomon. Two teams, one area.
+
+17
+00:00:58,000 --> 00:01:02,000
+Sgt. Kellar: Lennox was the target.

@@ -1,0 +1,51 @@
+1
+00:00:03,000 --> 00:00:05,000
+Sergent Kellar: Nous avons perdu beaucoup de bonnes personnes.
+
+2
+00:00:05,000 --> 00:00:07,000
+Interrogateur: Des camarades de l'école de combat, n'est-ce pas ?
+
+3
+00:00:08,000 --> 00:00:11,000
+Interrogateur: Votre équipe a reçu l'ordre de rentrer après la mission.
+
+4
+00:00:11,000 --> 00:00:14,000
+Interrogateur: McCarver vous a convaincu du contraire ?
+
+5
+00:00:15,000 --> 00:00:18,000
+Interrogateur: Vous n'y étiez pour rien ?
+
+6
+00:00:18,000 --> 00:00:19,000
+Sergent Kellar: Oui.
+
+7
+00:00:19,000 --> 00:00:21,000
+Sergent Kellar: Je veux dire, non !
+
+8
+00:00:21,000 --> 00:00:24,000
+Interrogateur: [Vous vous foutez de moi ? Alors, c'est oui ou non ?]
+
+9
+00:00:24,000 --> 00:00:27,000
+Sergent Kellar: Nous avons tous convenu de nous en prendre à Lennox.
+
+10
+00:00:27,000 --> 00:00:29,000
+Interrogateur: Mais le sergent Solomon voulait se retirer.
+
+11
+00:00:29,000 --> 00:00:32,000
+Sergent Kellar: Il n'a pas eu besoin d'être beaucoup convaincu.
+
+12
+00:00:32,000 --> 00:00:36,000
+Sergent Kellar: Il fallait arrêter Lennox. Il a abattu mes amis.
+
+13
+00:00:36,000 --> 00:00:39,000
+Interrogateur: Alors, quel était le plan ?

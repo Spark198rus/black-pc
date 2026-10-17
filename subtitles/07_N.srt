@@ -1,0 +1,103 @@
+1
+00:00:04,000 --> 00:00:07,000
+Interrogator: How did you know MacCarver had information on the American?
+
+2
+00:00:10,000 --> 00:00:14,000
+Lt. MacCarver: Kellar started grilling me on Seventh Wave. I told him what I knew.
+
+3
+00:00:15,000 --> 00:00:16,000
+Interrogator: And what was that?
+
+4
+00:00:16,000 --> 00:00:23,000
+Lt. MacCarver: Rumors, mostly. There was talk of an American running training camps in Afghanistan, a freelance guerrilla group in the Philippines with an American advisor.
+
+5
+00:00:24,000 --> 00:00:26,000
+Lt. MacCarver: You know, stories like that.
+
+6
+00:00:26,000 --> 00:00:27,000
+Interrogator: And you believed them?
+
+7
+00:00:27,000 --> 00:00:30,000
+Lt. MacCarver: Not at first. But then the blanks started filling in.
+
+8
+00:00:30,000 --> 00:00:32,000
+Interrogator: What blanks?
+
+9
+00:00:32,000 --> 00:00:34,000
+Lt. MacCarver: Operation Cleopatra.
+
+10
+00:00:34,000 --> 00:00:38,000
+Lt. MacCarver: The first time I heard the name William Lennox was when I was posted in Langley.
+
+11
+00:00:38,000 --> 00:00:42,000
+Lt. MacCarver: Lennox was a wetworks specialist. An assassin.
+
+12
+00:00:42,000 --> 00:00:46,000
+Lt. MacCarver: Cleopatra was meant to prevent a terrorist bombing in the center of Cairo.
+
+13
+00:00:46,000 --> 00:00:48,000
+Lt. MacCarver: It was a disaster.
+
+14
+00:00:48,000 --> 00:00:53,000
+Lt. MacCarver: The bomb exploded, killed a lot of people, including Lennox—at least, that was what Division thought.
+
+15
+00:00:54,000 --> 00:00:57,000
+Lt. MacCarver: Three months later, he turned up in Moscow.
+
+16
+00:00:57,000 --> 00:00:59,000
+Lt. MacCarver: Two weeks after, in Seoul.
+
+17
+00:00:59,000 --> 00:01:01,000
+Lt. MacCarver: Then Belgrade, Belfast, London… always one step ahead.
+
+18
+00:01:01,000 --> 00:01:05,000
+Interrogator: And you think Lennox is connected to Seventh Wave?
+
+19
+00:01:05,000 --> 00:01:09,000
+Lt. MacCarver: Connected? He started the whole thing.
+
+20
+00:01:13,000 --> 00:01:15,000
+Interrogator: MacCarver was brought in yesterday.
+
+21
+00:01:15,000 --> 00:01:18,000
+Interrogator: So how did you know she had information on the American?
+
+22
+00:01:18,000 --> 00:01:23,000
+Sgt. Kellar: Sergeant Solomon was in our unit, tipped me off. Coincidence, that's all.
+
+23
+00:01:23,000 --> 00:01:25,000
+Interrogator: I don't believe in coincidence.
+
+24
+00:01:25,000 --> 00:01:27,000
+Interrogator: [What were your missions for the next operation?]
+
+25
+00:01:27,000 --> 00:01:35,000
+Sgt. Kellar: McCarver wanted an axis of advance from the east. The plan was to cross the cemetery on the edge of Naszran and hit the steel plant on the far side.
+
+26
+00:01:35,000 --> 00:01:39,000
+Sgt. Kellar: We were less than a click away when we got hit.

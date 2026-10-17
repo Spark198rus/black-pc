@@ -127,9 +127,12 @@ NTSTATUS resolve(HANDLE root, const XANSI_STRING *name, Resolved &r)
     for (char &c : rest)
         if (c == '/') c = '\\';
     r.host_nt = L"\\??\\" + best->host + widen(rest);
-    // --game-override, then the port's rebuilt menus: a file of the same relative path there replaces the game's
-    if (best->partition == -1 && !rest.empty())
-        for (const std::wstring *root : {&g_cfg.game_override, &g_cfg.menu_cache}) {
+    // User overrides win, then the selected locale's generated bank, then rebuilt menus, then the base game.
+    if (best->partition == -1 && !rest.empty()) {
+        std::wstring language_root;
+        if (g_cfg.active_language != "en")
+            language_root = g_cfg.port_dir + L"\\language-banks\\" + widen(g_cfg.active_language);
+        for (const std::wstring *root : {&g_cfg.game_override, &language_root, &g_cfg.menu_cache}) {
             if (root->empty()) continue;
             std::wstring alt = full_path(*root) + widen(rest);
             DWORD a = GetFileAttributesW(alt.c_str());
@@ -140,6 +143,7 @@ NTSTATUS resolve(HANDLE root, const XANSI_STRING *name, Resolved &r)
                 break;
             }
         }
+    }
     return XSTATUS_SUCCESS;
 }
 

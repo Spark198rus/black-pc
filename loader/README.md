@@ -59,6 +59,23 @@ display's refresh (smooth frame delivery); `--timer-vblank` uses a fixed 59.94 H
 one CPU like the Xbox (the last physical core, its hyperthread sibling kept free); `--game-cpu N` picks another. On weak
 PCs (old laptops with Intel graphics) play at 30 fps (Video > Frame rate), the game's original rate.
 
+The main-menu PC SETTINGS page also has a LANGUAGES category (English, Brazilian Portuguese, Spanish, French, German,
+Italian). A selection is saved in `black.ini` and applied on the next launch. Generate the local locale banks from your
+own English game bank from this project root (replace `es` with `pt-BR`, `fr`, `de`, or `it`):
+
+```
+python tools\build_language_bank.py --base "path\to\your\game\language\strings\MainUS.bin" --catalog-root . --locale es --output work\run\language-banks\es
+```
+
+The command above writes the bank beside the executable copied to `work\run`. If you launch the build output directly
+instead, set `--output` to `loader\build\win32\RelWithDebInfo\language-banks\es` (or the corresponding locale).
+The localized bank is written below the port executable's folder, under `language-banks\<locale>\language\strings\`;
+the original game bank is never replaced. Explicit `--game-override` files keep precedence over the selected locale, and
+rebuilt menus continue to use the menu cache. Portuguese uses its pinned SHA-256 English base and falls back to English
+for untranslated entries. Spanish, French, German, and Italian catalogs are drafts pending native review. SRT sources
+for nine spoken cuts are included in `subtitles/`; timed display is not enabled until an advancing XMV playback clock is
+verified.
+
 Controls: every PC controller drives the Xbox pad on port 0. Keys and mouse buttons are bound to the game's actions
 (`src/input/bindings.cpp`; KEY BINDINGS page, `key_<action> = Key[,Key]` in black.ini): each poll a held key looks
 up its action in the game's live binding table and presses the pad input the game reads for it, so the keys follow

@@ -1,0 +1,67 @@
+1
+00:00:02,000 --> 00:00:05,000
+Valencio: Bitte, bitte, bitte, ich weiß es nicht.
+
+2
+00:00:06,000 --> 00:00:08,000
+Sergeant Kellar: Denken Sie an Ihre Frau und Ihre Kinder.
+
+3
+00:00:08,000 --> 00:00:10,000
+Valencio: Nein, sie haben nichts damit zu tun!
+
+4
+00:00:10,000 --> 00:00:13,000
+Sergeant Kellar: Das werden sie, wenn Sie mir nicht sagen, wo Lennox ist.
+
+5
+00:00:17,000 --> 00:00:18,500
+Valencio: Woher hast du das?
+
+6
+00:00:18,500 --> 00:00:20,000
+Sergeant Kellar: Setzen Sie sich!
+
+7
+00:00:21,000 --> 00:00:24,000
+Vernehmer: Ihr Auftrag war, Valencio auszuschalten, nicht ihn zu foltern.
+
+8
+00:00:24,000 --> 00:00:25,000
+Sergeant Kellar: Was ist hier los?
+
+9
+00:00:25,000 --> 00:00:30,000
+Vernehmer: Beantworten Sie einfach die Frage: Haben Sie aufgrund von Valencios Informationen den Hafen angegriffen?
+
+10
+00:00:30,000 --> 00:00:32,000
+Sergeant Kellar: Ja.
+
+11
+00:00:32,000 --> 00:00:34,000
+Vernehmer: Mit welcher Befugnis?
+
+12
+00:00:34,000 --> 00:00:38,000
+Sergeant Kellar: Leutnant McCarver unterrichtete die Division, und sie gab grünes Licht für den Einsatz.
+
+13
+00:00:38,000 --> 00:00:43,000
+Vernehmer: Nein, das hat sie nicht. Sie hat den Dienstweg nie eingehalten. Gegen McCarver wurde schon länger ermittelt.
+
+14
+00:00:43,000 --> 00:00:48,000
+Vernehmer: Ihr Auftrag endete am Stahlwerk. Sie waren nicht befugt, diesen Einsatz durchzuführen.
+
+15
+00:00:49,000 --> 00:00:54,000
+Sergeant Kellar: Wir hatten einen Einsatzbefehl der Division, der den Plan vorgab. Mein früheres Team sollte zuerst hineingehen und den Angriff eröffnen.
+
+16
+00:00:54,000 --> 00:00:58,000
+Sergeant Kellar: Ich fuhr mit McCarver und Solomon als Begleitschutz. Zwei Teams, ein Gebiet.
+
+17
+00:00:58,000 --> 00:01:02,000
+Sergeant Kellar: Lennox war das Ziel.

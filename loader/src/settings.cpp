@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "input/bindings.h"
+#include "language.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -27,7 +28,11 @@ void settings_load()
 {
     if (g_cfg.background) return;
     FILE *f = nullptr;
-    if (_wfopen_s(&f, ini_file().c_str(), L"r") || !f) return;
+    if (_wfopen_s(&f, ini_file().c_str(), L"r") || !f) {
+        g_cfg.language = language::normalize(g_cfg.language);
+        g_cfg.active_language = g_cfg.language;
+        return;
+    }
     char line[256];
     while (fgets(line, sizeof line, f)) {
         char key[64] = "", val[128] = "";
@@ -55,11 +60,14 @@ void settings_load()
         else if (k == "autoaim") g_cfg.autoaim = v != 0;
         else if (k == "fov") g_cfg.fov = std::clamp(v, 50.0f, 120.0f);
         else if (k == "skipanymovie") g_cfg.skip_movies = v != 0;
+        else if (k == "language") g_cfg.language = language::normalize(val);
         else if (k == "reverb") g_cfg.reverb = v != 0;
         else if (k == "reverb_gain") g_cfg.reverb_gain = std::clamp(v, 0.0f, 8.0f);
         else bindings::load_ini(k.c_str(), val); // key_<action> = Key[,Key]
     }
     fclose(f);
+    g_cfg.language = language::normalize(g_cfg.language);
+    g_cfg.active_language = g_cfg.language;
 }
 
 void settings_save()
@@ -82,6 +90,7 @@ void settings_save()
     fprintf(f, "autoaim = %d\n", g_cfg.autoaim ? 1 : 0);
     fprintf(f, "fov = %.1f\n", g_cfg.fov);
     fprintf(f, "skipanymovie = %d\n", g_cfg.skip_movies ? 1 : 0);
+    fprintf(f, "language = %s\n", language::normalize(g_cfg.language).c_str());
     fprintf(f, "seamfill = %d\n", g_cfg.seam_fill ? 1 : 0);
     fprintf(f, "effectsnative = %d\n", g_cfg.effects_native ? 1 : 0);
     bindings::save_ini(f);

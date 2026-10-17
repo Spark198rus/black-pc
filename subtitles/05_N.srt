@@ -1,0 +1,71 @@
+1
+00:00:03,000 --> 00:00:06,000
+Interrogator: You were specifically told to hold, but you didn't. Why?
+
+2
+00:00:08,000 --> 00:00:10,000
+Sgt. Kellar: Charlie team was down. I wasn't gonna let this guy get away.
+
+3
+00:00:15,000 --> 00:00:17,000
+Sgt. Kellar: The first floor was clear.
+
+4
+00:00:17,000 --> 00:00:19,000
+Sgt. Kellar: I heard movement above.
+
+5
+00:00:20,000 --> 00:00:22,000
+Sgt. Kellar: I made my way up, and that's when I saw him.
+
+6
+00:00:22,000 --> 00:00:24,000
+Sgt. Kellar: The fourth guy? Yeah, the fourth guy.
+
+7
+00:00:26,000 --> 00:00:29,000
+Interrogator: The after-action report you filed states he got the drop on you.
+
+8
+00:00:30,000 --> 00:00:32,000
+Interrogator: But he didn't fire. Why?
+
+9
+00:00:32,000 --> 00:00:37,000
+Sgt. Kellar: He was American. Not Russian, not German, not Chechen.
+
+10
+00:00:38,000 --> 00:00:41,000
+Interrogator: Interesting. How do you know that?
+
+11
+00:00:41,000 --> 00:00:42,000
+Sgt. Kellar: He spoke to me.
+
+12
+00:00:42,000 --> 00:00:44,000
+Interrogator: What did this American say to you?
+
+13
+00:00:45,000 --> 00:00:50,000
+Sgt. Kellar: I can't remember. An RPG hit the building. Everything's blank after that.
+
+14
+00:00:51,000 --> 00:00:53,000
+Interrogator: What was your next assignment? A double-header:
+
+15
+00:00:54,000 --> 00:00:57,000
+Sgt. Kellar: Destroy the Seventh Wave weapons cache and stronghold at Naszran.
+
+16
+00:00:58,000 --> 00:01:02,000
+Interrogator: You were ordered to RV with Lieutenant McCarver en route to the objective?
+
+17
+00:01:02,000 --> 00:01:07,000
+Sgt. Kellar: Yes. It would've been easy if the maps and the intel on the border crossing weren't out of date.
+
+18
+00:01:07,000 --> 00:01:10,000
+Sgt. Kellar: The only thing right about it was the farm.

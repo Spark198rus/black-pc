@@ -15,6 +15,7 @@ const std::vector<Group> &groups();
 
 int count();                        // rows; row n shows its value in &PC_V<n> (fe/vars.h)
 const char *label(int n);           // the row's caption
+const char *group_title(int n);     // current-session localized group caption
 void step(int n, int dir);          // left (-1) / right (+1): the next choice, applied and saved
 std::wstring value(int n);          // the current choice as shown
 void fill_page(int group);          // a group's page is up: its rows' values into the page's values (fe/vars.h)

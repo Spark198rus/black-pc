@@ -404,6 +404,15 @@ int run(void *reserve, unsigned reserve_size)
     g_exit_event = CreateEventW(nullptr, TRUE, FALSE, nullptr);
     logc("BLACK loader " BLACK_VERSION " (blackrt) - XBE %s, hdd %s, log %s%s%s", narrow(g_cfg.xbe_path).c_str(), narrow(g_cfg.hdd_dir).c_str(),
          narrow(g_cfg.log_path).c_str(), g_cfg.trace ? ", trace" : "", g_cfg.strict ? ", strict" : "");
+    if (g_cfg.active_language == "en") logc("language: English (default)");
+    else {
+        const std::wstring bank = g_cfg.port_dir + L"\\language-banks\\" + widen(g_cfg.active_language) + L"\\language\\strings\\MainUS.bin";
+        const DWORD attr = GetFileAttributesW(bank.c_str());
+        if (attr == INVALID_FILE_ATTRIBUTES || (attr & FILE_ATTRIBUTE_DIRECTORY))
+            logc("language: %s selected, but generated MainUS.bin is missing at %s; English strings will be used",
+                 g_cfg.active_language.c_str(), narrow(bank).c_str());
+        else logc("language: %s (applied from %s)", g_cfg.active_language.c_str(), narrow(bank).c_str());
+    }
     logf("address-space stub: reserve %p + 0x%x", reserve, reserve_size);
 
     std::string err;

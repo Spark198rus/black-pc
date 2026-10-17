@@ -1,0 +1,73 @@
+1
+00:00:03,000 --> 00:00:06,000
+Interrogateur: On vous avait expressément ordonné de tenir votre position, mais vous ne l'avez pas fait. Pourquoi ?
+
+2
+00:00:08,000 --> 00:00:10,000
+Sergent Kellar: L'équipe Charlie était hors de combat. Je n'allais pas laisser ce type s'échapper.
+
+3
+00:00:15,000 --> 00:00:17,000
+Sergent Kellar: Le premier étage était dégagé.
+
+4
+00:00:17,000 --> 00:00:19,000
+Sergent Kellar: J'ai entendu du mouvement ci-dessus.
+
+5
+00:00:20,000 --> 00:00:22,000
+Sergent Kellar: Je suis monté, et c'est là que je l'ai vu.
+
+6
+00:00:22,000 --> 00:00:24,000
+Sergent Kellar: Le quatrième gars ? Ouais, le quatrième gars.
+
+7
+00:00:26,000 --> 00:00:29,000
+Interrogateur: Le compte rendu après action que vous avez remis indique qu'il vous a surpris.
+
+8
+00:00:30,000 --> 00:00:32,000
+Interrogateur: Mais il n'a pas tiré. Pourquoi?
+
+9
+00:00:32,000 --> 00:00:37,000
+Sergent Kellar: Il était américain. Ni russe, ni allemand, ni tchétchène.
+
+10
+00:00:38,000 --> 00:00:41,000
+Interrogateur: Intéressant. Comment le savez-vous ?
+
+11
+00:00:41,000 --> 00:00:42,000
+Sergent Kellar: Il m'a parlé.
+
+12
+00:00:42,000 --> 00:00:44,000
+Interrogateur: Que vous a dit cet Américain ?
+
+13
+00:00:45,000 --> 00:00:50,000
+Sergent Kellar: Je ne m'en souviens pas. Un RPG a frappé le bâtiment. Après ça, tout est vide.
+
+14
+00:00:51,000 --> 00:00:53,000
+Interrogateur: Quelle a été votre mission suivante ? Une double mission :
+
+15
+00:00:54,000 --> 00:00:57,000
+Sergent Kellar: Détruire la cache d'armes et le bastion de la Septième Vague à Naszran.
+
+16
+00:00:58,000 --> 00:01:02,000
+Interrogateur: Vous aviez reçu l'ordre de retrouver le lieutenant McCarver
+en route vers l'objectif ?
+
+17
+00:01:02,000 --> 00:01:07,000
+Sergent Kellar: Oui. Ça aurait été facile si les cartes et les renseignements
+sur le passage de la frontière n'avaient pas été obsolètes.
+
+18
+00:01:07,000 --> 00:01:10,000
+Sergent Kellar: La seule information exacte concernait la ferme.

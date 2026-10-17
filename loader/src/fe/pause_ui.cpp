@@ -16,6 +16,7 @@
 #include "fe/bind_list.h"
 #include "fe/pc_settings.h"
 #include "fe/vars.h"
+#include "language.h"
 
 #include <algorithm>
 #include <cmath>
@@ -53,13 +54,13 @@ std::vector<Row> rows(std::wstring *title)
     std::vector<Row> out;
     auto gs = groups();
     if (g_screen == kMenu) {
-        *title = L"PC SETTINGS";
+        *title = language::pc_settings_title(g_cfg.active_language);
         for (int i = 0; i < (int)gs.size() && i < kRows; i++) out.push_back({Row::Link, i});
     } else if (g_screen == kKeys) {
         *title = L"KEY BINDINGS";
         for (int i = 0; i < bindlist::kRows; i++) out.push_back({Row::Key, i});
     } else if (g_screen >= 0 && g_screen < (int)gs.size()) {
-        *title = widen(gs[g_screen].title);
+        *title = widen(pcset::group_title(g_screen));
         for (int n : gs[g_screen].rows) {
             if (pcset::link(n)) out.push_back({Row::Link, kKeys});
             else out.push_back({pcset::is_slider(n) ? Row::Slider : Row::Choice, n});
@@ -75,7 +76,7 @@ std::wstring caption(const Row &r)
     if (r.kind == Row::Link) {
         if (r.id == kKeys) return L"KEY BINDINGS";
         auto gs = groups();
-        return r.id >= 0 && r.id < (int)gs.size() ? widen(gs[r.id].title) : L"";
+        return r.id >= 0 && r.id < (int)gs.size() ? widen(pcset::group_title(r.id)) : L"";
     }
     return widen(pcset::label(r.id));
 }

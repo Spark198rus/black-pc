@@ -1,0 +1,87 @@
+1
+00:00:03,000 --> 00:00:08,000
+Interrogador: Tive a oportunidade de conversar com o sargento Solomon.
+
+2
+00:00:08,000 --> 00:00:10,000
+Interrogador: Um homem interessante. Não tinha nada de bom para dizer sobre você.
+
+3
+00:00:10,000 --> 00:00:13,000
+Sargento Kellar: Você é um mentiroso!
+
+4
+00:00:15,000 --> 00:00:23,000
+Sargento Solomon: Quando Lennox reapareceu depois do Cairo, os rumores se espalharam como um vírus.
+
+5
+00:00:23,000 --> 00:00:26,000
+Sargento Solomon: A Divisão tentou manter isso em segredo, mas não conseguiu.
+
+6
+00:00:26,000 --> 00:00:32,000
+Interrogador: Como você o relacionou à Seventh Wave?
+
+7
+00:00:32,000 --> 00:00:37,000
+Sargento Solomon: Depois do fracasso de Miami, minha equipe recebeu ordem para eliminá-lo.
+
+8
+00:00:37,000 --> 00:00:41,000
+Sargento Solomon: Na época, não sabíamos que era Lennox. Só descobrimos depois.
+
+9
+00:00:41,000 --> 00:00:45,000
+Sargento Solomon: Nunca soubemos se o alvo era mesmo ele ou não.
+
+10
+00:00:45,000 --> 00:00:52,000
+Sargento Solomon: Ele era bom. Kuwait City, Tóquio... quase conseguimos acertá-lo em Kandahar.
+
+11
+00:00:52,000 --> 00:00:57,000
+Sargento Solomon: Chegamos perto algumas vezes, mas ele sempre nos pegava de surpresa.
+
+12
+00:00:57,000 --> 00:01:04,000
+Sargento Solomon: S4 finalmente o eliminou no norte do Paquistão. Está enterrado em algum vale.
+
+13
+00:01:04,000 --> 00:01:07,000
+Interrogador: O que você acha do sargento Kellar?
+
+14
+00:01:07,000 --> 00:01:12,000
+Sargento Solomon: Esquentado. Está fora de controle pra caralho.
+
+15
+00:01:12,000 --> 00:01:15,000
+Sargento Solomon: Ele não sabe o que significa dano colateral.
+
+16
+00:01:15,000 --> 00:01:17,000
+Interrogador: Fale sobre Valencio.
+
+17
+00:01:17,000 --> 00:01:19,000
+Sargento Kellar: Não há nada a dizer.
+
+18
+00:01:19,000 --> 00:01:23,000
+Sargento Kellar: Nossa equipe recebeu a missão de eliminá-lo. Era simples: entrar e sair.
+
+19
+00:01:23,000 --> 00:01:25,000
+Sargento Kellar: Depois do trabalho na usina siderúrgica, voltamos ao status Alpha.
+
+20
+00:01:25,000 --> 00:01:27,000
+Sargento Kellar: Valencio era um dos quatro principais alvos, um dos chefes da Seventh Wave.
+
+21
+00:01:27,000 --> 00:01:28,000
+Sargento Kellar: Ele escapou da equipe Charlie, então fomos enviados para trazê-lo sob custódia.
+
+22
+00:01:28,000 --> 00:01:30,000
+Sargento Kellar: A inteligência dizia que ele estava escondido num antigo asilo.

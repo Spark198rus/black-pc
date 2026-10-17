@@ -38,6 +38,7 @@ add_library(blackrt SHARED
   src/input/movies.cpp
   src/audio/reverb.cpp
   src/settings.cpp
+  src/language.cpp
   src/perf.cpp
   src/sha1.cpp
   src/kernel/ktable.cpp
@@ -83,3 +84,11 @@ target_compile_options(black PRIVATE /GS- /Gs999999)
 target_link_options(black PRIVATE
   /BASE:0x10000 /FIXED /DYNAMICBASE:NO /NXCOMPAT:NO /SAFESEH:NO /LARGEADDRESSAWARE
   /NODEFAULTLIB /ENTRY:StubEntry /SUBSYSTEM:WINDOWS /MANIFEST:NO /INCREMENTAL:NO)
+
+include(CTest)
+if(BUILD_TESTING)
+  add_executable(language_tests tests/language_tests.cpp src/language.cpp)
+  target_include_directories(language_tests PRIVATE src)
+  target_compile_options(language_tests PRIVATE /W3 /utf-8 /EHsc)
+  add_test(NAME language_tests COMMAND language_tests)
+endif()
