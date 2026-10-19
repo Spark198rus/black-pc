@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "input/bindings.h"
+#include "language.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -47,6 +48,7 @@ void settings_load()
         else if (k == "effectsnative") g_cfg.effects_native = v != 0;
         else if (k == "fps") g_cfg.fps = atoi(val) == 60 ? 60 : 30;
         else if (k == "widescreen") g_cfg.widescreen = v != 0;
+        else if (k == "language") { if (language_valid(val)) g_cfg.language = val; }
         else if (k == "fullscreen") g_cfg.fullscreen = v != 0;
         else if (k == "gain") g_cfg.gain = std::clamp(v, 0.5f, 3.0f);
         else if (k == "gamma") g_cfg.gamma = std::clamp(v, 0.5f, 3.0f);
@@ -76,6 +78,8 @@ void settings_save()
     int fps = g_cfg.fps_next ? g_cfg.fps_next : g_cfg.fps; // a menu choice for the next run wins
     bool wide = g_cfg.widescreen_next >= 0 ? g_cfg.widescreen_next != 0 : g_cfg.widescreen;
     fprintf(f, "aa = %d\nfps = %d\nwidescreen = %d\nfullscreen = %d\n", g_cfg.aa ? 1 : 0, fps, wide ? 1 : 0, g_cfg.fullscreen ? 1 : 0);
+    fprintf(f, "# auto = the Windows user interface language; or: en es de fr it ja ko zh\n");
+    fprintf(f, "language = %s\n", g_cfg.language.c_str());
     fprintf(f, "gain = %.2f\ngamma = %.2f\n", g_cfg.gain, g_cfg.gamma);
     fprintf(f, "mouse_sens = %.3f\nmouse_invert = %d\n", g_cfg.mouse_sens, g_cfg.mouse_invert ? 1 : 0);
     fprintf(f, "reverb = %d\nreverb_gain = %.2f\n", g_cfg.reverb ? 1 : 0, g_cfg.reverb_gain);

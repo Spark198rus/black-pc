@@ -9,6 +9,7 @@
 #include "input/bindings.h"
 #include "input/mouselook.h"
 #include "input/movies.h"
+#include "xbe.h"
 
 #include <algorithm>
 #include <cmath>
@@ -123,7 +124,7 @@ void parse_presses()
 // until A (PRESS A TO CONTINUE).
 void show_hint(int id)
 {
-    uint32_t root = *(const uint32_t *)(uintptr_t)0x002D12E4;
+    uint32_t root = *(const uint32_t *)(uintptr_t)xbe_va(0x002D12E4);
     uint32_t hud = root ? *(const uint32_t *)(uintptr_t)(root + 0xC) : 0;
     if (!hud) {
         logf("[input] tests: no HUD for hint %d", id);
@@ -132,7 +133,7 @@ void show_hint(int id)
     alignas(16) float vec[4];
     memcpy(vec, (const void *)(uintptr_t)(hud + 0x22B0), sizeof vec);
     float *v = vec;
-    uint32_t fn = 0x0012B3C0;
+    uint32_t fn = xbe_va(0x0012B3C0);
     logf("[input] tests: showing hint %d", id);
     __asm {
         push v
@@ -331,7 +332,7 @@ BOOL __stdcall XGetDeviceChanges(void *DeviceType, uint32_t *pdwInsertions, uint
     DTRACE("%p", DeviceType);
     *pdwInsertions = 0;
     *pdwRemovals = 0;
-    if (DeviceType == (void *)(uintptr_t)0x0027cf4c && !g_reported_insertion) { // XDEVICE_TYPE_GAMEPAD
+    if (DeviceType == (void *)(uintptr_t)xbe_va(0x0027cf4c) && !g_reported_insertion) { // XDEVICE_TYPE_GAMEPAD
         g_reported_insertion = true;
         *pdwInsertions = 1;
         return TRUE;

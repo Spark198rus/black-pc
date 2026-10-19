@@ -17,6 +17,7 @@
 // START (see apply). A key held across a switch between play and menus is ignored until it is released (a press that
 // starts play must not also act in it).
 #include "input/bindings.h"
+#include "xbe.h"
 
 #include "common.h"
 #include "d3d/host.h"
@@ -147,7 +148,7 @@ bool g_menu_select;                       // Enter held (movies: skip)
 // block: A pressed +0x35, START +0x31; checks at 0x129B10 and around), not through the menus' input.
 bool hint_stopped()
 {
-    uint32_t game = *(const uint32_t *)(uintptr_t)0x002D45F0;
+    uint32_t game = *(const uint32_t *)(uintptr_t)xbe_va(0x002D45F0);
     return game && *(const int32_t *)(uintptr_t)(game + 0x21098) == 3;
 }
 
@@ -156,7 +157,7 @@ bool hint_stopped()
 // game skips on START of the player's controller.
 bool no_menu_page()
 {
-    uint32_t fe = *(const uint32_t *)(uintptr_t)0x002D199C;
+    uint32_t fe = *(const uint32_t *)(uintptr_t)xbe_va(0x002D199C);
     return fe && *(const char *)(uintptr_t)(fe + 0x3840) == 0;
 }
 
@@ -201,8 +202,8 @@ uint16_t wheel_key(int wheel)
 const int32_t *game_table()
 {
     if (!mouselook_installed()) return nullptr; // not the build these addresses are for
-    const int32_t *t = *(const int32_t *const *)(uintptr_t)0x002F3BD4;
-    return t ? t : (const int32_t *)(uintptr_t)0x002A7AF0; // before the game sets it up: its default preset
+    const int32_t *t = *(const int32_t *const *)(uintptr_t)xbe_va(0x002F3BD4);
+    return t ? t : (const int32_t *)(uintptr_t)xbe_va(0x002A7AF0); // before setup: game's default preset
 }
 
 struct Pad {

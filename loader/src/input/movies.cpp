@@ -11,6 +11,7 @@
 #include "input/movies.h"
 
 #include "common.h"
+#include "xbe.h"
 
 #include <cstring>
 
@@ -26,7 +27,7 @@ char g_name[64];     // the movie that was playing at the press
 
 uint8_t *player()
 {
-    uint32_t game = *(const uint32_t *)(uintptr_t)kGameObject;
+    uint32_t game = *(const uint32_t *)(uintptr_t)xbe_va(kGameObject);
     return game ? (uint8_t *)(uintptr_t)(game + kPlayer) : nullptr;
 }
 
@@ -39,7 +40,7 @@ void movies_poll(uint16_t buttons, const uint8_t analog[8], bool enter)
     bool down = analog[0] > 30 || (buttons & 0x10) || enter; // A, START or Enter
     bool press = down && !g_was_down;
     g_was_down = down;
-    if (!g_cfg.skip_movies || !g_cfg.known_build) return;
+    if (!g_cfg.skip_movies || !g_cfg.supported_build) return;
     uint8_t *p = player();
     if (!p) return;
     static bool told;

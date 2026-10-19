@@ -1,6 +1,6 @@
 # BLACK PC port
 
-An unofficial native Windows port of **BLACK** (Criterion Games, 2006), made from the original Xbox version (NTSC-U).
+An unofficial native Windows port of **BLACK** (Criterion Games, 2006), made from the original Xbox releases (NTSC-U and PAL Europe).
 
 `black.exe` loads your own copy of the game's `default.xbe` and runs the original x86 game code directly on the
 PC.
@@ -27,15 +27,14 @@ The game is fully playable. Please report problems in the issue tracker and incl
 
 - Windows 10 or 11. The program is 32-bit and runs on 64-bit Windows.
 - A graphics card with Direct3D 9 (Shader Model 3). On old laptops with Intel graphics (HD 4400 class) play at 30 fps.
-- The NTSC-U (North America) Xbox disc of BLACK. Other regions and builds have different code addresses and are not
-  supported.
+- The supported NTSC-U or PAL Europe Xbox release of BLACK. Other builds have different code and are not supported.
 
 Nothing else needs installing: the C runtime is built in, and Direct3D 9, the shader compiler and XAudio2 ship with
 Windows.
 
 ## Setting up
 
-1. Dump your NTSC-U version of the game to an ISO and extract it with [extract-xiso](https://github.com/XboxDev/extract-xiso)
+1. Dump your NTSC-U or PAL Europe version of the game to an ISO and extract it with [extract-xiso](https://github.com/XboxDev/extract-xiso)
    (`extract-xiso -x Black.iso`). Rename the extracted folder to `game`.
 2. Check that you have the supported build. In PowerShell:
 
@@ -43,7 +42,10 @@ Windows.
    Get-FileHash game\default.xbe -Algorithm SHA256
    ```
 
-   It must print `DF2739C372D254A90AEECCF5971D12097F22D89FBB90DB021FDA96DD4DEB68F6`.
+   It must print one of these supported hashes:
+
+   - NTSC-U: `DF2739C372D254A90AEECCF5971D12097F22D89FBB90DB021FDA96DD4DEB68F6`
+   - PAL Europe: `67F35121CCF622E7A293C402219596FE6456CA4C3D27E6F8139E449264DA30F0`
 3. Download the zip from [Releases](../../releases) and extract it next to the `game` folder, so the `port` folder
    sits beside it:
 
@@ -126,7 +128,7 @@ MOVIE to off (or start with `--no-movie-skip`) for the original rule.
 - The game's on-screen prompts show Xbox controller buttons, also when you play with the keyboard.
 - Audio: the reverb is an approximation of the Xbox's, some effect sends are not mixed, there is no subwoofer
   channel, and 3D sound uses distance and panning only.
-- **Only the NTSC-U build is supported** (`--force` tries another build, which will most likely fail).
+- **Only the listed NTSC-U and PAL Europe builds are supported** (`--force` tries another build without build-specific hooks).
 
 ## Building from source
 

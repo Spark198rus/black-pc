@@ -20,6 +20,7 @@
 #include "fe/vars.h"
 
 #include "common.h"
+#include "xbe.h"
 
 #include <cstring>
 
@@ -53,7 +54,7 @@ int g_nints;
 
 Entry *table(uint32_t off)
 {
-    uint32_t fe = *(const uint32_t *)(uintptr_t)kFeObject;
+    uint32_t fe = *(const uint32_t *)(uintptr_t)xbe_va(kFeObject);
     return fe ? (Entry *)(uintptr_t)(fe + off + 4) : nullptr;
 }
 
@@ -83,7 +84,7 @@ Entry *ensure(Entry *t, uint32_t hash, uint32_t type, uint32_t value)
 
 uint32_t fe_hash(const char *name)
 {
-    const uint32_t *crc = (const uint32_t *)(uintptr_t)kCrcTable;
+    const uint32_t *crc = (const uint32_t *)(uintptr_t)xbe_va(kCrcTable);
     int32_t h = -1;
     for (const char *p = name; *p; p++) h = (h >> 8) ^ (int32_t)crc[(uint8_t)((h & 0xFF) ^ (int32_t)(signed char)*p)];
     return (uint32_t)h;

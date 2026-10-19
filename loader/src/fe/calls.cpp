@@ -16,6 +16,7 @@
 #include "fe/pause_ui.h"
 #include "fe/pc_settings.h"
 #include "input/bindings.h"
+#include "xbe.h"
 #include "fe/vars.h"
 
 #include <cstdlib>
@@ -154,7 +155,7 @@ static int __cdecl fe_dispatch(uint8_t *fe)
     return 1;
 }
 
-extern "C" uint32_t g_fe_dispatch_resume = kDispatch + 7; // the dispatcher's jne
+extern "C" uint32_t g_fe_dispatch_resume = 0; // the dispatcher's jne, set at install
 
 __declspec(naked) static void dispatch_thunk()
 {
@@ -185,22 +186,24 @@ constexpr uint32_t kMenuInput = 0x00118A80, kMenuInputCalls[3] = {0x00118B9D, 0x
 constexpr uint32_t kListenCheck = 0x0011A750, kGameObject = 0x002D45F0, kControllers = 0x002D45E8,
                    kBindingTable = 0x002F3BD4;
 
-extern "C" uint32_t g_fe_menu_input = kMenuInput;
+extern "C" uint32_t g_fe_menu_input = 0; // FUN_00118A80 in this build, set at install
+uint32_t g_listen_check = 0;             // FUN_0011A750 in this build, set at install
 
 extern "C" void __cdecl fe_menu_keys(uint8_t *input)
 {
     int key = bindings::take_menu_input();
     if (!key || *(int32_t *)input != 0 || input[9]) return;
     uint32_t &check = *(uint32_t *)(input + 4);
-    if (check == kListenCheck) {
+    if (check == g_listen_check) {
         if (key != 5) return;
-        uint32_t game = *(const uint32_t *)(uintptr_t)kGameObject, controllers = *(const uint32_t *)(uintptr_t)kControllers;
+        uint32_t game = *(const uint32_t *)(uintptr_t)xbe_va(kGameObject);
+        uint32_t controllers = *(const uint32_t *)(uintptr_t)xbe_va(kControllers);
         if (!game || !controllers) return;
         uint32_t port0 = controllers + 0x518;
         *(uint32_t *)(uintptr_t)(game + 0x21060) = port0;
         *(uint8_t *)(uintptr_t)(port0 + 8) = 1;
         check = 0;
-        *(uint32_t *)(uintptr_t)kBindingTable = game + 0x20174;
+        *(uint32_t *)(uintptr_t)xbe_va(kBindingTable) = game + 0x20174;
         logf("fe: Enter at PRESS START: controller port 0 plays");
     }
     *(int32_t *)input = key;
@@ -219,21 +222,26 @@ __declspec(naked) static void menu_input_thunk()
 
 void install_fe_calls()
 {
-    auto *code = (uint8_t *)(uintptr_t)kDispatch;
+    uint32_t dispatch = xbe_va(kDispatch);
+    auto *code = (uint8_t *)(uintptr_t)dispatch;
     if (memcmp(code, kDispatchCode, sizeof kDispatchCode) != 0) {
-        logf("fe: the front-end call dispatcher at 0x%08x does not match this build; menu calls to the port are off", kDispatch);
+        logf("fe: the front-end call dispatcher at 0x%08x does not match this build; menu calls to the port are off", dispatch);
         return;
     }
-    int32_t rel = (int32_t)((uintptr_t)&dispatch_thunk - (kDispatch + 5));
+    g_fe_dispatch_resume = dispatch + 7; // the dispatcher's jne
+    g_fe_menu_input = xbe_va(kMenuInput);
+    g_listen_check = xbe_va(kListenCheck);
+    int32_t rel = (int32_t)((uintptr_t)&dispatch_thunk - (dispatch + 5));
     code[0] = 0xE9;
     memcpy(code + 1, &rel, 4);
     code[5] = code[6] = 0x90;
 
     for (uint32_t at : kMenuInputCalls) {
+        at = xbe_va(at);
         auto *c = (uint8_t *)(uintptr_t)at;
         int32_t old_rel;
         memcpy(&old_rel, c + 1, 4);
-        if (c[0] != 0xE8 || at + 5 + old_rel != kMenuInput) {
+        if (c[0] != 0xE8 || at + 5 + old_rel != g_fe_menu_input) {
             logf("fe: the menu input call at 0x%08x does not match this build; the keyboard cannot use the menus", at);
             continue;
         }

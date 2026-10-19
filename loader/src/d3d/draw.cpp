@@ -662,7 +662,7 @@ std::string game_callers(const uint32_t *sp)
     int found = 0;
     for (const uint32_t *p = sp; p < top && p < sp + 0x800 && found < 5; p++) {
         uint32_t v = *p;
-        if (v < 0x00011005 || v >= 0x00269000) continue; // game code (.text and the libraries before D3D)
+        if (v < 0x00011005 || v >= xbe_va(0x00269000)) continue; // game code (.text and the libraries before D3D)
         const uint8_t *c = (const uint8_t *)(uintptr_t)v;
         bool call = c[-5] == 0xE8 || (c[-2] == 0xFF && (c[-1] & 0x38) == 0x10) || (c[-3] == 0xFF && (c[-2] & 0x38) == 0x10) ||
                     (c[-6] == 0xFF && (c[-5] & 0x38) == 0x10);

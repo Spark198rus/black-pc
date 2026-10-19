@@ -1,4 +1,5 @@
 #include "common.h"
+#include "xbe.h"
 
 #include <algorithm>
 #include <fstream>
@@ -117,7 +118,7 @@ void symbols_load(const std::wstring &csv_path)
         std::string addr, name, size;
         if (!std::getline(ss, addr, ',') || !std::getline(ss, name, ',') || !std::getline(ss, size, ','))
             continue;
-        g_syms[(uint32_t)strtoul(addr.c_str(), nullptr, 16)] = {name, (uint32_t)strtoul(size.c_str(), nullptr, 10)};
+        g_syms[xbe_va((uint32_t)strtoul(addr.c_str(), nullptr, 16))] = {name, (uint32_t)strtoul(size.c_str(), nullptr, 10)};
     }
     logf("symbols: %zu functions from %s", g_syms.size(), narrow(csv_path).c_str());
 }

@@ -25,6 +25,7 @@
 #include "input/mouselook.h"
 
 #include "common.h"
+#include "xbe.h"
 
 #include <algorithm>
 #include <cmath>
@@ -87,7 +88,7 @@ __declspec(naked) void sway_thunk()
 }
 
 struct Site {
-    uint32_t addr;
+    uint32_t addr; // as analyzed in the NTSC-U build; xbe_va maps it to this build
     uint8_t expect[5];
     void (*thunk)();
 };
@@ -103,18 +104,19 @@ const Site kSites[] = {
 void install_mouselook_patches()
 {
     for (const Site &s : kSites)
-        if (memcmp((const void *)(uintptr_t)s.addr, s.expect, 5) != 0) {
-            logf("mouselook: code at 0x%08x does not match this build; mouse look disabled", s.addr);
+        if (memcmp((const void *)(uintptr_t)xbe_va(s.addr), s.expect, 5) != 0) {
+            logf("mouselook: code at 0x%08x does not match this build; mouse look disabled", xbe_va(s.addr));
             return;
         }
     for (const Site &s : kSites) { // call thunk (replaces the 5-byte addss)
-        auto *code = (uint8_t *)(uintptr_t)s.addr;
+        uint32_t addr = xbe_va(s.addr);
+        auto *code = (uint8_t *)(uintptr_t)addr;
         code[0] = 0xE8;
-        int32_t rel = (int32_t)((uintptr_t)s.thunk - (s.addr + 5));
+        int32_t rel = (int32_t)((uintptr_t)s.thunk - (addr + 5));
         memcpy(code + 1, &rel, 4);
     }
     g_installed = true;
-    logf("mouselook: view angles take mouse input directly (FUN_001bd3f0); weapon sway follows it (0x1ECF76)");
+    logf("mouselook: view angles take mouse input directly (FUN_001bd3f0); weapon sway follows it");
 }
 
 bool mouselook_installed() { return g_installed; }
@@ -126,7 +128,7 @@ extern "C" void __cdecl ml_sway(uint8_t *ctrl)
     g_play_frame = std::max(1u, g_frame_count.load());
     static float sh, sv; // smoothed deflections
     auto f = [&](uint32_t off) { return *(const float *)(ctrl + off); };
-    float dt = *(const float *)(uintptr_t)(*(const uint32_t *)(uintptr_t)0x002D45D4 + 0x1C);
+    float dt = *(const float *)(uintptr_t)(*(const uint32_t *)(uintptr_t)xbe_va(0x002D45D4) + 0x1C);
     float curve = f(0xC8) > 0.1f ? f(0xC8) : 1.0f;
     auto deflection = [&](float deg, float speed) {
         if (speed <= 0.0f || dt <= 0.0f || deg == 0.0f) return 0.0f;

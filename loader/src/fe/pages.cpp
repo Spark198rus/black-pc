@@ -27,6 +27,7 @@
 #include "fe/pause_ui.h"
 #include "fe/pc_settings.h"
 #include "fe/vars.h"
+#include "language.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -982,13 +983,40 @@ bool rebuild(const std::wstring &game_dir, const wchar_t *file, const std::funct
     }
 }
 
-// The game's text (language\strings\MainUS.bin: a magic word, a word, the count n, the table offset 16; n offsets,
+// The port runs on a PC: the game's messages (saving and loading, free blocks, the hard disk check) must not
+// send the player to a console. Each language gets the wording it needs; the local word for the PC replaces
+// the console's name, with the surrounding phrasing adjusted. The patterns are words, not game text.
+struct Replacement {
+    const char *from, *to;
+};
+
+std::vector<Replacement> text_replacements()
+{
+    static const Replacement kEnglish[] = {{"XBOX CONSOLE", "COMPUTER"}, {"XBOX", "COMPUTER"}};
+    static const Replacement kSpanish[] = {{"LA CONSOLA XBOX", "EL PC"}, {"MEMORIA DE XBOX", "MEMORIA DEL PC"},
+                                           {"XBOX NO", "EL PC NO"}, {"XBOX", "PC"}};
+    static const Replacement kGerman[] = {{"DIE XBOX-KONSOLE", "DEN PC"}, {"XBOX-FESTPLATTE", "PC-FESTPLATTE"},
+                                          {"DIE XBOX HAT", "DER PC HAT"}, {"XBOX-STEUERUNG", "PC-STEUERUNG"},
+                                          {"XBOX", "PC"}};
+    static const Replacement kFrench[] = {{"la console Xbox", "le PC"}, {"disque dur Xbox", "disque dur du PC"},
+                                          {"La Xbox", "Le PC"}, {"Xbox", "PC"}};
+    static const Replacement kItalian[] = {{"spegnere Xbox", "spegnere il PC"}, {"di Xbox", "del PC"},
+                                           {"Xbox non", "Il PC non"}, {"Xbox", "PC"}};
+    const std::string &language = language_name();
+    if (language == "es") return {std::begin(kSpanish), std::end(kSpanish)};
+    if (language == "de") return {std::begin(kGerman), std::end(kGerman)};
+    if (language == "fr") return {std::begin(kFrench), std::end(kFrench)};
+    if (language == "it") return {std::begin(kItalian), std::end(kItalian)};
+    return {std::begin(kEnglish), std::end(kEnglish)};
+}
+
+// The game's text (language\strings\MainXX.bin: a magic word, a word, the count n, the table offset 16; n offsets,
 // ascending; each entry a 4-byte key (entries sorted by key) and a NUL-terminated string, padded to 4 bytes except the
-// last): XBOX in its messages (saving and loading, free blocks, the hard disk check) reads COMPUTER instead, "XBOX
-// CONSOLE" just COMPUTER. Keys and order stay; only the offsets move.
+// last): the file the resolved language makes the game read, patched so its messages name a PC. Keys and order stay;
+// only the offsets move.
 bool patch_strings(const std::wstring &game_dir, const std::wstring &out_root)
 {
-    const std::wstring rel = L"\\language\\strings\\MainUS.bin";
+    const std::wstring rel = L"\\language\\strings\\" + language_strings_file();
     Bytes in;
     if (!read_file(game_dir + rel, in)) {
         logf("fe: %s not found", narrow(game_dir + rel).c_str());
@@ -1004,9 +1032,9 @@ bool patch_strings(const std::wstring &game_dir, const std::wstring &out_root)
             uint32_t at = rd(in, table + 4 * i), end = i + 1 < n ? rd(in, table + 4 * (i + 1)) : (uint32_t)in.size();
             if (at + 4 > end || end > in.size()) throw Error("an entry out of order");
             std::string s((const char *)&in[at + 4], strnlen((const char *)&in[at + 4], end - at - 4)), t = s;
-            for (auto [from, to] : {std::pair<const char *, const char *>{"XBOX CONSOLE", "COMPUTER"}, {"XBOX", "COMPUTER"}})
-                for (size_t p = t.find(from); p != std::string::npos; p = t.find(from, p + strlen(to)))
-                    t.replace(p, strlen(from), to);
+            for (const Replacement &r : text_replacements())
+                for (size_t p = t.find(r.from); p != std::string::npos; p = t.find(r.from, p + strlen(r.to)))
+                    t.replace(p, strlen(r.from), r.to);
             changed += t != s;
             wr(out, table + 4 * i, (uint32_t)out.size());
             out.insert(out.end(), in.begin() + at, in.begin() + at + 4);
@@ -1015,7 +1043,7 @@ bool patch_strings(const std::wstring &game_dir, const std::wstring &out_root)
             while (i + 1 < n && out.size() % 4) out.push_back(0);
         }
         if (!write_file(out_root + rel, out)) return false;
-        logf("fe: game text: %d strings say COMPUTER instead of XBOX", changed);
+        logf("fe: game text (%s): %d strings name the PC instead of the Xbox", language_name().c_str(), changed);
         return true;
     } catch (const std::exception &e) {
         logf("fe: %s is not laid out as expected (%s)", narrow(game_dir + rel).c_str(), e.what());

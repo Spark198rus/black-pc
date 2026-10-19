@@ -7,6 +7,7 @@
 #include "common.h"
 #include "d3d/host.h"
 #include "xthread.h"
+#include "xbe.h"
 
 #include <d3d9.h>
 #include <dbghelp.h>
@@ -118,14 +119,17 @@ std::thread g_sampler;
 HANDLE g_render_thread;
 DWORD g_render_tid;
 uint32_t g_rt_lo, g_rt_hi;
-constexpr uint32_t kGameLo = 0x00011000, kGameHi = 0x00587A40; // the XBE image (code and data)
+constexpr uint32_t kGameLo = 0x00011000;
 std::mutex g_report_lock;
 std::string g_report_text;
 std::wstring g_report_dir;
 std::string g_gpu_name;
 
 // ---- stack heuristics for the sampler ----
-bool in_code(uint32_t v) { return (v >= kGameLo + 8 && v < kGameHi) || (v >= g_rt_lo + 8 && v < g_rt_hi); }
+bool in_code(uint32_t v)
+{
+    return (v >= kGameLo + 8 && v < xbe_va(0x00587A40)) || (v >= g_rt_lo + 8 && v < g_rt_hi);
+}
 
 bool after_call(uint32_t v)
 {
@@ -677,7 +681,7 @@ void start()
     r->aa = g_cfg.aa;
     r->widescreen = g_cfg.widescreen;
     r->game_lo = kGameLo;
-    r->game_hi = kGameHi;
+    r->game_hi = xbe_va(0x00587A40);
     r->rt_lo = g_rt_lo;
     r->rt_hi = g_rt_hi;
     wchar_t path[MAX_PATH];

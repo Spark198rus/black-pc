@@ -20,6 +20,7 @@
 #include "fov.h"
 
 #include "common.h"
+#include "xbe.h"
 
 #include <algorithm>
 #include <cmath>
@@ -65,7 +66,7 @@ void fov_set(float degrees) { g_fov_deg = std::clamp(degrees, 50.0f, 120.0f); }
 float fov_viewmodel_scale()
 {
     if (!g_fov_viewmodel || std::fabs(g_fov_deg - 70.0f) < 0.01f) return 1.0f;
-    uint32_t renderer = *(const uint32_t *)(uintptr_t)0x002D12B8;
+    uint32_t renderer = *(const uint32_t *)(uintptr_t)xbe_va(0x002D12B8);
     if (!renderer) return 1.0f;
     float now = *(const float *)(uintptr_t)(renderer + 0x750); // this frame's FOV: the setting / zoom
     if (!(now > 1.0f && now < 170.0f)) return 1.0f;

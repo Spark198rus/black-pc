@@ -63,6 +63,10 @@ struct Config {
     // for original Xbox games: BLACK then uses a 16:9 projection and its `_wide` UI layouts in the same 640x480
     // buffer (anamorphic), and the loader renders and shows that buffer at 16:9. --normal-aspect turns it off.
     bool widescreen = true;
+    // The game's language (language.cpp): "auto" = the Windows user interface language, or a short name
+    // (en es de fr it ja ko zh). The PAL disc carries several languages and its loading video is per language;
+    // the NTSC-U disc has English only and always stays on English.
+    std::string language = "auto";
     bool fullscreen = false;   // --fullscreen: start borderless fullscreen
     // Mouse look rotates the player directly (input/mouselook.cpp): mouse_sens x 0.022 degrees per count, the
     // scale most PC shooters use.
@@ -75,7 +79,9 @@ struct Config {
     bool autoaim = false;      // the game's view pull toward targets, off by default (input/autoaim.cpp; --autoaim, PC SETTINGS)
     float fov = 70.0f;         // horizontal field of view in play, degrees (fov.cpp; --fov, PC SETTINGS; the game's is 70)
     bool skip_movies = true;   // A / START skip any movie, also unseen ones (input/movies.cpp; --no-movie-skip, PC SETTINGS)
-    bool known_build = false;  // the XBE is the NTSC-U build the address tables are for (main.cpp)
+    bool known_build = false;  // the XBE is the address-table source build (NTSC-U)
+    bool pal_build = false;    // exact PAL European XBE analyzed for compatibility
+    bool supported_build = false;
     std::wstring game_override; // --game-override: files there replace the game's of the same relative path
     std::wstring menu_cache;    // the port's rebuilt front-end files (fe/pages.cpp), served like --game-override after it
     bool pc_menus = true;       // build the in-game PC SETTINGS pages (--no-pc-menus: the game's own menus only)

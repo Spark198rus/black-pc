@@ -4,6 +4,7 @@
 #pragma once
 
 #include "common.h"
+#include "xbe.h"
 
 namespace xd3d {
 
@@ -140,19 +141,19 @@ constexpr uint32_t DEV_SWAPCOUNT = 0x2478;
 constexpr uint32_t DEV_GAMMA_RAMP = 0x1E04;
 constexpr uint32_t DEV_GAMMA_DIRTY = 0x2404;
 constexpr uint32_t DEV_GAMMA_INDEX = 0x240C;
-constexpr uint32_t ADDR_DEVICE_OBJECT = 0x00279B50; // static g_Device
+inline uint32_t addr_device_object() { return xbe_va(0x00279B50); } // static g_Device
 constexpr uint32_t DEVICE_SIZE = 0x24A8;            // up to D3D_g_pDevice (0x27BFF8)
 
 // Xbox data in the D3D section that game code reads or writes
-constexpr uint32_t ADDR_G_PDEVICE = 0x0027BFF8;    // D3D_g_pDevice
-constexpr uint32_t ADDR_PUSH_SEGMENT = 0x0027CEB0; // size the game passes to MakeRequestedSpace
-constexpr uint32_t ADDR_RENDERSTATE = 0x0027C008;  // D3D_g_RenderState[166]
-constexpr uint32_t ADDR_TEXTURESTATE = 0x00279948; // D3D_g_DeferredTextureState[4][32]
-constexpr uint32_t ADDR_STREAMS = 0x00279758;      // D3D_g_Stream
-constexpr uint32_t ADDR_DIRTYFLAGS = 0x0027C000;
+inline uint32_t addr_g_pdevice() { return xbe_va(0x0027BFF8); }    // D3D_g_pDevice
+inline uint32_t addr_push_segment() { return xbe_va(0x0027CEB0); } // size passed to MakeRequestedSpace
+inline uint32_t addr_renderstate() { return xbe_va(0x0027C008); }  // D3D_g_RenderState[166]
+inline uint32_t addr_texturestate() { return xbe_va(0x00279948); } // D3D_g_DeferredTextureState[4][32]
+inline uint32_t addr_streams() { return xbe_va(0x00279758); }      // D3D_g_Stream
+inline uint32_t addr_dirtyflags() { return xbe_va(0x0027C000); }
 
-inline uint32_t *render_state() { return (uint32_t *)(uintptr_t)ADDR_RENDERSTATE; }
-inline uint32_t *texture_state(int stage) { return (uint32_t *)(uintptr_t)ADDR_TEXTURESTATE + stage * 32; }
+inline uint32_t *render_state() { return (uint32_t *)(uintptr_t)addr_renderstate(); }
+inline uint32_t *texture_state(int stage) { return (uint32_t *)(uintptr_t)addr_texturestate() + stage * 32; }
 
 // Xbox D3DRENDERSTATETYPE for XDK 5849 (verified against the XbSymbolDatabase variable addresses).
 enum XRS : uint32_t {

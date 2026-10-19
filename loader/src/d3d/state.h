@@ -48,7 +48,7 @@ struct HleState {
     Palette *palettes[4] = {};
     // Vertex shader constants, slots 0-191 (Xbox c-96..c95). Kept in the library's own shadow array at
     // 0x27C2A8, which SetVertexShaderConstant* fill (the register passed is already the slot).
-    float (*vs_constants)[4] = (float (*)[4])(uintptr_t)0x0027C2A8;
+    float (*vs_constants)[4] = nullptr; // set to the current XBE's translated D3D shadow when the device opens
     float ps_constants[16][4] = {};
     uint32_t pixel_shader = 0;        // handle as the game set it
     D3DMATRIX transforms[10] = {};    // Xbox D3DTS_*: VIEW 0, PROJECTION 1, TEXTURE0-3 2-5, WORLD 6-9
