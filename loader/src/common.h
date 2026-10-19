@@ -45,6 +45,8 @@ struct Config {
     std::wstring screenshot_dir; // --screenshot: PNG frames go here
     bool trace = false;        // log every kernel call, not just the first of each kind
     bool verbose = false;      // --verbose: the whole log on the console too (default: only logc lines)
+	bool dump_textures = false; // --dump-textures / -dump: dump decoded textures for debugging
+	bool dump_apt = false;       // --dump-apt: dump front-end APT structure and exit
     bool strict = false;       // stop at the first call to an unimplemented kernel function
     bool multicore = false;    // default: pin to one CPU like the Xbox
     int game_cpu = -1;         // --game-cpu N: the logical CPU for the game threads (default: first CPU of the last core)

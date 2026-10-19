@@ -1036,10 +1036,1738 @@ void add_movie(Container &c, const std::string &name, Bytes data)
     c.movies[name] = std::move(data);
     c.order.push_back(name);
 }
+// ---------------------------------------------------------------------------------------------------- APT debug dump
 
+const char *apt_character_type_name(uint32_t type)
+{
+    switch (type) {
+    case 1:  return "Shape";
+    case 2:  return "EditText";
+    case 3:  return "Font";
+    case 4:  return "Button";
+    case 5:  return "Sprite";
+    case 6:  return "Sound";
+    case 7:  return "Image";
+    case 8:  return "Morph";
+    case 9:  return "Movie";
+    case 10: return "StaticText";
+    default: return "Unknown";
+    }
+}
+
+const char *apt_control_type_name(uint32_t type)
+{
+    switch (type) {
+    case 1: return "DoAction";
+    case 3: return "PlaceObject";
+    case 8: return "DoInitAction";
+    default: return "Unknown";
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------- embedded Xbox APT textures
+
+struct AptTexSwizzle {
+    uint32_t mx = 0;
+    uint32_t my = 0;
+
+    AptTexSwizzle(uint32_t w, uint32_t h)
+    {
+        uint32_t bit = 1;
+
+        for (uint32_t i = 1; i < w || i < h; i <<= 1) {
+            if (i < w) {
+                mx |= bit;
+                bit <<= 1;
+            }
+
+            if (i < h) {
+                my |= bit;
+                bit <<= 1;
+            }
+        }
+    }
+
+    static uint32_t deposit(uint32_t v, uint32_t mask)
+    {
+        uint32_t r = 0;
+
+        for (uint32_t b = 1; mask; b <<= 1) {
+            uint32_t low = mask & (~mask + 1);
+
+            if (v & b)
+                r |= low;
+
+            mask &= mask - 1;
+        }
+
+        return r;
+    }
+};
+
+std::string apt_tex_inline_string(
+    const Bytes &b,
+    size_t off)
+{
+    std::string s;
+
+    for (size_t p = off;
+         p < b.size() && b[p] && s.size() < 128;
+         ++p) {
+
+        s.push_back((char)b[p]);
+    }
+
+    return s;
+}
+
+bool write_apt_tex_bmp(
+    const std::wstring &path,
+    uint32_t w,
+    uint32_t h,
+    const std::vector<uint32_t> &argb,
+    bool alpha_only)
+{
+    if (!w || !h || argb.size() != (size_t)w * h)
+        return false;
+
+    uint64_t image_bytes64 =
+        (uint64_t)w * h * 4;
+
+    if (image_bytes64 > 0xFFFFFFFFu)
+        return false;
+
+    uint32_t image_bytes =
+        (uint32_t)image_bytes64;
+
+    //
+    // 14-byte BITMAPFILEHEADER +
+    // 40-byte BITMAPINFOHEADER.
+    //
+    Bytes bmp(
+        54 + image_bytes,
+        0);
+
+    bmp[0] = 'B';
+    bmp[1] = 'M';
+
+    wr(bmp, 2, (uint32_t)bmp.size());
+    wr(bmp, 10, 54);
+
+    wr(bmp, 14, 40);       // BITMAPINFOHEADER size
+    wr(bmp, 18, w);
+    wr(bmp, 22, h);
+
+    bmp[26] = 1;           // planes = 1
+    bmp[27] = 0;
+
+    bmp[28] = 32;          // 32 bpp
+    bmp[29] = 0;
+
+    wr(bmp, 30, 0);        // BI_RGB
+    wr(bmp, 34, image_bytes);
+
+    //
+    // BMP is bottom-up and expects BGRA bytes.
+    //
+    for (uint32_t y = 0; y < h; ++y) {
+
+        uint32_t dst_y =
+            h - 1 - y;
+
+        for (uint32_t x = 0; x < w; ++x) {
+
+            uint32_t p =
+                argb[(size_t)y * w + x];
+
+            uint8_t a =
+                (uint8_t)(p >> 24);
+
+            uint8_t r =
+                (uint8_t)(p >> 16);
+
+            uint8_t g =
+                (uint8_t)(p >> 8);
+
+            uint8_t b =
+                (uint8_t)p;
+
+            if (alpha_only) {
+                r = a;
+                g = a;
+                b = a;
+            }
+
+            size_t d =
+                54 +
+                ((size_t)dst_y * w + x) * 4;
+
+            bmp[d + 0] = b;
+            bmp[d + 1] = g;
+            bmp[d + 2] = r;
+            bmp[d + 3] = 255;
+        }
+    }
+
+    return write_file(path, bmp);
+}
+
+bool write_apt_tex_dds(
+    const std::wstring &path,
+    const Bytes &region,
+    uint32_t data_off,
+    uint32_t w,
+    uint32_t h,
+    uint32_t fmt)
+{
+    uint32_t block_bytes = 0;
+    uint32_t fourcc = 0;
+
+    switch (fmt) {
+
+    case 0x0C:             // DXT1
+        block_bytes = 8;
+        fourcc = 0x31545844; // "DXT1"
+        break;
+
+    case 0x0E:             // DXT3
+        block_bytes = 16;
+        fourcc = 0x33545844; // "DXT3"
+        break;
+
+    case 0x0F:             // DXT5
+        block_bytes = 16;
+        fourcc = 0x35545844; // "DXT5"
+        break;
+
+    default:
+        return false;
+    }
+
+    uint32_t bw =
+        (w + 3) / 4;
+
+    uint32_t bh =
+        (h + 3) / 4;
+
+    uint64_t payload64 =
+        (uint64_t)bw *
+        bh *
+        block_bytes;
+
+    if (payload64 > 0xFFFFFFFFu)
+        return false;
+
+    uint32_t payload =
+        (uint32_t)payload64;
+
+    if ((uint64_t)data_off + payload >
+        region.size())
+        return false;
+
+    //
+    // DDS magic (4 bytes) + DDS_HEADER (124 bytes).
+    //
+    Bytes dds(
+        128 + payload,
+        0);
+
+    wr(dds, 0, 0x20534444);  // "DDS "
+    wr(dds, 4, 124);
+
+    // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH |
+    // DDSD_PIXELFORMAT | DDSD_LINEARSIZE
+    wr(dds, 8, 0x00081007);
+
+    wr(dds, 12, h);
+    wr(dds, 16, w);
+    wr(dds, 20, payload);
+
+    // DDS_PIXELFORMAT starts at file offset 76.
+    wr(dds, 76, 32);
+    wr(dds, 80, 0x00000004); // DDPF_FOURCC
+    wr(dds, 84, fourcc);
+
+    // DDSCAPS_TEXTURE
+    wr(dds, 108, 0x00001000);
+
+    std::copy(
+        region.begin() + data_off,
+        region.begin() + data_off + payload,
+        dds.begin() + 128);
+
+    return write_file(path, dds);
+}
+
+void dump_apt_xbox_textures(
+    const Bytes &region,
+    const std::wstring &out_dir,
+    const std::wstring &stem)
+{
+    try {
+
+        if (region.size() < 0x80)
+            return;
+
+        uint32_t tex_count =
+            rd(region, 4);
+
+        uint32_t tex_array =
+            rd(region, 8);
+
+        if (!tex_count)
+            return;
+
+        if ((uint64_t)tex_array +
+                (uint64_t)tex_count * 4 >
+            region.size()) {
+
+            logf(
+                "[apttex] invalid texture table");
+
+            return;
+        }
+
+        for (uint32_t i = 0;
+             i < tex_count;
+             ++i) {
+
+            uint32_t tex_off =
+                rd(
+                    region,
+                    tex_array + i * 4);
+
+            if ((uint64_t)tex_off + 0x6A >
+                region.size()) {
+
+                logf(
+                    "[apttex] texture %u header is outside region",
+                    i);
+
+                continue;
+            }
+            //
+            // Xbox texture header:
+            //
+            // +04 data pointer, relative to texture
+            // +34 format
+            // +38 width
+            // +3C height
+            //
+            uint32_t data_rel =
+                rd(region, tex_off + 0x04);
+
+            uint32_t data_off =
+                tex_off + data_rel;
+
+            uint32_t fmt =
+                rd(region, tex_off + 0x34);
+
+            uint32_t w =
+                rd(region, tex_off + 0x38);
+
+            uint32_t h =
+                rd(region, tex_off + 0x3C);
+
+            uint32_t bit_depth =
+                rd(region, tex_off + 0x40);
+
+            bool new_revision =
+                bit_depth != 4 &&
+                bit_depth != 8 &&
+                bit_depth != 32;
+
+            uint32_t name_off;
+
+            uint32_t pal_count;
+
+            if (new_revision) {
+
+                bit_depth =
+                    region[tex_off + 0x64];
+
+                pal_count =
+                    region[tex_off + 0x66];
+
+                name_off =
+                    tex_off + 0x44;
+            }
+            else {
+
+                pal_count =
+                    region[tex_off + 0x69];
+
+                name_off =
+                    tex_off + 0x48;
+            }
+
+            std::string tex_name =
+                apt_tex_inline_string(
+                    region,
+                    name_off);
+
+            logf(
+                "[apttex] %s tex%u: %ux%u fmt=0x%X bpp=%u palettes=%u name=%s",
+                narrow(stem).c_str(),
+                i,
+                w,
+                h,
+                fmt,
+                bit_depth,
+                pal_count,
+                tex_name.c_str());
+
+            std::wstring base =
+                out_dir +
+                L"\\" +
+                stem +
+                L"_tex" +
+                std::to_wstring(i);
+
+            //
+            // Also keep the original embedded texture block.
+            //
+            uint32_t tex_end =
+                (uint32_t)region.size();
+
+            for (uint32_t j = 0;
+                 j < tex_count;
+                 ++j) {
+
+                uint32_t other =
+                    rd(
+                        region,
+                        tex_array + j * 4);
+
+                if (other > tex_off &&
+                    other < tex_end)
+                    tex_end = other;
+            }
+
+            if (tex_end > tex_off) {
+
+                Bytes raw(
+                    region.begin() + tex_off,
+                    region.begin() + tex_end);
+
+                write_file(
+                    base + L"_raw.bin",
+                    raw);
+            }
+
+            //
+            // P8 / paletted Xbox texture.
+            //
+            if (fmt == 0x0B) {
+
+                uint64_t pixel_count =
+                    (uint64_t)w * h;
+
+                if ((uint64_t)data_off +
+                        pixel_count >
+                    region.size()) {
+
+                    logf(
+                        "[apttex] P8 pixel data outside region");
+
+                    continue;
+                }
+
+                if (!pal_count) {
+
+                    logf(
+                        "[apttex] P8 texture has no palette");
+
+                    continue;
+                }
+
+                AptTexSwizzle sw(
+                    w,
+                    h);
+
+                for (uint32_t pal = 0;
+                     pal < pal_count;
+                     ++pal) {
+
+                    size_t pal_ptr_at =
+                        (size_t)tex_off +
+                        0x14 +
+                        pal * 4;
+
+                    if (pal_ptr_at + 4 >
+                        region.size()) {
+
+                        logf(
+                            "[apttex] palette pointer outside region");
+
+                        break;
+                    }
+
+                    uint32_t pal_rel =
+                        rd(
+                            region,
+                            pal_ptr_at);
+
+                    uint32_t pal_off =
+                        tex_off +
+                        pal_rel;
+
+                    if ((uint64_t)pal_off + 8 >
+                        region.size()) {
+
+                        logf(
+                            "[apttex] palette header outside region");
+
+                        continue;
+                    }
+
+                    uint32_t pal_data_rel =
+                        rd(
+                            region,
+                            pal_off + 4);
+
+                    uint32_t pal_data =
+                        tex_off +
+                        pal_data_rel;
+
+                    if ((uint64_t)pal_data +
+                            256 * 4 >
+                        region.size()) {
+
+                        logf(
+                            "[apttex] palette data outside region");
+
+                        continue;
+                    }
+
+                    std::vector<uint32_t> pixels(
+                        (size_t)w * h);
+
+                    for (uint32_t y = 0;
+                         y < h;
+                         ++y) {
+
+                        uint32_t oy =
+                            AptTexSwizzle::deposit(
+                                y,
+                                sw.my);
+
+                        uint32_t ox = 0;
+
+                        for (uint32_t x = 0;
+                             x < w;
+                             ++x) {
+
+                            uint32_t src_index =
+                                ox | oy;
+
+                            if (src_index <
+                                pixel_count) {
+
+                                uint8_t index =
+                                    region[
+                                        data_off +
+                                        src_index];
+
+                                size_t p =
+                                    (size_t)pal_data +
+                                    index * 4;
+
+                                //
+                                // Xbox palette is B8G8R8A8.
+                                //
+                                uint8_t b =
+                                    region[p + 0];
+
+                                uint8_t g =
+                                    region[p + 1];
+
+                                uint8_t r =
+                                    region[p + 2];
+
+                                uint8_t a =
+                                    region[p + 3];
+
+                                pixels[
+                                    (size_t)y * w + x] =
+                                        ((uint32_t)a << 24) |
+                                        ((uint32_t)r << 16) |
+                                        ((uint32_t)g << 8) |
+                                        b;
+                            }
+
+                            ox =
+                                (ox - sw.mx) &
+                                sw.mx;
+                        }
+                    }
+
+                    std::wstring pal_suffix;
+
+                    if (pal_count > 1) {
+                        pal_suffix =
+                            L"_pal" +
+                            std::to_wstring(pal);
+                    }
+
+                    write_apt_tex_bmp(
+                        base +
+                            pal_suffix +
+                            L"_rgb.bmp",
+                        w,
+                        h,
+                        pixels,
+                        false);
+
+                    write_apt_tex_bmp(
+                        base +
+                            pal_suffix +
+                            L"_alpha.bmp",
+                        w,
+                        h,
+                        pixels,
+                        true);
+                }
+
+                continue;
+            }
+
+            //
+            // Xbox DXT textures are already linear block-compressed.
+            // Keep them compressed and wrap them in a DDS header.
+            //
+            if (fmt == 0x0C ||
+                fmt == 0x0E ||
+                fmt == 0x0F) {
+
+                if (!write_apt_tex_dds(
+                        base + L".dds",
+                        region,
+                        data_off,
+                        w,
+                        h,
+                        fmt)) {
+
+                    logf(
+                        "[apttex] could not write DXT DDS");
+                }
+
+                continue;
+            }
+
+            //
+            // Raw RGBA Xbox texture, Morton ordered.
+            //
+            if (fmt == 0x3A) {
+
+                uint64_t bytes =
+                    (uint64_t)w *
+                    h *
+                    4;
+
+                if ((uint64_t)data_off +
+                        bytes >
+                    region.size()) {
+
+                    logf(
+                        "[apttex] RGBA pixel data outside region");
+
+                    continue;
+                }
+
+                AptTexSwizzle sw(
+                    w,
+                    h);
+
+                std::vector<uint32_t> pixels(
+                    (size_t)w * h);
+
+                for (uint32_t y = 0;
+                     y < h;
+                     ++y) {
+
+                    uint32_t oy =
+                        AptTexSwizzle::deposit(
+                            y,
+                            sw.my);
+
+                    uint32_t ox = 0;
+
+                    for (uint32_t x = 0;
+                         x < w;
+                         ++x) {
+
+                        uint32_t src_index =
+                            ox | oy;
+
+                        size_t s =
+                            (size_t)data_off +
+                            src_index * 4;
+
+                        uint8_t r =
+                            region[s + 0];
+
+                        uint8_t g =
+                            region[s + 1];
+
+                        uint8_t b =
+                            region[s + 2];
+
+                        uint8_t a =
+                            region[s + 3];
+
+                        pixels[
+                            (size_t)y * w + x] =
+                                ((uint32_t)a << 24) |
+                                ((uint32_t)r << 16) |
+                                ((uint32_t)g << 8) |
+                                b;
+
+                        ox =
+                            (ox - sw.mx) &
+                            sw.mx;
+                    }
+                }
+
+                write_apt_tex_bmp(
+                    base + L"_rgb.bmp",
+                    w,
+                    h,
+                    pixels,
+                    false);
+
+                write_apt_tex_bmp(
+                    base + L"_alpha.bmp",
+                    w,
+                    h,
+                    pixels,
+                    true);
+
+                continue;
+            }
+
+            logf(
+                "[apttex] unsupported Xbox texture format 0x%X",
+                fmt);
+        }
+    }
+    catch (const std::exception &e) {
+
+        logf(
+            "[apttex] extraction error: %s",
+            e.what());
+    }
+}
+void dump_apt_geometry_block(
+    const Bytes &region,
+    const std::wstring &out_dir,
+    const std::wstring &stem)
+{
+    if (region.size() < 0x80)
+        return;
+
+    uint32_t geom_off =
+        rd(region, 0x18);
+
+    if (!geom_off ||
+        geom_off >= region.size()) {
+
+        logf(
+            "[aptgeom] %s: no geometry block",
+            narrow(stem).c_str());
+
+        return;
+    }
+
+    uint32_t geom_end =
+        (uint32_t)region.size();
+
+    auto consider_end =
+        [&](uint32_t off)
+    {
+        if (off > geom_off &&
+            off < geom_end &&
+            off <= region.size()) {
+
+            geom_end = off;
+        }
+    };
+
+    consider_end(
+        rd(region, 0x14));
+
+    uint32_t tex_count =
+        rd(region, 0x04);
+
+    uint32_t tex_array =
+        rd(region, 0x08);
+
+    consider_end(tex_array);
+
+    if (tex_array &&
+        (uint64_t)tex_array +
+            (uint64_t)tex_count * 4 <=
+        region.size()) {
+
+        for (uint32_t i = 0;
+             i < tex_count;
+             ++i) {
+
+            consider_end(
+                rd(
+                    region,
+                    tex_array + i * 4));
+        }
+    }
+
+    if (geom_end <= geom_off)
+        return;
+
+    Bytes geometry(
+        region.begin() + geom_off,
+        region.begin() + geom_end);
+
+    std::wstring path =
+        out_dir +
+        L"\\" +
+        stem +
+        L"_geometry.bin";
+
+    if (write_file(path, geometry)) {
+
+        logf(
+            "[aptgeom] %s: geometry 0x%X-0x%X (%u bytes)",
+            narrow(stem).c_str(),
+            geom_off,
+            geom_end,
+            (uint32_t)geometry.size());
+    }
+}
+
+
+void dump_apt_movie(
+    std::ofstream &out,
+    const std::string &movie_name,
+    const Bytes &region)
+{
+    Movie mv(region);
+    uint32_t texture_count =
+        region.size() >= 8 ? rd(region, 4) : 0;
+
+    out << "================================================================================\n";
+    out << "MOVIE: " << movie_name << "\n";
+    out << "region bytes: " << region.size() << "\n";
+    out << "textures: " << texture_count << "\n";
+out << "main timeline offset: 0x"
+    << std::hex << mv.main << std::dec << "\n\n";
+
+//
+// Imported APT symbols.
+//
+// Movie layout:
+// +40 import count
+// +44 import table offset
+//
+// Each import is 16 bytes:
+// +0  source movie string
+// +4  symbol name string
+// +8  destination character ID
+// +12 runtime pointer
+//
+uint32_t import_count =
+    rd(mv.apt, mv.main + 40);
+
+uint32_t imports_off =
+    rd(mv.apt, mv.main + 44);
+
+out << "imports: "
+    << import_count
+    << "\n";
+
+if (import_count && imports_off) {
+
+    uint64_t import_end =
+        (uint64_t)imports_off +
+        (uint64_t)import_count * 16;
+
+    if (import_end > mv.apt.size()) {
+
+        out << "  <invalid import table: offset=0x"
+            << std::hex << imports_off
+            << std::dec << ">\n";
+    }
+    else {
+
+        for (uint32_t i = 0;
+             i < import_count;
+             ++i) {
+
+            uint32_t imp =
+                imports_off + i * 16;
+
+            uint32_t movie_off =
+                rd(mv.apt, imp + 0);
+
+            uint32_t name_off =
+                rd(mv.apt, imp + 4);
+
+            uint32_t character =
+                rd(mv.apt, imp + 8);
+
+            uint32_t runtime_ptr =
+                rd(mv.apt, imp + 12);
+
+            out << "  IMPORT "
+                << i
+                << " char="
+                << character
+                << " movie=\""
+                << mv.str(movie_off)
+                << "\" name=\""
+                << mv.str(name_off)
+                << "\" runtime=0x"
+                << std::hex
+                << runtime_ptr
+                << std::dec
+                << "\n";
+        }
+    }
+}
+
+out << "\n";
+//
+// Exported APT symbols.
+//
+// Movie layout:
+// +48 export count
+// +52 export table offset
+//
+// Each export is 8 bytes:
+// +0 symbol name string
+// +4 character ID
+//
+uint32_t export_count =
+    rd(mv.apt, mv.main + 48);
+
+uint32_t exports_off =
+    rd(mv.apt, mv.main + 52);
+
+out << "exports: "
+    << export_count
+    << "\n";
+
+if (export_count && exports_off) {
+
+    uint64_t export_end =
+        (uint64_t)exports_off +
+        (uint64_t)export_count * 8;
+
+    if (export_end > mv.apt.size()) {
+
+        out << "  <invalid export table: offset=0x"
+            << std::hex << exports_off
+            << std::dec << ">\n";
+    }
+    else {
+
+        for (uint32_t i = 0;
+             i < export_count;
+             ++i) {
+
+            uint32_t exp =
+                exports_off + i * 8;
+
+            uint32_t name_off =
+                rd(mv.apt, exp + 0);
+
+            uint32_t character =
+                rd(mv.apt, exp + 4);
+
+            out << "  EXPORT "
+                << i
+                << " char="
+                << character
+                << " name=\""
+                << mv.str(name_off)
+                << "\"\n";
+        }
+    }
+}
+
+out << "\n";
+
+std::vector<uint32_t> chars = mv.characters();
+
+    out << "character count: " << chars.size() << "\n\n";
+
+    for (size_t id = 0; id < chars.size(); ++id) {
+
+        uint32_t off = chars[id];
+
+        out << "CHAR " << id;
+
+     if (!off) {
+    out << " <null>\n\n";
+    continue;
+}
+
+	const uint32_t ch = off;
+
+	uint32_t type = rd(mv.apt, off);
+
+        out << "  offset=0x"
+            << std::hex << off
+            << std::dec
+            << "  type=" << type
+            << " (" << apt_character_type_name(type) << ")\n";
+			if (type == 1) { // Shape
+
+    if ((uint64_t)ch + 28 <= mv.apt.size()) {
+
+        float left   = rdf(mv.apt, ch + 8);
+        float top    = rdf(mv.apt, ch + 12);
+        float right  = rdf(mv.apt, ch + 16);
+        float bottom = rdf(mv.apt, ch + 20);
+
+        uint32_t geometry =
+            rd(mv.apt, ch + 24);
+
+        out << "  bounds: "
+            << "left=" << left
+            << " top=" << top
+            << " right=" << right
+            << " bottom=" << bottom
+            << "\n";
+
+        out << "  geometry: "
+            << geometry
+            << " (0x"
+            << std::hex << geometry
+            << std::dec << ")\n";
+    }
+    else {
+        out << "  <truncated shape>\n";
+    }
+}
+
+if (type == 7) { // Image
+
+    if ((uint64_t)ch + 12 <= mv.apt.size()) {
+
+        uint32_t texture =
+            rd(mv.apt, ch + 8);
+
+        out << "  texture: "
+            << texture
+            << " (0x"
+            << std::hex << texture
+            << std::dec << ")\n";
+    }
+}
+
+        //
+        // Text character:
+        // initial text offset +52
+        // variable string offset +56
+        //
+        if (type == 2) {
+
+            uint32_t initial_off = rd(mv.apt, off + 52);
+            uint32_t variable_off = rd(mv.apt, off + 56);
+
+            std::string initial =
+                mv.str(initial_off);
+
+            std::string variable =
+                mv.str(variable_off);
+
+            out << "  initial:  \"" << initial << "\"\n";
+            out << "  variable: \"" << variable << "\"\n";
+        }
+
+        //
+        // Sprite and Animation share the frame/control layout.
+        //
+        if (type == 5 || type == 9) {
+
+            uint32_t frame_count =
+                rd(mv.apt, off + 8);
+
+            out << "  frames: " << frame_count << "\n";
+
+            for (uint32_t frame = 0;
+                 frame < frame_count;
+                 ++frame) {
+
+                std::vector<uint32_t> controls =
+                    mv.controls(off, (int)frame);
+
+                if (controls.empty())
+                    continue;
+
+                out << "    FRAME "
+                    << frame
+                    << " controls="
+                    << controls.size()
+                    << "\n";
+
+                for (size_t ci = 0;
+                     ci < controls.size();
+                     ++ci) {
+
+                    uint32_t ctl =
+                        controls[ci];
+
+                    uint32_t ct =
+                        rd(mv.apt, ctl);
+
+                    out << "      ["
+                        << ci
+                        << "] offset=0x"
+                        << std::hex << ctl
+                        << std::dec
+                        << " type="
+                        << ct
+                        << " ("
+                        << apt_control_type_name(ct)
+                        << ")";
+
+                    //
+                    // DoAction
+                    //
+                    if (ct == 1) {
+
+                        uint32_t stream =
+                            rd(mv.apt, ctl + 4);
+
+                        out << " stream=0x"
+                            << std::hex << stream
+                            << std::dec;
+                    }
+
+                    //
+                    // PlaceObject
+                    //
+                    else if (ct == 3) {
+
+                        uint32_t flags =
+                            rd(mv.apt, ctl + 4);
+
+                        uint32_t depth =
+                            rd(mv.apt, ctl + 8);
+
+                        out << " flags=0x"
+                            << std::hex << flags
+                            << std::dec
+                            << " depth="
+                            << depth;
+
+                        // Flag 2 means this placement specifies
+                        // a character ID.
+                        if (flags & 0x02) {
+
+                            uint32_t char_id =
+                                rd(mv.apt, ctl + 12);
+
+                            out << " char="
+                                << char_id;
+                        }
+
+                        // Flag 4 means a transform matrix is present.
+                        if (flags & 0x04) {
+
+                            float a =
+                                rdf(mv.apt, ctl + 16);
+
+                            float b =
+                                rdf(mv.apt, ctl + 20);
+
+                            float c =
+                                rdf(mv.apt, ctl + 24);
+
+                            float d =
+                                rdf(mv.apt, ctl + 28);
+
+                            float tx =
+                                rdf(mv.apt, ctl + 32);
+
+                            float ty =
+                                rdf(mv.apt, ctl + 36);
+
+                            out << " matrix=("
+                                << a << ","
+                                << b << ","
+                                << c << ","
+                                << d << ","
+                                << tx << ","
+                                << ty << ")";
+                        }
+
+                        // Flag 0x20 means the instance has a name.
+                        if (flags & 0x20) {
+
+                            uint32_t name_off =
+                                rd(mv.apt, ctl + 52);
+
+                            std::string name =
+                                mv.str(name_off);
+
+                            if (!name.empty())
+                                out << " name=\""
+                                    << name
+                                    << "\"";
+                        }
+
+                        uint32_t clip_depth =
+                            rd(mv.apt, ctl + 56);
+
+                        if (clip_depth != 0xFFFFFFFFu)
+                            out << " clipDepth="
+                                << clip_depth;
+                    }
+
+                    //
+                    // DoInitAction:
+                    // {8, sprite, stream}
+                    //
+                    else if (ct == 8) {
+
+                        uint32_t sprite =
+                            rd(mv.apt, ctl + 4);
+
+                        uint32_t stream =
+                            rd(mv.apt, ctl + 8);
+
+                        out << " sprite="
+                            << sprite
+                            << " stream=0x"
+                            << std::hex << stream
+                            << std::dec;
+                    }
+
+                    out << "\n";
+                }
+            }
+        }
+
+        out << "\n";
+    }
+}
+
+bool dump_apt_container(
+    const std::wstring &input,
+    const std::wstring &output)
+{
+    Bytes data;
+
+    if (!read_file(input, data))
+        return false;
+
+    try {
+
+        Container container;
+        container.parse(data);
+
+        std::ofstream out(
+            output,
+            std::ios::out |
+            std::ios::trunc);
+
+        if (!out)
+            return false;
+
+        out << "BLACK-PC APT dump\n";
+        out << "source: "
+            << narrow(input)
+            << "\n";
+
+        out << "movies: "
+            << container.order.size()
+            << "\n\n";
+
+        for (const std::string &name :
+             container.order) {
+
+            auto it =
+                container.movies.find(name);
+
+            if (it == container.movies.end())
+                continue;
+
+               try {
+
+                //
+                // Xbox-specific frontend asset dumps.
+                //
+                if (name == "corexbox" ||
+                    name == "commonxbox") {
+
+                    std::wstring asset_dir =
+                        output;
+
+                    size_t slash =
+                        asset_dir.find_last_of(L"\\/");
+
+                    if (slash != std::wstring::npos)
+                        asset_dir.resize(slash);
+                    else
+                        asset_dir = L".";
+
+                    asset_dir +=
+                        L"\\textures";
+
+                    std::wstring stem;
+
+                    if (name == "corexbox")
+                        stem = L"corexbox";
+                    else
+                        stem = L"commonxbox";
+
+                    dump_apt_xbox_textures(
+                        it->second,
+                        asset_dir,
+                        stem);
+
+				if (name == "commonxbox") {
+
+					write_file(
+					asset_dir + L"\\commonxbox_region.bin",
+					it->second);
+
+					dump_apt_geometry_block(
+					it->second,
+					asset_dir,
+					L"commonxbox");
+}
+                }
+
+                dump_apt_movie(
+                    out,
+                    name,
+                    it->second);
+            }
+            catch (const std::exception &e) {
+
+                out << "================================================================================\n";
+                out << "MOVIE: "
+                    << name
+                    << "\n";
+
+                out << "ERROR: "
+                    << e.what()
+                    << "\n\n";
+            }
+        }
+
+        return true;
+    }
+    catch (const std::exception &) {
+
+        // Not every .bin necessarily has to be an APT container.
+        return false;
+    }
+}
+void draw_prompt_letter(
+    uint8_t mask[32][32],
+    char ch,
+    int x0,
+    int y0)
+{
+    static const char *L[7] = {
+        "10000",
+        "10000",
+        "10000",
+        "10000",
+        "10000",
+        "10000",
+        "11111",
+    };
+
+    static const char *R[7] = {
+        "11110",
+        "10001",
+        "10001",
+        "11110",
+        "10100",
+        "10010",
+        "10001",
+    };
+
+    static const char *T[7] = {
+        "11111",
+        "00100",
+        "00100",
+        "00100",
+        "00100",
+        "00100",
+        "00100",
+    };
+
+    const char *const *pattern =
+        ch == 'L' ? L :
+        ch == 'R' ? R :
+        T;
+
+    const int scale = 2;
+
+    for (int y = 0; y < 7; ++y) {
+        for (int x = 0; x < 5; ++x) {
+
+            if (pattern[y][x] != '1')
+                continue;
+
+            for (int sy = 0; sy < scale; ++sy) {
+                for (int sx = 0; sx < scale; ++sx) {
+
+                    int px =
+                        x0 + x * scale + sx;
+
+                    int py =
+                        y0 + y * scale + sy;
+
+                    if (px >= 0 &&
+                        px < 32 &&
+                        py >= 0 &&
+                        py < 32) {
+
+                        mask[py][px] = 1;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+void patch_prompt_cell(
+    Bytes &region,
+    size_t texture_data,
+    uint32_t texture_width,
+    int cell_x,
+    int cell_y,
+    const char *label)
+{
+    uint8_t mask[32][32] = {};
+
+
+    //
+    // 5x7 font, doubled to 10x14.
+    //
+//
+// Original BLACK geometry already draws L/R.
+// We only add the modern "T" suffix.
+//
+draw_prompt_letter(
+    mask,
+    'T',
+    16,
+    9);
+
+    const uint32_t blocks_per_row =
+        texture_width / 4;
+
+    //
+    // DXT5: each 4x4 block = 16 bytes.
+    //
+    for (int by = 0; by < 8; ++by) {
+		for (int bx = 0; bx < 8; ++bx) {
+
+        bool block_used = false;
+
+        for (int py = 0; py < 4; ++py) {
+            for (int px = 0; px < 4; ++px) {
+                if (mask[by * 4 + py][bx * 4 + px]) {
+                    block_used = true;
+                }
+            }
+        }
+
+        if (!block_used)
+            continue;
+
+        size_t dst =
+            texture_data +
+                (
+                    (
+                        (cell_y / 4 + by) *
+                        blocks_per_row
+                    ) +
+                    (cell_x / 4 + bx)
+                ) * 16;
+
+            //
+            // Alpha endpoints:
+            //   index 0 = 255
+            //   index 1 = 0
+            //
+            region[dst + 0] = 255;
+            region[dst + 1] = 0;
+
+            uint64_t alpha_bits = 0;
+            uint32_t color_bits = 0;
+
+            for (int py = 0; py < 4; ++py) {
+                for (int px = 0; px < 4; ++px) {
+
+                    int n =
+                        py * 4 + px;
+
+                    bool on =
+                        mask[
+                            by * 4 + py
+                        ][
+                            bx * 4 + px
+                        ] != 0;
+
+                    uint64_t alpha_index =
+                        on ? 0 : 1;
+
+                    uint32_t color_index =
+                        on ? 0 : 1;
+
+                    alpha_bits |=
+                        alpha_index <<
+                        (n * 3);
+
+                    color_bits |=
+                        color_index <<
+                        (n * 2);
+                }
+            }
+
+            for (int i = 0; i < 6; ++i) {
+                region[dst + 2 + i] =
+                    (uint8_t)(
+                        alpha_bits >>
+                        (i * 8));
+            }
+
+            //
+            // RGB565 endpoints:
+            // white and black.
+            //
+            region[dst + 8]  = 0xff;
+            region[dst + 9]  = 0xff;
+            region[dst + 10] = 0x00;
+            region[dst + 11] = 0x00;
+
+            region[dst + 12] =
+                (uint8_t)(color_bits);
+
+            region[dst + 13] =
+                (uint8_t)(color_bits >> 8);
+
+            region[dst + 14] =
+                (uint8_t)(color_bits >> 16);
+
+            region[dst + 15] =
+                (uint8_t)(color_bits >> 24);
+        }
+    }
+}
+
+
+void patch_commonxbox_trigger_labels(
+    Bytes &region)
+{
+    if (region.size() < 0x80)
+        throw Error(
+            "commonxbox too short");
+
+    uint32_t texture_count =
+        rd(region, 4);
+
+    uint32_t texture_array =
+        rd(region, 8);
+
+    if (texture_count < 1 ||
+        (uint64_t)texture_array + 4 >
+            region.size()) {
+
+        throw Error(
+            "commonxbox texture table invalid");
+    }
+
+    uint32_t texture =
+        rd(region, texture_array);
+
+    if ((uint64_t)texture + 0x80 >
+        region.size()) {
+
+        throw Error(
+            "commonxbox texture header invalid");
+    }
+
+    uint32_t data_rel =
+        rd(region, texture + 0x04);
+
+    uint32_t format =
+        rd(region, texture + 0x34);
+
+    uint32_t width =
+        rd(region, texture + 0x38);
+
+    uint32_t height =
+        rd(region, texture + 0x3c);
+
+    size_t data =
+        (size_t)texture +
+        data_rel;
+
+    if (format != 0x0f ||
+        width != 256 ||
+        height != 256) {
+
+        throw Error(
+            "unexpected commonxbox texture");
+    }
+
+    uint64_t data_size =
+        ((uint64_t)width / 4) *
+        ((uint64_t)height / 4) *
+        16;
+
+    if ((uint64_t)data +
+            data_size >
+        region.size()) {
+
+        throw Error(
+            "commonxbox texture truncated");
+    }
+
+    //
+    // Logical image 4:
+    // EControl_RTrigger.tif
+    // atlas x=96 y=192
+    //
+    patch_prompt_cell(
+        region,
+        data,
+        width,
+        96,
+        192,
+        "RT");
+
+    //
+    // Logical image 8:
+    // EControl_LTrigger.tif
+    // atlas x=96 y=224
+    //
+    patch_prompt_cell(
+        region,
+        data,
+        width,
+        96,
+        224,
+        "LT");
+
+    logf(
+        "fe: commonxbox trigger test: LT/RT");
+}
 constexpr char kBindings[] = "PCBindings";
 
 } // namespace
+
+bool fe_dump_apt(
+    const std::wstring &game_dir,
+    const std::wstring &out_dir)
+{
+    if (!CreateDirectoryW(
+            out_dir.c_str(),
+            nullptr)) {
+
+        DWORD err =
+            GetLastError();
+
+        if (err != ERROR_ALREADY_EXISTS) {
+            logf(
+                "fe: cannot create APT dump directory %s (error %lu)",
+                narrow(out_dir).c_str(),
+                err);
+
+            return false;
+        }
+    }
+
+    std::wstring frontend =
+        game_dir +
+        L"\\export\\frontend";
+
+    std::wstring pattern =
+        frontend +
+        L"\\*.bin";
+
+    WIN32_FIND_DATAW fd{};
+
+    HANDLE find =
+        FindFirstFileW(
+            pattern.c_str(),
+            &fd);
+
+    if (find == INVALID_HANDLE_VALUE) {
+        logf(
+            "fe: no frontend .bin files found under %s",
+            narrow(frontend).c_str());
+
+        return false;
+    }
+
+    unsigned dumped = 0;
+    unsigned skipped = 0;
+
+    do {
+
+        if (fd.dwFileAttributes &
+            FILE_ATTRIBUTE_DIRECTORY)
+            continue;
+
+        std::wstring filename =
+            fd.cFileName;
+
+        std::wstring input =
+            frontend +
+            L"\\" +
+            filename;
+
+        std::wstring output =
+            out_dir +
+            L"\\" +
+            filename +
+            L".txt";
+
+        if (dump_apt_container(
+                input,
+                output)) {
+
+            logf(
+                "fe: APT dump: %s",
+                narrow(filename).c_str());
+
+            ++dumped;
+        }
+        else {
+
+            // Delete a partial output if parsing failed.
+            DeleteFileW(
+                output.c_str());
+
+            ++skipped;
+        }
+
+    } while (
+        FindNextFileW(
+            find,
+            &fd));
+
+    FindClose(find);
+
+    logf(
+        "fe: APT dump complete: %u containers, %u non-APT/skipped",
+        dumped,
+        skipped);
+
+    return dumped != 0;
+}
 
 bool fe_build_pages(const std::wstring &game_dir, const std::wstring &out_root)
 {
@@ -1074,6 +2802,40 @@ bool fe_build_pages(const std::wstring &game_dir, const std::wstring &out_root)
         c.movies["blacktitlemenu2"] = fresh.build();
     }, fe) && write_file(dir + L"FEMain.bin", fe);
     if (!main_ok) DeleteFileW((dir + L"FEMain.bin").c_str()); // not an old build of the pages
+	  
+
+	//
+    // Modern Xbox trigger labels: LT / RT test.
+    //
+    Bytes common;
+
+    bool common_ok =
+        rebuild(
+            game_dir,
+            L"Common.bin",
+            [](Container &c) {
+
+                auto it =
+                    c.movies.find("commonxbox");
+
+                if (it == c.movies.end()) {
+                    throw Error(
+                        "commonxbox missing");
+                }
+
+                patch_commonxbox_trigger_labels(
+                    it->second);
+            },
+            common)
+        &&
+        write_file(
+            dir + L"Common.bin",
+            common);
+
+    if (!common_ok) {
+        DeleteFileW(
+            (dir + L"Common.bin").c_str());
+    }
     // the pause menu: PC SETTINGS after OPTIONS (InGameOn.bin) opens the one PC SETTINGS pause page (a copy of the
     // in-game Options in PseMenu.bin, loaded with the pause pages); both files or neither
     Bytes on, pse;
@@ -1093,5 +2855,9 @@ bool fe_build_pages(const std::wstring &game_dir, const std::wstring &out_root)
     logf("fe: PC SETTINGS pages: main menu %s, pause menu %s (%s)", main_ok ? "on" : "off", pause_ok ? "on" : "off",
          narrow(out_root).c_str());
     bool text_ok = patch_strings(game_dir, out_root);
-    return main_ok || pause_ok || text_ok;
+    return
+    main_ok ||
+    pause_ok ||
+    common_ok ||
+    text_ok;
 }

@@ -2,6 +2,7 @@
 // A8R8G8B8, DXT data is uploaded as is. Host copies are cached per resource header and re-uploaded when
 // the header changes, the game locks the texture, or a sampled hash of the texel data changes (checked at the
 // first use in a frame, every 16th frame for textures that have not changed for a while).
+#include "common.h"
 #include "d3d/device.h"
 #include "d3d/dispatch.h"
 #include "d3d/host.h"
@@ -10,6 +11,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <unordered_set>
 #include <unordered_map>
 #include <vector>
 
@@ -188,6 +190,262 @@ uint32_t total_bytes(const PixelContainer *pc)
     const FormatInfo &fi = format_info(fmt_of(pc));
     return last + pitch * (fi.compressed ? (lh + 3) / 4 : lh);
 }
+// Development helper: dump unique decoded Xbox textures as BMP files.
+// Enabled only with --dump-textures / -dump.
+//
+// Each texture produces:
+//   *_rgb.bmp   - RGB shown fully opaque
+//   *_alpha.bmp - alpha channel shown as grayscale
+//
+// This makes transparent UI textures much easier to inspect.
+void dump_texture_bmp(const PixelContainer *pc, Palette *pal, uint32_t hash)
+{
+    if (!g_cfg.dump_textures)
+        return;
+
+    if (!pc || !pc->Data)
+        return;
+
+    uint32_t fmt = fmt_of(pc);
+    const FormatInfo &fi = format_info(fmt);
+
+    // First pass: skip compressed textures.
+    // We can add DXT dumping later if the UI assets require it.
+	if (fi.compressed) {
+    uint32_t w, h, d, levels;
+
+    pixel_container_dims(
+        pc,
+        &w,
+        &h,
+        &d,
+        &levels);
+
+    logf(
+        "[texdump] SKIPPED COMPRESSED %08x: %ux%u %s",
+        hash,
+        w,
+        h,
+        fi.name);
+
+		return;
+}
+
+    // Skip cube maps.
+    if (pc->Format & FMT_CUBEMAP)
+        return;
+
+    // Skip volume textures.
+    uint32_t dim = (pc->Format >> FMT_DIMENSION_SHIFT) & 0xF;
+    if (dim == 3)
+        return;
+
+    uint32_t w, h, d, levels;
+    pixel_container_dims(pc, &w, &h, &d, &levels);
+
+    if (!w || !h || d != 1)
+        return;
+
+    // We're interested in UI/assets, not huge buffers.
+    if (w > 1024 || h > 1024)
+        return;
+
+    // Avoid dumping full-screen/video-like surfaces.
+    if (w >= 640 && h >= 480)
+        return;
+
+    // Do not dump the same texture repeatedly every frame.
+    static std::unordered_set<uint64_t> dumped;
+
+    uint64_t key =
+        (uint64_t)hash |
+        ((uint64_t)w << 32) |
+        ((uint64_t)h << 48);
+
+    if (!dumped.insert(key).second)
+    return;
+
+    const uint32_t *palette =
+        pal ? (const uint32_t *)phys_to_virt(pal->Data) : nullptr;
+
+    // Decode mip level 0 into normal A8R8G8B8 pixels.
+    std::vector<uint8_t> pixels((size_t)w * h * 4);
+
+    upload_level(
+        pc,
+        0,
+        0,
+        pixels.data(),
+        w * 4,
+        palette);
+
+    // Output folder next to black.exe.
+    std::wstring dir = g_cfg.port_dir + L"\\texture_dump";
+
+    if (!CreateDirectoryW(dir.c_str(), nullptr)) {
+        DWORD err = GetLastError();
+
+        if (err != ERROR_ALREADY_EXISTS) {
+            logf(
+                "[texdump] could not create texture_dump folder (error %lu)",
+                err);
+
+            return;
+        }
+    }
+
+    //
+    // Helper that writes one 32-bit BMP.
+    //
+    auto write_bmp = [&](const std::wstring &path, bool alpha_only)
+    {
+        FILE *f = nullptr;
+
+        if (_wfopen_s(&f, path.c_str(), L"wb") != 0 || !f) {
+            logf(
+                "[texdump] could not create %s",
+                narrow(path).c_str());
+
+            return;
+        }
+
+        BITMAPFILEHEADER file_header{};
+        BITMAPINFOHEADER info_header{};
+
+        uint32_t image_bytes = w * h * 4;
+
+        file_header.bfType = 0x4D42; // "BM"
+
+        file_header.bfOffBits =
+            sizeof(BITMAPFILEHEADER) +
+            sizeof(BITMAPINFOHEADER);
+
+        file_header.bfSize =
+            file_header.bfOffBits +
+            image_bytes;
+
+        info_header.biSize = sizeof(BITMAPINFOHEADER);
+        info_header.biWidth = (LONG)w;
+
+        // Positive height = ordinary bottom-up BMP.
+        info_header.biHeight = (LONG)h;
+
+        info_header.biPlanes = 1;
+        info_header.biBitCount = 32;
+        info_header.biCompression = BI_RGB;
+        info_header.biSizeImage = image_bytes;
+
+        fwrite(
+            &file_header,
+            sizeof(file_header),
+            1,
+            f);
+
+        fwrite(
+            &info_header,
+            sizeof(info_header),
+            1,
+            f);
+
+        const uint32_t *src =
+            reinterpret_cast<const uint32_t *>(pixels.data());
+
+        std::vector<uint32_t> row(w);
+
+        // BMP rows are written bottom -> top.
+        for (int y = (int)h - 1; y >= 0; --y) {
+
+            for (uint32_t x = 0; x < w; ++x) {
+
+                uint32_t p =
+                    src[(size_t)y * w + x];
+
+                uint32_t a = (p >> 24) & 0xFF;
+                uint32_t r = (p >> 16) & 0xFF;
+                uint32_t g = (p >> 8) & 0xFF;
+                uint32_t b = p & 0xFF;
+
+                if (alpha_only) {
+
+                    // Show alpha as grayscale:
+                    //
+                    // black = fully transparent
+                    // white = fully opaque
+                    //
+                    row[x] =
+                        0xFF000000 |
+                        (a << 16) |
+                        (a << 8) |
+                        a;
+                }
+                else {
+
+                    // Ignore the original alpha and show the RGB
+                    // data fully opaque.
+                    row[x] =
+                        0xFF000000 |
+                        (r << 16) |
+                        (g << 8) |
+                        b;
+                }
+            }
+
+            fwrite(
+                row.data(),
+                sizeof(uint32_t),
+                w,
+                f);
+        }
+
+        fclose(f);
+    };
+
+    //
+    // Generate filenames.
+    //
+	static uint32_t dump_counter = 0;
+	uint32_t n = dump_counter++;
+
+	wchar_t rgb_name[256];
+	wchar_t alpha_name[256];
+
+	swprintf_s(
+    rgb_name,
+    L"\\%06u_%08X_%ux%u_fmt%u_rgb.bmp",
+    n,
+    hash,
+    w,
+    h,
+    fmt);
+
+	swprintf_s(
+    alpha_name,
+    L"\\%06u_%08X_%ux%u_fmt%u_alpha.bmp",
+    n,
+    hash,
+    w,
+    h,
+    fmt);
+
+    std::wstring rgb_path =
+        dir + rgb_name;
+
+    std::wstring alpha_path =
+        dir + alpha_name;
+
+    //
+    // Write both representations.
+    //
+    write_bmp(rgb_path, false);
+    write_bmp(alpha_path, true);
+
+    logf(
+        "[texdump] %08x: %ux%u %s",
+        hash,
+        w,
+        h,
+        fi.name);
+}
 
 // Refill an existing host texture (same size/format) from Xbox memory.
 void refill(IDirect3DBaseTexture9 *base, Resource *r, Palette *pal)
@@ -335,6 +593,7 @@ IDirect3DBaseTexture9 *host_texture(Resource *r, Palette *pal)
     uint32_t hash = sample_hash((const uint8_t *)phys_to_virt(pc->Data), bytes);
     const void *palptr = pal ? phys_to_virt(pal->Data) : nullptr;
     if (fmt_of(pc) == XFMT_P8 && pal) hash ^= sample_hash((const uint8_t *)palptr, 1024);
+	dump_texture_bmp(pc, pal, hash);
     bool same_shape = e.tex && e.data == pc->Data && e.format == pc->Format && e.size == pc->Size;
     bool stale = !same_shape || e.dirty || e.hash != hash || (fmt_of(pc) == XFMT_P8 && e.palette != palptr);
     e.stable = stale ? 0 : std::min<uint32_t>(e.stable + 1, kStableChecks);
