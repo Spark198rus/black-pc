@@ -43,3 +43,19 @@ perf/
 dist/
 # The port's rebuilt front-end files (made at start from the user's game files)
 cache/
+
+# Local BLACK runtime: the release binaries (build from source instead), the
+# patched copy of blackrt.dll and its backup, and the symlink to the game dump
+/black.exe
+/blackrt.dll
+/blackrt.dll.bak
+/game
+
+# The Xbox hard disk the port writes: saved games, profiles, settings
+/savedata/
+
+# Local copies of upstream-style patches (kept for reference, not tracked)
+/patches/
+
+# Python bytecode from the tools
+__pycache__/
