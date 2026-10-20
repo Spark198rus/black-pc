@@ -853,16 +853,26 @@ void draw_indexed_up(uint32_t xprim, uint32_t nidx, const uint16_t *idx, const v
     Prim p = conv_prim(xprim, nidx);
     if (!p.count) return;
     perf::add_draw(mx - mn + 1, (mx - mn + 1) * stride);
+    // Indices are rebased to the first vertex used and the data pointer moved to it, so MinVertexIndex is 0.
+    // Microsoft's D3D9 reads only from MinVertexIndex on, but DXVK copies from vertex 0, and verts may point
+    // before valid memory (DrawIndexedVertices passes the converted block minus mn vertices).
+    const uint16_t base = (uint16_t)mn;
     if (p.quads) {
         g_tmp_indices.resize(p.count * 3);
         for (uint32_t q = 0; q < nidx / 4; q++) {
             const uint16_t *s = idx + q * 4;
             uint16_t *o = &g_tmp_indices[q * 6];
-            o[0] = s[0]; o[1] = s[1]; o[2] = s[2]; o[3] = s[0]; o[4] = s[2]; o[5] = s[3];
+            o[0] = s[0] - base; o[1] = s[1] - base; o[2] = s[2] - base;
+            o[3] = s[0] - base; o[4] = s[2] - base; o[5] = s[3] - base;
         }
         idx = g_tmp_indices.data();
+    } else if (base) {
+        g_tmp_indices.resize(nidx);
+        for (uint32_t i = 0; i < nidx; i++) g_tmp_indices[i] = idx[i] - base;
+        idx = g_tmp_indices.data();
     }
-    host3d::dev()->DrawIndexedPrimitiveUP(p.type, mn, mx - mn + 1, p.count, idx, D3DFMT_INDEX16, verts, stride);
+    host3d::dev()->DrawIndexedPrimitiveUP(p.type, 0, mx - mn + 1, p.count, idx, D3DFMT_INDEX16,
+                                          (const uint8_t *)verts + (size_t)mn * stride, stride);
 }
 
 const uint8_t *stream_data(uint32_t stream)
