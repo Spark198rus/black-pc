@@ -17,6 +17,8 @@
 // list's draws, and the translated vertex shaders scale their clip-space x/y (fov_viewmodel_scale, constant c200)
 // so they project as with the game's own FOV (70 / zoom); depth stays, so clipping and sorting do not change.
 // The muzzle flash is not on the gun in the original either: it sits on the aim line near the screen centre.
+// Addresses are the NTSC-U build's, mapped with xbe_va; the PAL build has the same code, but the constant's address in
+// the loads is 0x20 higher there, so the check compares the load with the mapped address.
 #include "fov.h"
 
 #include "common.h"
@@ -28,7 +30,7 @@
 
 extern "C" {
 volatile uint8_t g_fov_viewmodel;         // set while the first-person list draws (the thunk)
-uint32_t g_fov_viewmodel_list = 0x00176F60; // the render-list function the patched call goes to
+uint32_t g_fov_viewmodel_list;              // the render-list function the patched call goes to (FUN_00176F60)
 }
 
 namespace {
@@ -49,14 +51,15 @@ __declspec(naked) void viewmodel_thunk()
     }
 }
 
+constexpr uint32_t kSeventy = 0x002888C8; // the constant 70.0f the loads read
 struct Site {
     uint32_t addr;
-    uint8_t expect[8]; // movss xmmN, dword ptr ds:[0x2888C8]
+    uint8_t expect[4]; // movss xmmN, dword ptr ds:[kSeventy]
 };
 const Site kSites[] = {
-    {0x001BB2CA, {0xF3, 0x0F, 0x10, 0x0D, 0xC8, 0x88, 0x28, 0x00}}, // xmm1: 70 / zoom in play (FUN_001BB110)
-    {0x00202F92, {0xF3, 0x0F, 0x10, 0x05, 0xC8, 0x88, 0x28, 0x00}}, // xmm0: camera back to the player's FOV (FUN_00202850)
-    {0x002038E5, {0xF3, 0x0F, 0x10, 0x05, 0xC8, 0x88, 0x28, 0x00}}, // xmm0: renderer start, +0x750 and +0x7A0 (FUN_00203610)
+    {0x001BB2CA, {0xF3, 0x0F, 0x10, 0x0D}}, // xmm1: 70 / zoom in play (FUN_001BB110)
+    {0x00202F92, {0xF3, 0x0F, 0x10, 0x05}}, // xmm0: camera back to the player's FOV (FUN_00202850)
+    {0x002038E5, {0xF3, 0x0F, 0x10, 0x05}}, // xmm0: renderer start, +0x750 and +0x7A0 (FUN_00203610)
 };
 
 } // namespace
@@ -78,14 +81,19 @@ float fov_viewmodel_scale()
 void install_fov_patch()
 {
     fov_set(g_cfg.fov);
-    for (const Site &s : kSites)
-        if (memcmp((const void *)(uintptr_t)s.addr, s.expect, sizeof s.expect) != 0) {
-            logf("fov: code at 0x%08x does not match this build; field of view stays the game's", s.addr);
+    const uint32_t seventy = xbe_va(kSeventy);
+    for (const Site &s : kSites) {
+        auto *code = (const uint8_t *)(uintptr_t)xbe_va(s.addr);
+        if (memcmp(code, s.expect, sizeof s.expect) != 0 || *(const uint32_t *)(code + 4) != seventy) {
+            logf("fov: code at 0x%08x does not match this build; field of view stays the game's", xbe_va(s.addr));
             return;
         }
+    }
     uint32_t target = (uint32_t)(uintptr_t)&g_fov_deg;
-    for (const Site &s : kSites) memcpy((void *)(uintptr_t)(s.addr + 4), &target, 4); // the load's address operand
-    for (uint32_t at : kViewmodelCalls) {
+    for (const Site &s : kSites) memcpy((void *)(uintptr_t)(xbe_va(s.addr) + 4), &target, 4); // the load's address operand
+    g_fov_viewmodel_list = xbe_va(0x00176F60);
+    for (uint32_t ntsc_at : kViewmodelCalls) {
+        uint32_t at = xbe_va(ntsc_at);
         auto *call = (uint8_t *)(uintptr_t)at;
         int32_t rel;
         memcpy(&rel, call + 1, 4);

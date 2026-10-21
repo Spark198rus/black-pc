@@ -86,13 +86,14 @@ struct Patch {
 
 bool patch(const Patch &p)
 {
-    auto *code = (uint8_t *)(uintptr_t)p.addr;
+    uint32_t addr = xbe_va(p.addr);
+    auto *code = (uint8_t *)(uintptr_t)addr;
     if (memcmp(code, p.expect, p.expect_len) != 0) {
-        logf("timing: %s at 0x%08x does not match this build; not patched", p.what, p.addr);
+        logf("timing: %s at 0x%08x does not match this build; not patched", p.what, addr);
         return false;
     }
     code[0] = 0xE9;
-    int32_t rel = (int32_t)((uintptr_t)p.target - (p.addr + 5));
+    int32_t rel = (int32_t)((uintptr_t)p.target - (addr + 5));
     memcpy(code + 1, &rel, 4);
     return true;
 }
@@ -103,11 +104,12 @@ namespace {
 float g_frame_60 = 1.0f / 60.0f;
 float g_frame_30 = 1.0f / 30.0f;
 
-// A disp32/imm32 operand at `at` inside the instruction at `insn` (whose first bytes must match).
+// An instruction with an absolute memory operand: its opcode bytes, then the address (NTSC-U; xbe_va maps it, as the
+// PAL build has the same code with its data 0x20 higher), then for a store an imm32 (0: none).
 struct Operand {
     uint32_t insn;
-    uint8_t expect[6];
-    uint32_t at, old_value;
+    uint8_t op[4];
+    uint32_t op_len, mem, imm;
 };
 } // namespace
 
@@ -154,14 +156,15 @@ bool install_refire_patches()
         {0x001EFEF3, {0x89, 0x8D, 0xDC, 0x00, 0x00, 0x00}, refire_ecx}, // interval (+0x20), other fire path
     };
     for (const Site &s : sites)
-        if (memcmp((const void *)(uintptr_t)s.addr, s.expect, 6)) {
-            logf("timing: weapon refire site 0x%08x does not match this build", s.addr);
+        if (memcmp((const void *)(uintptr_t)xbe_va(s.addr), s.expect, 6)) {
+            logf("timing: weapon refire site 0x%08x does not match this build", xbe_va(s.addr));
             return false;
         }
     for (const Site &s : sites) { // call thunk; nop (the 6-byte store it replaces)
-        auto *code = (uint8_t *)(uintptr_t)s.addr;
+        uint32_t addr = xbe_va(s.addr);
+        auto *code = (uint8_t *)(uintptr_t)addr;
         code[0] = 0xE8;
-        int32_t rel = (int32_t)((uintptr_t)s.thunk - (s.addr + 5));
+        int32_t rel = (int32_t)((uintptr_t)s.thunk - (addr + 5));
         memcpy(code + 1, &rel, 4);
         code[5] = 0x90;
     }
@@ -172,29 +175,36 @@ bool install_60fps_patches()
 {
     uint32_t frame = (uint32_t)(uintptr_t)&g_frame_60;
     const Operand ops[] = {
-        {0x0020C2A4, {0xF3, 0x0F, 0x10, 0x05, 0xC0, 0x5F}, 0x0020C2A8, 0x00295FC0}, // movss xmm0, [1/30] (NTSC frame time)
-        {0x0020C2AC, {0xC7, 0x05, 0x00, 0x38, 0x2F, 0x00}, 0x0020C2B2, 0x21},       // mov [0x2F3800], 33 (ms per frame)
-        {0x00193EAE, {0xF3, 0x0F, 0x59, 0x05, 0xC0, 0x5F}, 0x00193EB2, 0x00295FC0}, // mulss xmm0, [1/30]
-        {0x00212210, {0xF3, 0x0F, 0x10, 0x05, 0xC0, 0x5F}, 0x00212214, 0x00295FC0}, // movss xmm0, [1/30] -> 0x2F57F4
+        {0x0020C2A4, {0xF3, 0x0F, 0x10, 0x05}, 4, 0x00295FC0, 0},    // movss xmm0, [1/30] (NTSC frame time)
+        {0x0020C2AC, {0xC7, 0x05}, 2, 0x002F3800, 0x21},             // mov [0x2F3800], 33 (ms per frame)
+        {0x00193EAE, {0xF3, 0x0F, 0x59, 0x05}, 4, 0x00295FC0, 0},    // mulss xmm0, [1/30]
+        {0x00212210, {0xF3, 0x0F, 0x10, 0x05}, 4, 0x00295FC0, 0},    // movss xmm0, [1/30] -> 0x2F57F4
     };
-    for (const Operand &o : ops)
-        if (memcmp((const void *)(uintptr_t)o.insn, o.expect, 6) || *(uint32_t *)(uintptr_t)o.at != o.old_value) {
-            logf("timing: 60 fps patch site 0x%08x does not match this build; staying at 30 fps", o.insn);
+    for (const Operand &o : ops) {
+        auto *code = (const uint8_t *)(uintptr_t)xbe_va(o.insn);
+        if (memcmp(code, o.op, o.op_len) || *(const uint32_t *)(code + o.op_len) != xbe_va(o.mem) ||
+            (o.imm && *(const uint32_t *)(code + o.op_len + 4) != o.imm)) {
+            logf("timing: 60 fps patch site 0x%08x does not match this build; staying at 30 fps", xbe_va(o.insn));
             return false;
         }
-    for (const Operand &o : ops) *(uint32_t *)(uintptr_t)o.at = o.old_value == 0x21 ? 16u : frame;
+    }
+    for (const Operand &o : ops) {
+        auto *code = (uint8_t *)(uintptr_t)xbe_va(o.insn);
+        if (o.imm) *(uint32_t *)(code + o.op_len + 4) = 16; // 16 ms per frame
+        else *(uint32_t *)(code + o.op_len) = frame;           // the frame time: 1/60
+    }
     bool refire = install_refire_patches();
     // Reload blur (the post-process controller at *0x2D1990 + 0x830A0, mode 1): its hold time is set at
     // 0x17B314 to reload-animation length [anim+0x1C] (in 30 fps animation frames) * frame time (game
     // +0x2013C, = 1/60 now) * 0.5 - c, so it halved at 60 fps and the blur cleared early. Use 1/30 there.
     static const uint8_t blur_expect[8] = {0xF3, 0x0F, 0x59, 0x82, 0x3C, 0x01, 0x02, 0x00}; // mulss xmm0, [edx+0x2013C]
-    auto *blur = (uint8_t *)(uintptr_t)0x0017B314;
+    auto *blur = (uint8_t *)(uintptr_t)xbe_va(0x0017B314);
     if (!memcmp(blur, blur_expect, 8)) {
         blur[3] = 0x05; // mulss xmm0, [disp32]
         uint32_t a = (uint32_t)(uintptr_t)&g_frame_30;
         memcpy(blur + 4, &a, 4);
     } else {
-        logf("timing: reload blur site 0x0017B314 does not match this build");
+        logf("timing: reload blur site 0x%08x does not match this build", xbe_va(0x0017B314));
     }
     logf("timing: world steps 1/60 s per frame (60 fps)%s", refire ? "; weapon refire keeps the 30 fps rhythm" : "");
     return true;

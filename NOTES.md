@@ -341,3 +341,23 @@ User report: the game froze when the PC went to sleep. Three things broke, all f
   strings are written in place in fixed buffers; the port's entries hold 0x10000 references.
 - The Windows menu bar is gone. Fullscreen from PC SETTINGS is `host3d::set_fullscreen` (WM_APP + 0x53). The key
   bindings dialog and menu.cpp were removed.
+
+## PAL Europe build (PR #28, 2026-10-21)
+
+- PAL `default.xbe` sha256 67f35121...30f0 (redump image: XDVDFS volume at 0x18300000; 685 files). `xbe_va()`
+  (xbe.cpp) maps the port's NTSC-U addresses: .text is the same up to 0x118400, 0x30 further on after it; every
+  later section (DSOUND ... .XTLID) is 0x20 higher.
+- The code at every patch site is byte-identical; only absolute operands that point into .rdata/.data differ (+0x20),
+  e.g. `movss xmm1, [0x2888C8]` (70.0f, FOV) reads `[0x2888E8]` on PAL, `[1/30]` 0x295FC0 -> 0x295FE0,
+  `mov [0x2F3800], 33` -> `[0x2F3820]`. Patch checks therefore compare opcode bytes plus the xbe_va-mapped operand
+  (fov.cpp sites, timing.cpp `Operand`); FOV and 60 fps work on PAL with that. Constants (1/30, 70, 33 ms) are equal.
+- PAL asks the game for PAL60 (XC_VIDEO bit 22) and region PAL; at 60 fps it takes the same 1/30 path as NTSC.
+- PAL languages: the game's language index lives at 0x2D0D98 (PAL; 0 English, 3-6 German, French, Spanish,
+  Italian; set at 0x1F8154 from XGetLanguage through FUN_000C19A0). Per-language speech is
+  levels\<level>\spch_<en|ge|fr|sp|it>.bks/.ssh (suffix table 0x2AB3F4); levels\global\Speech.bks and the other
+  level banks are the same on both discs (English). Every localized spch bank starts with 32 KB of silent blocks.
+- The first mission's intro (the 16 s stereo stream at 33169 Hz while the location text types out) is English only.
+  The function that queues it (PAL 0x1407D0 = NTSC FUN_001407A0) skips it when the level ([*0x2D45F4 + 0x5AEC],
+  the current level number) is 0 and the language is not English (jne at PAL 0x1407F8). NOPping that jne plays
+  the same English recording in German (dumped and compared: identical). A PS2 German video shows the same gap:
+  the original has no German recording of those lines, so the port leaves it as it is.

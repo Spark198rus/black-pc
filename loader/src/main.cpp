@@ -490,7 +490,7 @@ int run(void *reserve, unsigned reserve_size)
         std::wstring cache = g_cfg.port_dir + L"\\cache\\menus";
         if (fe_build_pages(host_full_path(g_cfg.game_dir), cache)) g_cfg.menu_cache = cache;
     }
-    if (g_cfg.fps == 60 && (!known_build || !install_60fps_patches())) g_cfg.fps = 30; // 60 fps patches are NTSC-U only
+    if (g_cfg.fps == 60 && (!supported_build || !install_60fps_patches())) g_cfg.fps = 30; // other builds: no 60 fps patches
     if (!kdpc_init()) {
         logf("could not start the kernel DPC/timer thread");
         return 1;

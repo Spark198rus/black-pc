@@ -172,9 +172,8 @@ The port's settings are in the game's menus: Options > PC SETTINGS on the main m
 - The game was made for 30 fps; at 60 (the default) something may still run at the wrong speed.
 - On-screen prompts show Xbox controller buttons, even when playing with a keyboard.
 - Audio: the reverb is an approximation, some effect sends are not mixed, there is no subwoofer channel, and 3D sound uses distance and panning only.
-- **Only the NTSC-U and PAL Europe builds listed above are supported.** On the PAL disc the game runs at 30 fps and the
-  field of view setting has no effect for now; its language follows Windows (`--language en|de|fr|es|it` or
-  `language =` in black.ini to choose).
+- **Only the NTSC-U and PAL Europe builds listed above are supported.** On the PAL disc the game's language follows
+  Windows (`--language en|de|fr|es|it` or `language =` in black.ini to choose).
 
 ## Building from source
 Visual Studio 2022 or 2026 with C++ x86 tools, and CMake 3.24+.
@@ -359,8 +358,8 @@ Você pode usar argumentos de linha de comando (ex: `black.exe --fullscreen --re
 - O jogo foi feito para 30 fps; a 60 fps (padrão) alguma física pode rodar na velocidade errada.
 - Os botões na tela mostram a interface do Xbox, mesmo no teclado.
 - Áudio: a reverberação é aproximada e não há canal de subwoofer.
-- **Apenas as versões NTSC-U e PAL Europa listadas acima são suportadas.** No disco PAL o jogo roda a 30 fps e o campo
-  de visão ainda não funciona; o idioma segue o Windows (`--language en|de|fr|es|it` ou `language =` no black.ini).
+- **Apenas as versões NTSC-U e PAL Europa listadas acima são suportadas.** No disco PAL o idioma do jogo segue o
+  Windows (`--language en|de|fr|es|it` ou `language =` no black.ini).
 
 ## Compilando o Código-Fonte
 Requer Visual Studio 2022 ou 2026 com as ferramentas C++ x86 e CMake 3.24+.
