@@ -163,7 +163,7 @@ The port's settings are in the game's menus: Options > PC SETTINGS on the main m
 |---|---|
 | VIDEO | render resolution, anti-aliasing, field of view, brightness, gamma, fullscreen |
 | DISPLAY | aspect ratio, frame rate (main menu only), filling geometry seams, effects at Xbox size |
-| AUDIO AND GAME | room reverb, auto-aim, skipping any movie |
+| AUDIO AND GAME | room reverb, auto-aim, skipping any movie, language (PAL disc; from the next start) |
 | CONTROLS | mouse sensitivity, mouse inversion, key bindings |
 
 `black.exe --help` lists the command-line options. They override `black.ini` for that run (e.g., `--fullscreen --resolution 1080 --fps 30 --fov 86`).
@@ -349,7 +349,7 @@ Os ajustes do port ficam dentro do menu do jogo: **Options > PC SETTINGS** e no 
 |---|---|
 | VIDEO | Resolução, Anti-aliasing, FOV, Brilho, Gama, Tela Cheia |
 | DISPLAY | Proporção de tela, Taxa de Quadros, Preenchimento de costuras, Efeitos no tamanho do Xbox |
-| AUDIO AND GAME | Reverberação de ambiente, Mira Automática, Pular qualquer cutscene |
+| AUDIO AND GAME | Reverberação de ambiente, Mira Automática, Pular qualquer cutscene, Idioma (disco PAL; na próxima inicialização) |
 | CONTROLS | Sensibilidade do Mouse, Inversão do Mouse, Mapeamento de Teclas |
 
 Você pode usar argumentos de linha de comando (ex: `black.exe --fullscreen --resolution 1080 --fps 30 --fov 86`).

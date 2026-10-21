@@ -1,7 +1,8 @@
 // The port's settings as rows of the in-game PC SETTINGS pages (fe/pages.cpp builds the pages, fe/calls.cpp receives
 // "PCChange(row, -1 / +1)" from their list boxes and "PCSlider<row>(0-100)" from their sliders). Each row is a list of choices: the current one is found from
-// g_cfg, a step applies the next one and saves black.ini. Aspect ratio and frame rate are
-// read by the game at boot: a new choice is saved for the next run and shown with "NEXT START" until then.
+// g_cfg, a step applies the next one and saves black.ini. Aspect ratio, frame rate and the language are
+// read by the game at boot: a new choice is saved for the next run and shown with "(RESTART)" until then
+// (the value box wraps at about 18 letters and shows only the first line, so "NEXT START" did not fit).
 #include "fe/pc_settings.h"
 
 #include "common.h"
@@ -11,6 +12,7 @@
 #include "fe/vars.h"
 #include "fov.h"
 #include "input/autoaim.h"
+#include "language.h"
 #include "settings.h"
 
 #include <algorithm>
@@ -74,6 +76,28 @@ template <size_t N> int nearest(const float (&list)[N], float v)
 }
 
 int shown_fps() { return g_cfg.fps_next ? g_cfg.fps_next : g_cfg.fps; }
+
+// The game's language (language.cpp): the PAL disc carries English, German, French, Spanish and Italian, chosen at
+// boot; AUTO follows Windows. The NTSC-U disc has English only, so its row has that one choice.
+struct Lang {
+    const char *name;
+    const wchar_t *text;
+};
+const Lang kLangs[] = {{"auto", L"AUTO (WINDOWS)"}, {"en", L"ENGLISH"}, {"de", L"DEUTSCH"},
+                       {"fr", L"FRAN\u00C7AIS"},   {"es", L"ESPA\u00D1OL"}, {"it", L"ITALIANO"}};
+constexpr int kLangN = sizeof kLangs / sizeof kLangs[0];
+int lang_of(const std::string &name)
+{
+    for (int i = 0; i < kLangN; i++)
+        if (name == kLangs[i].name) return i;
+    return 0;
+}
+std::wstring lang_text(int i)
+{
+    if (!g_cfg.pal_build) return L"ENGLISH (THIS DISC)";
+    if (lang_of(language_at_start()) == i) return kLangs[i].text;
+    return std::wstring(i == 0 ? L"AUTO" : kLangs[i].text) + L" (RESTART)";
+}
 bool shown_wide() { return g_cfg.widescreen_next >= 0 ? g_cfg.widescreen_next != 0 : g_cfg.widescreen; }
 
 struct Row {
@@ -107,13 +131,16 @@ const Row kRows[] = {
          bool wide = i == 0;
          g_cfg.widescreen_next = wide == g_cfg.widescreen ? -1 : wide;
      },
-     [](int i) { return std::wstring(i == 0 ? L"16:9" : L"4:3") + ((i == 0) != g_cfg.widescreen ? L" (NEXT START)" : L""); }},
+     [](int i) { return std::wstring(i == 0 ? L"16:9" : L"4:3") + ((i == 0) != g_cfg.widescreen ? L" (RESTART)" : L""); }},
     {"FRAME RATE", 2, [] { return (int)(shown_fps() == 60); },
      [](int i) {
          int fps = i ? 60 : 30;
          g_cfg.fps_next = fps == g_cfg.fps ? 0 : fps;
      },
-     [](int i) { return std::wstring(i ? L"60 FPS" : L"30 FPS (ORIGINAL)") + ((i ? 60 : 30) != g_cfg.fps ? L" (NEXT START)" : L""); }},
+     [](int i) {
+         if ((i ? 60 : 30) != g_cfg.fps) return std::wstring(i ? L"60 FPS (RESTART)" : L"30 FPS (RESTART)");
+         return std::wstring(i ? L"60 FPS" : L"30 FPS (ORIGINAL)");
+     }},
     {"FILL GEOMETRY SEAMS", 2, [] { return (int)g_cfg.seam_fill; }, [](int i) { g_cfg.seam_fill = i != 0; }, [](int i) { return on_off(i); }},
     {"EFFECTS AT XBOX SIZE", 2, [] { return (int)g_cfg.effects_native; },
      [](int i) {
@@ -135,9 +162,16 @@ const Row kRows[] = {
      [](int i) { g_cfg.mouse_sens = 0.25f * (i + 1); }, [](int i) { return number(0.25f * (i + 1), L"%.2f"); }, true},
     {"INVERT MOUSE", 2, [] { return (int)g_cfg.mouse_invert; }, [](int i) { g_cfg.mouse_invert = i != 0; }, [](int i) { return on_off(i); }},
     {"KEY BINDINGS", 1, [] { return 0; }, [](int) {}, [](int) { return std::wstring(); }}, // opens the bindings page
+    // AUDIO AND GAME (added after the others, so the rows before keep their numbers)
+    {"LANGUAGE", kLangN, [] { return g_cfg.pal_build ? lang_of(g_cfg.language) : 0; },
+     [](int i) {
+         if (g_cfg.pal_build) g_cfg.language = kLangs[i].name;
+     },
+     lang_text},
 };
 constexpr int kRowN = sizeof kRows / sizeof kRows[0];
 constexpr int kKeyBindings = 15;
+constexpr int kLanguage = 16;
 
 } // namespace
 
@@ -146,7 +180,7 @@ const std::vector<Group> &groups()
     static const std::vector<Group> g = {
         {"PCVideo", "VIDEO", {0, 1, 2, 3, 4, 5}},
         {"PCDisplay", "DISPLAY", {6, 7, 8, 9}},
-        {"PCGame", "AUDIO AND GAME", {10, 11, 12}},
+        {"PCGame", "AUDIO AND GAME", {10, 11, 12, kLanguage}},
         {"PCControls", "CONTROLS", {13, 14, kKeyBindings}},
     };
     return g;
@@ -168,8 +202,9 @@ void step(int n, int dir)
 {
     if (n < 0 || n >= kRowN || !dir) return;
     const Row &r = kRows[n];
-    int i = std::min(r.get(), r.choices - 1);
-    i = i < 0 ? 0 : (i + (dir > 0 ? 1 : r.choices - 1)) % r.choices;
+    int choices = n == kLanguage && !g_cfg.pal_build ? 1 : r.choices;
+    int i = std::min(r.get(), choices - 1);
+    i = i < 0 ? 0 : (i + (dir > 0 ? 1 : choices - 1)) % choices;
     r.set(i);
     settings_save();
     logf("fe: %s -> %s", r.label, narrow(r.text(i)).c_str());
@@ -177,7 +212,7 @@ void step(int n, int dir)
 
 bool is_slider(int n) { return n >= 0 && n < kRowN && kRows[n].slider; }
 
-bool restart_only(int n) { return n == 6 || n == 7; } // aspect ratio, frame rate: read by the game at boot
+bool restart_only(int n) { return n == 6 || n == 7 || n == kLanguage; } // read by the game at boot
 
 const char *link(int n) { return n == kKeyBindings ? "PCBindings" : nullptr; }
 

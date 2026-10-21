@@ -31,6 +31,7 @@ constexpr Language kLanguages[] = {
 
 int g_index = kEnglish;
 std::string g_name = "en";
+std::string g_at_start = "auto";
 
 const char *name_of(int index)
 {
@@ -96,8 +97,11 @@ bool language_valid(const std::string &name) { return name == "auto" || value_of
 
 std::wstring language_strings_file() { return strings_file(g_index); }
 
+const std::string &language_at_start() { return g_at_start; }
+
 void language_resolve()
 {
+    g_at_start = g_cfg.language;
     if (!g_cfg.pal_build) {
         g_index = kEnglish; // the NTSC-U disc carries English only
         g_name = name_of(g_index);

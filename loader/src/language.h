@@ -23,3 +23,7 @@ std::wstring language_strings_file();
 // Resolve g_cfg.language for the build that was loaded. Call once the XBE is identified (needs g_cfg.pal_build
 // and g_cfg.game_dir): a language the disc does not carry, or one the PAL build reads as English, becomes English.
 void language_resolve();
+
+// g_cfg.language as it was when language_resolve ran: the setting this run uses (a PC SETTINGS change applies at the
+// next start).
+const std::string &language_at_start();
