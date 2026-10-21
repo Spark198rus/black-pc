@@ -16,17 +16,18 @@
 #include "input/autoaim.h"
 
 #include "common.h"
+#include "xbe.h"
 
 #include <cstring>
 
 extern "C" {
-volatile uint8_t g_autoaim_off;          // read by the thunk on every call
-uint32_t g_autoaim_resume = 0x001D1E46; // the instruction after the replaced prologue
+volatile uint8_t g_autoaim_off;   // read by the thunk on every call
+uint32_t g_autoaim_resume;        // the instruction after the replaced prologue
 }
 
 namespace {
 
-constexpr uint32_t kSite = 0x001D1E40;
+constexpr uint32_t kSite = 0x001D1E40; // as analyzed in the NTSC-U build; xbe_va maps it to this build
 const uint8_t kExpect[6] = {0x55, 0x8B, 0xEC, 0x83, 0xE4, 0xF0}; // push ebp; mov ebp,esp; and esp,-16 (replaced)
 bool g_installed;
 
@@ -49,14 +50,16 @@ __declspec(naked) void assist_thunk()
 
 void install_autoaim_patch()
 {
-    auto *code = (uint8_t *)(uintptr_t)kSite;
+    uint32_t site = xbe_va(kSite);
+    auto *code = (uint8_t *)(uintptr_t)site;
     if (memcmp(code, kExpect, sizeof kExpect) != 0) {
-        logf("autoaim: code at 0x%08x does not match this build; the auto-aim switch does nothing", kSite);
+        logf("autoaim: code at 0x%08x does not match this build; the auto-aim switch does nothing", site);
         return;
     }
+    g_autoaim_resume = site + 6; // the instruction after the replaced prologue
     autoaim_set(g_cfg.autoaim);
     code[0] = 0xE9; // jmp thunk, then a nop over the rest of the 6-byte prologue
-    int32_t rel = (int32_t)((uintptr_t)assist_thunk - (kSite + 5));
+    int32_t rel = (int32_t)((uintptr_t)assist_thunk - (site + 5));
     memcpy(code + 1, &rel, 4);
     code[5] = 0x90;
     g_installed = true;

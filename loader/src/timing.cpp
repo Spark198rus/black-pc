@@ -7,6 +7,7 @@
 #include "timing.h"
 
 #include "common.h"
+#include "xbe.h"
 
 #include <cmath>
 #include <cstring>
@@ -51,7 +52,7 @@ BOOL __stdcall xapi_QueryPerformanceCounter(LARGE_INTEGER *p)
     return TRUE;
 }
 
-void __cdecl store_tsc() { *(uint64_t *)(uintptr_t)0x002C0468 = xbox_tsc(); }
+void __cdecl store_tsc() { *(uint64_t *)(uintptr_t)xbe_va(0x002C0468) = xbox_tsc(); }
 uint32_t __cdecl tsc_low() { return (uint32_t)xbox_tsc(); }
 
 // The game's helpers keep ecx; LTCG callers may rely on that, so wrap the C functions.

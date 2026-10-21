@@ -38,8 +38,9 @@ python tools\xbeinfo.py game\default.xbe | Select-Object -First 12
 Get-FileHash game\default.xbe -Algorithm SHA256
 ```
 
-Expected: `xbeinfo.py` prints title `Black`, id `45410083`, region NA, entry `0x00025a3f`, 115 kernel imports.
-SHA-256 of `game\default.xbe` must be `df2739c372d254a90aeeccf5971d12097f22d89fbb90db021fda96dd4deb68f6`.
+Expected: `xbeinfo.py` prints title `Black`, id `45410083`, entry `0x00025a3f`, and 115 kernel imports. The supported
+SHA-256 values are NTSC-U `df2739c372d254a90aeeccf5971d12097f22d89fbb90db021fda96dd4deb68f6` and PAL Europe
+`67f35121ccf622e7a293c402219596fe6456ca4c3d27e6f8139e449264da30f0`.
 Full manifest of all 574 game files: `notes\game-manifest.sha256` (`shasum` format, paths with `/`). Hash of `ghidra\default.xbe.gzf`: `notes\handoff-checksums.txt`.
 
 ## 3. Known snags

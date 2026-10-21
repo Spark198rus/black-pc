@@ -3,6 +3,7 @@
 // log and return values that keep XAPI going.
 #include "hooks.h"
 #include "kernel/kexports.h"
+#include "language.h"
 #include "sha1.h"
 
 #include <intrin.h>
@@ -93,16 +94,19 @@ NTSTATUS __stdcall ExQueryNonVolatileSetting(uint32_t ValueIndex, uint32_t *Type
     case 0x001: case 0x004: type = 3; break;       // XC_TZ_STD_NAME / XC_TZ_DLT_NAME (4 bytes)
     case 0x002: case 0x005: type = 3; break;       // XC_TZ_STD_DATE / XC_TZ_DLT_DATE
     case 0x003: case 0x006: dword = 0; break;      // XC_TZ_STD_BIAS / XC_TZ_DLT_BIAS
-    case 0x007: dword = 1; break;                  // XC_LANGUAGE: English
-    case 0x008: dword = g_cfg.widescreen ? 0x00010000 : 0; break; // XC_VIDEO: bit 16 = widescreen TV, no HD modes
+    case 0x007: dword = (uint32_t)language_index(); break; // XC_LANGUAGE: the Windows UI language on the PAL disc
+    // XC_VIDEO: bit 16 = widescreen TV, no HD modes. Bit 22 asks for PAL60 (the game's video flag 0x40): the
+    // port presents a progressive picture at 30 fps, so a PAL disc must not take its 50 Hz interlaced path
+    // (its opening screen smears the falling casings over the top of the picture there).
+    case 0x008: dword = (g_cfg.widescreen ? 0x00010000 : 0) | (g_cfg.pal_build ? 0x00400000 : 0); break;
     case 0x009: dword = 0; break;                  // XC_AUDIO: stereo
     case 0x00A: dword = 0; break;                  // XC_P_CONTROL_GAMES: no limit
     case 0x00B: dword = 0; break;                  // XC_P_CONTROL_PASSWORD
     case 0x00C: dword = 0; break;                  // XC_P_CONTROL_MOVIES
     case 0x011: dword = 0; break;                  // XC_MISC
     case 0x012: dword = 1; break;                  // XC_DVD_REGION
-    case 0x103: dword = 0x00400100; break;         // XC_FACTORY_AV_REGION: NTSC-M, 60 Hz
-    case 0x104: dword = 1; break;                  // XC_FACTORY_GAME_REGION: North America
+    case 0x103: dword = g_cfg.pal_build ? 0x00800300 : 0x00400100; break; // PAL-I/50 Hz or NTSC-M/60 Hz
+    case 0x104: dword = g_cfg.pal_build ? 4 : 1; break; // PAL/rest of world or North America
     case 0x0FF: case 0xFFFF: type = 3; size = ValueLength < 256 ? ValueLength : 256; break; // whole sections: zeros
     default: known = false; break;
     }

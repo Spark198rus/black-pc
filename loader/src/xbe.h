@@ -78,3 +78,8 @@ public:
 
     void print_info(const char *(*kernel_name)(uint32_t ordinal)) const;
 };
+
+// Translate an address from the supported NTSC-U image's layout to the matching section
+// in the currently loaded XBE, including the PAL build's 0x30-byte shift inside .text.
+// Addresses outside that image's sections pass through.
+uint32_t xbe_va(uint32_t ntsc_va);

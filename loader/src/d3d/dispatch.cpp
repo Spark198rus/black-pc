@@ -63,7 +63,7 @@ extern "C" void __stdcall blackrt_lib_unimplemented(uint32_t index, const uint32
     if (g_unimplemented_hit.exchange(true)) Sleep(INFINITE);
     const LibFunc &f = g_funcs[index];
     XThread *t = xthread_current_or_null();
-    const char *lib = f.addr >= 0x27cf20 ? "XPP" : f.addr >= 0x268880 ? "D3D" : "DSOUND";
+    const char *lib = f.addr >= xbe_va(0x27cf20) ? "XPP" : f.addr >= xbe_va(0x268880) ? "D3D" : "DSOUND";
     logf("==== UNIMPLEMENTED %s: %s (0x%08x), thread '%s'", lib, f.name, f.addr, t ? t->name : "host");
     logf("    called from %08x %s", frame[0], sym_name(frame[0]).c_str());
     logf("    eax=%08x ecx=%08x edx=%08x  stack args: %08x %08x %08x %08x %08x %08x", eax, ecx, edx, frame[1], frame[2], frame[3],
@@ -190,6 +190,7 @@ bool install_d3d_hooks()
     g_funcs.assign(std::begin(kD3D), std::end(kD3D));
     g_funcs.insert(g_funcs.end(), std::begin(kDSound), std::end(kDSound));
     g_funcs.insert(g_funcs.end(), std::begin(kXpp), std::end(kXpp));
+    for (LibFunc &f : g_funcs) f.addr = xbe_va(f.addr);
     std::sort(g_funcs.begin(), g_funcs.end(), [](const LibFunc &a, const LibFunc &b) { return a.addr < b.addr; });
     g_int3_hook.assign(g_funcs.size(), false);
 
@@ -199,10 +200,11 @@ bool install_d3d_hooks()
         const Hle *t = table(&n);
         all.insert(all.end(), t, t + n);
     }
+    for (Hle &h : all) h.addr = xbe_va(h.addr);
     // C++ static initializers of the libraries (run by _cinit before main) only set up globals: keep them.
     // Initializer tables of this build: 0x2964F0-0x296B6C (C++) and 0x296B70-0x296B84 (C).
     std::vector<uint32_t> initializers;
-    for (uint32_t p = 0x2964F0; p < 0x296B84; p += 4) {
+    for (uint32_t p = xbe_va(0x2964F0); p < xbe_va(0x296B84); p += 4) {
         uint32_t fn = *(uint32_t *)(uintptr_t)p;
         if (fn && fn != 0xFFFFFFFF) initializers.push_back(fn);
     }

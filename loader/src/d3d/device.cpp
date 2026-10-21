@@ -886,7 +886,8 @@ HRESULT __stdcall Direct3D_CreateDevice(uint32_t Adapter, uint32_t DeviceType, u
 
     // The library's device object is static (g_Device at 0x279B50, up to D3D_g_pDevice); game code reads
     // some of its fields by absolute address, so use that storage.
-    g_dev = (uint8_t *)(uintptr_t)ADDR_DEVICE_OBJECT;
+    g_dev = (uint8_t *)(uintptr_t)addr_device_object();
+    g_st.vs_constants = (float (*)[4])(uintptr_t)xbe_va(0x0027C2A8);
     memset(g_dev, 0, DEVICE_SIZE);
     g_push_base = (uint32_t *)VirtualAlloc(nullptr, PUSH_BYTES, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     g_push_dwords = PUSH_BYTES / 4;
@@ -894,7 +895,7 @@ HRESULT __stdcall Direct3D_CreateDevice(uint32_t Adapter, uint32_t DeviceType, u
     dev_field<uint32_t *>(DEV_THRESHOLD) = g_push_base + g_push_dwords - 0x4000; // keep 64 KB headroom
     dev_field<float>(0x096C) = 1.0f; // back buffer scale x (read by GetBackBufferScale, run natively)
     dev_field<float>(0x0970) = 1.0f; // back buffer scale y
-    *(uint32_t *)(uintptr_t)ADDR_PUSH_SEGMENT = 0x2000;
+    *(uint32_t *)(uintptr_t)addr_push_segment() = 0x2000;
 
     g_backbuffer = make_surface(g_width, g_height, pp->BackBufferFormat ? pp->BackBufferFormat : XFMT_LIN_X8R8G8B8);
     if (pp->EnableAutoDepthStencil)
@@ -914,7 +915,7 @@ HRESULT __stdcall Direct3D_CreateDevice(uint32_t Adapter, uint32_t DeviceType, u
         g_st.transforms[i] = m;
         memcpy(g_dev + DEV_TRANSFORMS + i * 0x40, &m, 0x40);
     }
-    *(uint8_t **)(uintptr_t)ADDR_G_PDEVICE = g_dev;
+    *(uint8_t **)(uintptr_t)addr_g_pdevice() = g_dev;
     if (ppDevice) *ppDevice = g_dev;
     init_default_states();
     render_state()[XRS_PRESENTATIONINTERVAL] = pp->FullScreen_PresentationInterval;

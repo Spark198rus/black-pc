@@ -4,7 +4,7 @@
 
 # <a id="english"></a>BLACK PC port
 
-An unofficial native Windows port (and playable on Linux) of **BLACK** (Criterion Games, 2006), made from the original Xbox version (NTSC-U).
+An unofficial native Windows port (and playable on Linux) of **BLACK** (Criterion Games, 2006), made from the original Xbox releases (NTSC-U and PAL Europe).
 
 `black.exe` loads your own copy of the game's `default.xbe` and runs the original x86 game code directly on the PC.
 
@@ -36,18 +36,20 @@ The game is fully playable. Please report problems in the issue tracker and incl
 - A graphics card supporting Vulkan 1.1 or higher (e.g., AMD Radeon Vega 8 or better).
 
 **For both systems:**
-- The NTSC-U (North America) Xbox disc of BLACK. Other regions and builds have different code addresses and are **not** supported.
+- The NTSC-U (North America) or PAL Europe Xbox disc of BLACK. Other builds have different code addresses and are **not** supported.
 
 ---
 
 ## Windows Setup
 
-1. Dump your NTSC-U version of the game to an ISO and extract it with [extract-xiso](https://github.com/XboxDev/extract-xiso) (`extract-xiso -x Black.iso`). Rename the extracted folder to `game`.
+1. Dump your NTSC-U or PAL Europe version of the game to an ISO and extract it with [extract-xiso](https://github.com/XboxDev/extract-xiso) (`extract-xiso -x Black.iso`). Rename the extracted folder to `game`.
 2. Check that you have the supported build. In PowerShell:
    ```powershell
    Get-FileHash game\default.xbe -Algorithm SHA256
    ```
-   It must print `DF2739C372D254A90AEECCF5971D12097F22D89FBB90DB021FDA96DD4DEB68F6`.
+   It must print one of these:
+   - NTSC-U: `DF2739C372D254A90AEECCF5971D12097F22D89FBB90DB021FDA96DD4DEB68F6`
+   - PAL Europe: `67F35121CCF622E7A293C402219596FE6456CA4C3D27E6F8139E449264DA30F0`
 3. Download the zip from [Releases](../../releases) and extract it next to the `game` folder, so the `port` folder sits beside it:
    ```text
    BLACK\
@@ -170,7 +172,9 @@ The port's settings are in the game's menus: Options > PC SETTINGS on the main m
 - The game was made for 30 fps; at 60 (the default) something may still run at the wrong speed.
 - On-screen prompts show Xbox controller buttons, even when playing with a keyboard.
 - Audio: the reverb is an approximation, some effect sends are not mixed, there is no subwoofer channel, and 3D sound uses distance and panning only.
-- **Only the NTSC-U build is supported.**
+- **Only the NTSC-U and PAL Europe builds listed above are supported.** On the PAL disc the game runs at 30 fps and the
+  field of view setting has no effect for now; its language follows Windows (`--language en|de|fr|es|it` or
+  `language =` in black.ini to choose).
 
 ## Building from source
 Visual Studio 2022 or 2026 with C++ x86 tools, and CMake 3.24+.
@@ -189,7 +193,7 @@ Developed by Spark198rus. Linux setup structured via AI.
 
 # <a id="português"></a>BLACK PC port (Português)
 
-Um port não oficial nativo para Windows (e executável no Linux) de **BLACK** (Criterion Games, 2006), feito a partir da versão original de Xbox (NTSC-U).
+Um port não oficial nativo para Windows (e executável no Linux) de **BLACK** (Criterion Games, 2006), feito a partir das versões originais de Xbox (NTSC-U e PAL Europa).
 
 O executável `black.exe` carrega a sua própria cópia do arquivo `default.xbe` do jogo e roda o código x86 original diretamente no PC.
 
@@ -221,18 +225,20 @@ O jogo é totalmente jogável. Por favor, reporte problemas no rastreador de iss
 - Placa de vídeo compatível com Vulkan 1.1 ou superior (ex: AMD Radeon Vega 8 ou superior).
 
 **Para ambos os sistemas:**
-- O disco original de BLACK do Xbox na versão NTSC-U (América do Norte). Outras regiões e builds **não** são suportadas.
+- O disco original de BLACK do Xbox na versão NTSC-U (América do Norte) ou PAL Europa. Outras builds **não** são suportadas.
 
 ---
 
 ## Configuração no Windows
 
-1. Faça o dump da sua versão NTSC-U do jogo para uma ISO e extraia-a usando o [extract-xiso](https://github.com/XboxDev/extract-xiso) (`extract-xiso -x Black.iso`). Renomeie a pasta extraída para `game`.
+1. Faça o dump da sua versão NTSC-U ou PAL Europa do jogo para uma ISO e extraia-a usando o [extract-xiso](https://github.com/XboxDev/extract-xiso) (`extract-xiso -x Black.iso`). Renomeie a pasta extraída para `game`.
 2. Verifique se você possui a build suportada. No PowerShell, execute:
    ```powershell
    Get-FileHash game\default.xbe -Algorithm SHA256
    ```
-   O resultado DEVE ser: `DF2739C372D254A90AEECCF5971D12097F22D89FBB90DB021FDA96DD4DEB68F6`.
+   O resultado DEVE ser um destes:
+   - NTSC-U: `DF2739C372D254A90AEECCF5971D12097F22D89FBB90DB021FDA96DD4DEB68F6`
+   - PAL Europa: `67F35121CCF622E7A293C402219596FE6456CA4C3D27E6F8139E449264DA30F0`
 3. Baixe o arquivo `.zip` na aba [Releases](../../releases) e extraia-o ao lado da pasta `game`, de modo que a pasta `port` fique ao lado dela:
    ```text
    BLACK\
@@ -353,7 +359,8 @@ Você pode usar argumentos de linha de comando (ex: `black.exe --fullscreen --re
 - O jogo foi feito para 30 fps; a 60 fps (padrão) alguma física pode rodar na velocidade errada.
 - Os botões na tela mostram a interface do Xbox, mesmo no teclado.
 - Áudio: a reverberação é aproximada e não há canal de subwoofer.
-- **Apenas a versão NTSC-U é suportada.**
+- **Apenas as versões NTSC-U e PAL Europa listadas acima são suportadas.** No disco PAL o jogo roda a 30 fps e o campo
+  de visão ainda não funciona; o idioma segue o Windows (`--language en|de|fr|es|it` ou `language =` no black.ini).
 
 ## Compilando o Código-Fonte
 Requer Visual Studio 2022 ou 2026 com as ferramentas C++ x86 e CMake 3.24+.

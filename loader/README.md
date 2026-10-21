@@ -25,7 +25,7 @@ loader\build\win32\RelWithDebInfo\black.exe --timeout 30 game\default.xbe
 Options: `--hdd <dir>` (host folder for HDD partitions, default `savedata` next to black.exe), `--log <file>` (default
 `black.log` next to black.exe),
 `--verbose` (the whole log on the console too), `--trace` (log every kernel call), `--strict` (stop at the first unimplemented kernel call), `--multicore`,
-`--symbols <functions.csv>` (default `notes\functions.csv`), `--force` (other XBE builds),
+`--symbols <functions.csv>` (default `notes\functions.csv`), `--force` (other, unsupported XBE builds),
 `--skip-videos` (dev: 9-second logo video instead of the long ones). `black.exe --help` lists the debugging
 options (`--timeout`, `--screenshot`, `--shot-every`, `--shot-start`, `--debug-frame`, `--press`, `--watch`,
 `--watch-pad`, `--probe`, `--background`, `--wav`).

@@ -9,6 +9,8 @@
 
 namespace {
 
+const Xbe *g_address_xbe;
+
 constexpr uint32_t ENTRY_XOR[3] = {0xA8FC57AB, 0x94859D4B, 0x40B5C16E}; // retail, debug, sega
 constexpr uint32_t THUNK_XOR[3] = {0x5B6D40B6, 0xEFB1F152, 0x2290059D};
 const char *const KIND_NAMES[3] = {"retail", "debug", "sega"};
@@ -155,6 +157,7 @@ bool Xbe::load(const std::wstring &path, std::string &err)
             libraries.push_back(l);
         }
     }
+    g_address_xbe = this;
     return true;
 }
 
@@ -212,6 +215,47 @@ const XbeSection *Xbe::section_named(const char *name) const
     for (const auto &s : sections)
         if (s.name == name) return &s;
     return nullptr;
+}
+
+uint32_t xbe_va(uint32_t ntsc_va)
+{
+    // The PAL release was linked with the same XDK libraries, but its section table
+    // places several post-.text sections 0x20 bytes later than the supported NTSC-U
+    // executable. Its .text also carries 0x30 extra bytes, inserted partway through:
+    // the code after that point lies 0x30 bytes further in, while everything before
+    // it (and the whole section in the NTSC-U image) keeps the same address. Keep the
+    // port's analyzed NTSC addresses and translate by section.
+    static const struct { const char *name; uint32_t ntsc_base, ntsc_size; } layout[] = {
+        {".text",      0x00011000, 0x00206fac},
+        {"DSOUND",     0x00217fc0, 0x0000cef4},
+        {"WMADEC",     0x00224ec0, 0x00019c6c},
+        {"XMV",        0x0023eb40, 0x00027d34},
+        {"XGRPH",      0x00266880, 0x00001ffc},
+        {"D3D",        0x00268880, 0x00014688},
+        {"XPP",        0x0027cf20, 0x000060b8},
+        {".rdata",     0x00282fe0, 0x000134e8},
+        {".data",      0x002964e0, 0x002e65b8},
+        {"DOLBY",      0x0057caa0, 0x00007180},
+        {"$$XTIMAGE",  0x00583c20, 0x00002800},
+        {"$$XSIMAGE",  0x00586420, 0x00001000},
+        {".XTLID",     0x00587420, 0x00000608},
+    };
+    if (!g_address_xbe) return ntsc_va;
+    if (ntsc_va == 0x00587A40) return g_address_xbe->base + g_address_xbe->size_of_image;
+    // .text: the first PAL address whose code moved when the 0x30 bytes were inserted.
+    static constexpr uint32_t kTextInsert = 0x00118400;
+    for (const auto &s : layout) {
+        if (ntsc_va < s.ntsc_base || ntsc_va - s.ntsc_base >= s.ntsc_size) continue;
+        const XbeSection *current = g_address_xbe->section_named(s.name);
+        if (current) {
+            uint32_t off = ntsc_va - s.ntsc_base;
+            if (strcmp(s.name, ".text") == 0 && current->vsize != s.ntsc_size && ntsc_va >= kTextInsert)
+                off += 0x30;
+            return current->vaddr + off;
+        }
+        break;
+    }
+    return ntsc_va;
 }
 
 void Xbe::print_info(const char *(*kernel_name)(uint32_t)) const

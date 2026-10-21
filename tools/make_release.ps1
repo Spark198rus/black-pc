@@ -31,6 +31,8 @@ Compress-Archive -Path "$sym\*" -DestinationPath "$dist\$name-symbols.zip" -Forc
 Remove-Item -Recurse -Force $stage, $sym
 
 foreach ($z in "$dist\$name.zip", "$dist\$name-symbols.zip") {
-    $h = (Get-FileHash $z -Algorithm SHA256).Hash.ToLower()
+    $bytes = [System.IO.File]::ReadAllBytes($z)
+    $sha = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
+    $h = [System.BitConverter]::ToString($sha).Replace('-', '').ToLower()
     '{0}  {1:N0} bytes  sha256 {2}' -f (Split-Path $z -Leaf), (Get-Item $z).Length, $h
 }

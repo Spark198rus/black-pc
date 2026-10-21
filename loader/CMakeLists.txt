@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 if(POLICY CMP0184)
   cmake_policy(SET CMP0184 NEW) # MSVC_RUNTIME_CHECKS property
 endif()
-project(black_loader VERSION 0.2.0 LANGUAGES C CXX) # the release number (About box, first log line)
+project(black_loader VERSION 0.2.1 LANGUAGES C CXX) # the release number (About box, first log line)
 
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
   message(FATAL_ERROR "The loader must be 32-bit: configure with -A Win32 (or use the 'win32' preset).")
@@ -38,6 +38,7 @@ add_library(blackrt SHARED
   src/input/movies.cpp
   src/audio/reverb.cpp
   src/settings.cpp
+  src/language.cpp
   src/perf.cpp
   src/sha1.cpp
   src/kernel/ktable.cpp

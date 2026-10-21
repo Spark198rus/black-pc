@@ -41,5 +41,9 @@ perf/
 
 # Release zips and their symbols (tools/make_release.ps1)
 dist/
+
+# Visual Studio user cache and Python bytecode
+.vs/
+__pycache__/
 # The port's rebuilt front-end files (made at start from the user's game files)
 cache/

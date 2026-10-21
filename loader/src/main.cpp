@@ -10,6 +10,7 @@
 #include "fov.h"
 #include "hooks.h"
 #include "image.h"
+#include "language.h"
 #include "timing.h"
 #include "settings.h"
 #include "input/autoaim.h"
@@ -26,6 +27,7 @@ namespace {
 
 // The build the address tables (D3D hook list, expected fs patch count) were made for.
 const char kKnownXbeSha256[] = "df2739c372d254a90aeeccf5971d12097f22d89fbb90db021fda96dd4deb68f6";
+const char kPalXbeSha256[] = "67f35121ccf622e7a293c402219596fe6456ca4c3d27e6f8139e449264da30f0";
 constexpr int kKnownFsPatchCount = 34;
 
 HANDLE g_exit_event;
@@ -79,6 +81,8 @@ void usage()
            "  --normal-aspect   4:3 like an original Xbox on a standard TV (default: widescreen 16:9)\n"
            "  --fullscreen      start in borderless fullscreen\n"
            "  --fps 30|60       frame rate (default 60; 30 is the original)\n"
+           "  --language L      game language on the PAL disc: auto (the Windows UI language, the default) or\n"
+           "                    en es de fr it ja ko zh (NTSC-U is English only)\n"
            "  --no-reverb       do not mix the room reverb\n"
            "  --reverb-gain K   room reverb level (default 1.0)\n"
            "  --background      (tests) start minimised without focus, audio muted\n"
@@ -191,6 +195,13 @@ bool parse_args()
             std::wstring v;
             if (!next(v)) return false;
             g_cfg.fps = _wtoi(v.c_str()) == 60 ? 60 : 30;
+        }
+        else if (a == L"--language") {
+            settings_mark_cli("language");
+            std::wstring v;
+            if (!next(v)) return false;
+            std::string name = narrow(v);
+            if (language_valid(name)) g_cfg.language = name;
         }
         else if (a == L"--mouse-sens") {
             settings_mark_cli("mouse_sens");
@@ -419,39 +430,67 @@ int run(void *reserve, unsigned reserve_size)
          g_xbe.title_id, g_xbe.base, g_xbe.size_of_image, g_xbe.entry, g_xbe.sections.size(), g_xbe.kernel_imports().size());
     std::string hash = sha256_hex(g_xbe.data);
     bool known_build = hash == kKnownXbeSha256;
+    bool pal_build = hash == kPalXbeSha256;
+    bool supported_build = known_build || pal_build;
     g_cfg.known_build = known_build;
-    logc("xbe: sha256 %s (%s)", hash.c_str(), known_build ? "known NTSC-U build" : "UNKNOWN build");
-    if (!known_build && !g_cfg.force) {
-        startup_error("This default.xbe is not the NTSC-U build of BLACK that the port supports (its SHA-256 is " + hash +
-                      ", expected " + kKnownXbeSha256 + "). The port's address tables are for that build only; --force "
-                      "tries anyway.");
+    g_cfg.pal_build = pal_build;
+    g_cfg.supported_build = supported_build;
+    logc("xbe: sha256 %s (%s)", hash.c_str(), known_build ? "known NTSC-U build" : pal_build ? "analyzed PAL build" : "UNKNOWN build");
+    if (!supported_build && !g_cfg.force) {
+        startup_error("This default.xbe is not one of the supported BLACK builds (its SHA-256 is " + hash +
+                      "). This port supports the analyzed NTSC-U and PAL releases; --force tries another build without "
+                      "build-specific hooks.");
         return 1;
     }
 
+    language_resolve(); // the PAL disc's text and loading video follow the system language
     if (!g_cfg.symbols_path.empty()) symbols_load(g_cfg.symbols_path);
     if (!g_cfg.multicore) pin_to_one_cpu();
     if (!kmem_init()) return 1;
     if (!xthread_init_slots()) return 1;
     g_image_mapped = true; // set before mapping: a partial copy also destroys the stub
     if (!image_map(g_xbe)) return 1;
+    if (pal_build) {
+        // These resource callbacks are populated in the NTSC startup path, but
+        // the PAL path reaches first resource creation with their slots still null.
+        // The PAL slots are the +0x20-shifted counterparts in .data; callback code
+        // lives in .text, whose addresses are identical in both XBE builds.
+        static const struct { uint32_t ntsc_slot, ntsc_function; } callbacks[] = {
+            {0x0056A6B8, 0x000373E0},
+            {0x0056A6D8, 0x000377E0},
+            {0x0056A6F8, 0x0002BA70},
+            {0x0056A6AC, 0x0002B830},
+            {0x0056A6D0, 0x0002BA60},
+        };
+        for (const auto &callback : callbacks) {
+            uint32_t slot = xbe_va(callback.ntsc_slot);
+            uint32_t *value = (uint32_t *)(uintptr_t)slot;
+            if (*value == 0) {
+                *value = xbe_va(callback.ntsc_function);
+                logf("pal: initialized resource callback at 0x%08x -> 0x%08x", slot, *value);
+            }
+        }
+    }
     int patched = patch_fs_accesses(g_xbe);
     if (known_build && patched != kKnownFsPatchCount)
-        logf("warning: expected %d fs patches for this build, made %d", kKnownFsPatchCount, patched);
+        logf("warning: expected %d fs patches for the NTSC-U build, made %d", kKnownFsPatchCount, patched);
+    if (pal_build && patched != kKnownFsPatchCount)
+        logf("note: PAL XBE has %d fs instructions remapped (NTSC-U has %d)", patched, kKnownFsPatchCount);
     if (!kernel_resolve_thunks(g_xbe)) return 1;
     if (!kfile_init()) return 1;
     install_crash_handlers();
     install_probes();
-    if (known_build && !xd3d::install_d3d_hooks()) return 1;
-    if (known_build) install_timing_patches();
-    if (known_build) install_mouselook_patches();
-    if (known_build) install_autoaim_patch();
-    if (known_build) install_fov_patch();
-    if (known_build) install_fe_calls();
-    if (known_build && g_cfg.pc_menus) { // the in-game PC SETTINGS pages, from the user's own front-end file
+    if (supported_build && !xd3d::install_d3d_hooks()) return 1;
+    if (supported_build) install_timing_patches();
+    if (supported_build) install_mouselook_patches();
+    if (supported_build) install_autoaim_patch();
+    if (supported_build) install_fov_patch();
+    if (supported_build) install_fe_calls();
+    if (supported_build && g_cfg.pc_menus) { // the in-game PC SETTINGS pages, from the user's own front-end file
         std::wstring cache = g_cfg.port_dir + L"\\cache\\menus";
         if (fe_build_pages(host_full_path(g_cfg.game_dir), cache)) g_cfg.menu_cache = cache;
     }
-    if (g_cfg.fps == 60 && (!known_build || !install_60fps_patches())) g_cfg.fps = 30; // other builds: no 60 fps patches
+    if (g_cfg.fps == 60 && (!known_build || !install_60fps_patches())) g_cfg.fps = 30; // 60 fps patches are NTSC-U only
     if (!kdpc_init()) {
         logf("could not start the kernel DPC/timer thread");
         return 1;
