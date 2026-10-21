@@ -77,6 +77,9 @@ struct Config {
     bool effects_native = false; // the small effect buffers at their Xbox size (PC SETTINGS); default: render scale, smoothed
     bool seam_fill = true;     // fill hairline cracks between geometry pieces (PC SETTINGS, --no-seamfill)
     bool autoaim = false;      // the game's view pull toward targets, off by default (input/autoaim.cpp; --autoaim, PC SETTINGS)
+    float lean_angle = 10.0f;  // tactical lean (input/lean.cpp): roll in degrees and eye shift in metres at full lean
+    float lean_offset = 0.35f; // (--lean-angle, --lean-offset)
+    bool reload_blur = true;   // the game's screen blur while reloading (reload_blur.cpp; --no-reload-blur, PC SETTINGS)
     float fov = 70.0f;         // horizontal field of view in play, degrees (fov.cpp; --fov, PC SETTINGS; the game's is 70)
     bool skip_movies = true;   // A / START skip any movie, also unseen ones (input/movies.cpp; --no-movie-skip, PC SETTINGS)
     bool known_build = false;  // the XBE is the address-table source build (NTSC-U)

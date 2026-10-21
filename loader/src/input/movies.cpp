@@ -1,4 +1,4 @@
-// Skip any movie (default; PC SETTINGS > AUDIO AND GAME, --no-movie-skip for the original behaviour).
+// Skip any movie (default; PC SETTINGS > AUDIO AND MOVIES, --no-movie-skip for the original behaviour).
 //
 // The game skips a movie only once it has been earned: the boot logos never, the intro and a mission's movies once
 // that mission has been completed (the front end's FMVPlayer script requests the next movie on A or START; with a

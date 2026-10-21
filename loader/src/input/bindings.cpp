@@ -16,11 +16,13 @@
 // waits for the pad (PRESS A TO CONTINUE after a hint, START to skip the mission's intro text): there Enter is A or
 // START (see apply). A key held across a switch between play and menus is ignored until it is released (a press that
 // starts play must not also act in it).
+// Port actions (game index -1, at the end of the list) are not the game's: the lean keys go to input/lean.cpp.
 #include "input/bindings.h"
 #include "xbe.h"
 
 #include "common.h"
 #include "d3d/host.h"
+#include "input/lean.h"
 #include "input/mouselook.h"
 #include "settings.h"
 
@@ -59,6 +61,9 @@ const Action kActions[] = {
     {"look_down", L"Look down", 8, {0, 0}},
     {"pause", L"Pause", 25, {VK_ESCAPE, 0}},
     {"objectives", L"Show objectives", 36, {VK_SPACE, 0}},
+    // port actions (appended: the indices above stay)
+    {"lean_left", L"Lean left", -1, {'V', 0}},
+    {"lean_right", L"Lean right", -1, {'B', 0}},
 };
 constexpr int kCount = sizeof kActions / sizeof kActions[0];
 constexpr int kPause = 21;
@@ -357,11 +362,17 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
     Pad p;
     const int32_t *table = game_table();
     bool pause_down = false;
+    int lean = 0;
     for (int i = 0; play && i < kCount && table; i++) {
         bool down = false;
         for (int s = 0; s < kSlots; s++) down |= held(g_keys[i][s]);
         if (!down) continue;
         if (i == kPause) pause_down = true;
+        if (kActions[i].game < 0) { // port actions
+            if (!strcmp(kActions[i].ini, "lean_left")) lean--;
+            else if (!strcmp(kActions[i].ini, "lean_right")) lean++;
+            continue;
+        }
         int ch = table[kActions[i].game];
         if (ch < 0 || ch >= 24) {
             static std::bitset<kCount> told;
@@ -371,6 +382,7 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
         }
         press_channel(ch, p);
     }
+    lean_input(lean); // 0 outside play: the view eases back upright
     bool menu_esc = false;
     int input = 0;
     ULONGLONG now = GetTickCount64();

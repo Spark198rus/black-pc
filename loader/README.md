@@ -36,9 +36,9 @@ factor, default 3 = 2560x1440 in widescreen, 1920x1440 in 4:3); `--resolution 19
 `native` = the window's size, and then it follows the window when it is resized) sets the render size directly. `--window WxH` sets the window size (default: the
 largest that fits the screen), `--fullscreen` starts borderless fullscreen. `--gain K` / `--gamma G` adjust the
 output after the game's own gamma ramp (default 1.0 / 1.0; `--no-ramp` shows the raw framebuffer). `--mouse-sens K` (0.022 degrees x K per count, default 2.0) and
-`--mouse-invert` tune mouse look; auto-aim (the game's view pull toward enemies) is off by default, `--autoaim` turns it on. A / START skip every movie, also ones the game only lets you skip once earned; `--no-movie-skip` (or unticking Game > Skip any movie) keeps the original rule. `--fov D` sets the horizontal field of view in play (50-120 degrees, default 70 = the game's; Video > Field of view, live; 86 in widescreen = the 4:3 picture's height). `--fps 30|60` (default 60; 30 is the original). `--reverb-gain K`
+`--mouse-invert` tune mouse look; auto-aim (the game's view pull toward enemies) is off by default, `--autoaim` turns it on. `--no-reload-blur` turns off the screen blur while reloading (PC SETTINGS > TWEAKS > RELOAD BLUR, live). A / START skip every movie, also ones the game only lets you skip once earned; `--no-movie-skip` (or PC SETTINGS > AUDIO AND MOVIES > SKIP ANY MOVIE off) keeps the original rule. `--fov D` sets the horizontal field of view in play (50-120 degrees, default 70 = the game's; PC SETTINGS > VIDEO, live; 86 in widescreen = the 4:3 picture's height). `--fps 30|60` (default 60; 30 is the original). `--reverb-gain K`
 (default 1.0) / `--no-reverb` for the room reverb. `--no-aa` turns off the anti-aliasing, `--no-seamfill` the
-filling of hairline cracks between geometry pieces (Video > Fill geometry seams).
+filling of hairline cracks between geometry pieces (PC SETTINGS > DISPLAY).
 
 `black.exe` is a windowed program: no console window opens. Started from a command prompt it prints a short summary
 there (startup, setup errors, exit, crashes); the full log is in `black.log`.
@@ -57,14 +57,14 @@ first frame: frame times, where the CPU time goes, threads, saved in `perf\<date
 threads.csv). On a ~60 Hz display the frame clock follows the
 display's refresh (smooth frame delivery); `--timer-vblank` uses a fixed 59.94 Hz timer instead. The game threads run on
 one CPU like the Xbox (the last physical core, its hyperthread sibling kept free); `--game-cpu N` picks another. On weak
-PCs (old laptops with Intel graphics) play at 30 fps (Video > Frame rate), the game's original rate.
+PCs (old laptops with Intel graphics) play at 30 fps (PC SETTINGS > DISPLAY > FRAME RATE), the game's original rate.
 
 Controls: every PC controller drives the Xbox pad on port 0. Keys and mouse buttons are bound to the game's actions
 (`src/input/bindings.cpp`; KEY BINDINGS page, `key_<action> = Key[,Key]` in black.ini): each poll a held key looks
 up its action in the game's live binding table and presses the pad input the game reads for it, so the keys follow
 the game's controller layout. Defaults: WASD move, left / right mouse button = fire / aim, R reload, E action, C crouch,
 G grenade, F melee, wheel down / up = next / previous weapon, Z firing mode, Q suppressor, X health pack, Space
-objectives, Esc pause (always; Esc also lets go of the mouse, in menus too, and play starting or resuming takes it
+objectives, V / B lean left / right (experimental), Esc pause (always; Esc also lets go of the mouse, in menus too, and play starting or resuming takes it
 again). In menus, pauses and cutscenes (no player update) bound keys do nothing; arrows, Enter and Backspace go to the
 menus' own input directly (`src/fe/calls.cpp`), not through the pad, and Enter at PRESS START makes port 0 the
 player's controller. Mouse = look; click the window to capture it, Alt+Tab releases it. Tests: `--press "95s:k:W*1500"` holds a bound key (black.ini spelling) without focus.

@@ -7,7 +7,7 @@
 //   drop a flash bar at depths 9-21. The new row: depth 2, its own reveal at frame 58 with a bar at depth 22.
 //   PagePrepare / PageRelease / PageDestruct are renamed and wrapped: the wrappers add pcButton (BkMenuButton) to
 //   the up/down ring.
-// - pcsettings: a copy of Options; the four rows open the groups' pages, Back goes to Options instead of Options' own
+// - pcsettings: a copy of Options with a fifth row (made like Options' PC SETTINGS row); the rows open the groups' pages, Back goes to Options instead of Options' own
 //   save-and-leave.
 // - a page per group and the KEY BINDINGS page: copies of Sound Setup (TextAnim char 49, six row slots revealed at
 //   frames 43-58). A choice row is a clone of the PLAY MODE row (char 25: label 24 > 23, value 22 > 21, arrows 19)
@@ -569,23 +569,38 @@ void main_menu_quit(Movie &mv, int textanim, float dy, int reveal, uint32_t bar_
 void pc_menu(Movie &mv)
 {
     const auto &groups = pcset::groups();
-    if (groups.size() != 4) throw Error("the PC SETTINGS menu has four rows");
+    if (groups.size() != 5) throw Error("the PC SETTINGS menu has five rows");
     literal(mv, mv.character(18), "PC SETTINGS");
     const int texts[4] = {14, 11, 8, 5}; // rows top to bottom: ControllerSetup, SoundSetup, PictureSetup, Playerprofile
     for (int i = 0; i < 4; i++) literal(mv, mv.character(texts[i]), groups[i].title);
-    mv.rename_function(mv.main_script(), "PagePrepare", "PagePrepare0");
-    mv.rename_function(mv.main_script(), "Update", "Update0");
+    add_menu_row(mv, mv.character(27), groups[4].title, "PCGroup5_Text", 25.9f, 55, 21, 22); // the fifth, as in Options
+    uint32_t script = mv.main_script();
+    for (const char *f : {"PagePrepare", "PageRelease", "PageDestruct", "Update"}) mv.rename_function(script, f, std::string(f) + "0");
     Classes classes = own_classes_prepare(mv);
     Asm a(mv);
     own_classes_script(a, classes, "pcs");
-    heal_update(a, "controllerButton", classes, "pcs");
+    heal_update(a, "group5Button", classes, "pcs");
+    a.push(Value::S("group5Button")).define_local2();
     a.function2("PagePrepare", [&groups](Asm &f) {
         call_function(f, "PagePrepare0");
-        const char *buttons[4] = {"controllerButton", "soundButton", "pictureButton", "Playerprofile"};
-        for (int i = 0; i < 4; i++) set(f, {buttons[i]}, "actionSelectPage", S(groups[i].page));
+        make(f, "group5Button", "BkMenuButton", {at({"Main", "TextAnim", "PCGroup5_Text"})});
+        set(f, {"Playerprofile"}, "buttonDown", at({"group5Button"}));
+        set(f, {"group5Button"}, "buttonUp", at({"Playerprofile"}));
+        set(f, {"group5Button"}, "buttonDown", at({"controllerButton"}));
+        set(f, {"controllerButton"}, "buttonUp", at({"group5Button"}));
+        const char *buttons[5] = {"controllerButton", "soundButton", "pictureButton", "Playerprofile", "group5Button"};
+        for (int i = 0; i < 5; i++) set(f, {buttons[i]}, "actionSelectPage", S(groups[i].page));
         call(f, {"MyMenu"}, "SetFunctionBack"); // no argument: not Options' own back (save and leave)
         call(f, {"MyMenu"}, "SetPageBack", {S("OptionsMenuXbox")});
         f.push_true().ret();
+    });
+    a.function2("PageRelease", [](Asm &f) {
+        call_function(f, "PageRelease0");
+        call(f, {"group5Button"}, "Release");
+    });
+    a.function2("PageDestruct", [](Asm &f) {
+        call_function(f, "PageDestruct0");
+        f.push(Value::S("group5Button")).delete2().pop();
     });
     mv.append_control(mv.main, 0, mv.do_action(a.finish()));
 }

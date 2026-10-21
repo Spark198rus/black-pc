@@ -25,6 +25,7 @@ add_library(blackrt SHARED
   src/hooks.cpp
   src/timing.cpp
   src/fov.cpp
+  src/reload_blur.cpp
   src/fe/calls.cpp
   src/fe/vars.cpp
   src/fe/pc_settings.cpp
@@ -34,6 +35,7 @@ add_library(blackrt SHARED
   src/fe/pause_ui.cpp
   src/input/mouselook.cpp
   src/input/autoaim.cpp
+  src/input/lean.cpp
   src/input/bindings.cpp
   src/input/movies.cpp
   src/audio/reverb.cpp

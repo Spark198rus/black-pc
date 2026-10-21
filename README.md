@@ -151,6 +151,7 @@ Keys and mouse buttons are bound to the game's own actions, not to controller bu
 | Toggle suppressor | Q |
 | Health pack | X |
 | Show objectives | Space |
+| Lean left / right (experimental) | V / B |
 | Pause | Esc |
 
 In menus the arrow keys move, Enter selects and Backspace goes back; Enter also passes PRESS START, skips movies and intro text, and closes hints. QUIT at the bottom of the main menu closes the game. 
@@ -163,7 +164,8 @@ The port's settings are in the game's menus: Options > PC SETTINGS on the main m
 |---|---|
 | VIDEO | render resolution, anti-aliasing, field of view, brightness, gamma, fullscreen |
 | DISPLAY | aspect ratio, frame rate (main menu only), filling geometry seams, effects at Xbox size |
-| AUDIO AND GAME | room reverb, auto-aim, skipping any movie, language (PAL disc; from the next start) |
+| TWEAKS | auto-aim, reload blur, lean angle, lean distance |
+| AUDIO AND MOVIES | room reverb, skipping any movie, language (PAL disc; from the next start) |
 | CONTROLS | mouse sensitivity, mouse inversion, key bindings |
 
 `black.exe --help` lists the command-line options. They override `black.ini` for that run (e.g., `--fullscreen --resolution 1080 --fps 30 --fov 86`).
@@ -339,6 +341,7 @@ Clique na janela para capturar o mouse; a tecla **Esc** libera o mouse.
 | Colocar/Tirar Silenciador| Q |
 | Kit Médico | X |
 | Mostrar Objetivos | Espaço |
+| Inclinar à esquerda / direita (experimental) | V / B |
 | Pausar | Esc |
 
 ## Configurações
@@ -349,7 +352,8 @@ Os ajustes do port ficam dentro do menu do jogo: **Options > PC SETTINGS** e no 
 |---|---|
 | VIDEO | Resolução, Anti-aliasing, FOV, Brilho, Gama, Tela Cheia |
 | DISPLAY | Proporção de tela, Taxa de Quadros, Preenchimento de costuras, Efeitos no tamanho do Xbox |
-| AUDIO AND GAME | Reverberação de ambiente, Mira Automática, Pular qualquer cutscene, Idioma (disco PAL; na próxima inicialização) |
+| TWEAKS | Mira Automática, Desfoque ao recarregar, Ângulo e distância da inclinação |
+| AUDIO AND MOVIES | Reverberação de ambiente, Pular qualquer cutscene, Idioma (disco PAL; na próxima inicialização) |
 | CONTROLS | Sensibilidade do Mouse, Inversão do Mouse, Mapeamento de Teclas |
 
 Você pode usar argumentos de linha de comando (ex: `black.exe --fullscreen --resolution 1080 --fps 30 --fov 86`).

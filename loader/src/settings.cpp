@@ -55,6 +55,9 @@ void settings_load()
         else if (k == "mouse_sens") g_cfg.mouse_sens = std::clamp(v, 0.1f, 50.0f);
         else if (k == "mouse_invert") g_cfg.mouse_invert = v != 0;
         else if (k == "autoaim") g_cfg.autoaim = v != 0;
+        else if (k == "reloadblur") g_cfg.reload_blur = v != 0;
+        else if (k == "lean_angle") g_cfg.lean_angle = std::clamp(v, -45.0f, 45.0f);
+        else if (k == "lean_offset") g_cfg.lean_offset = std::clamp(v, -2.0f, 2.0f);
         else if (k == "fov") g_cfg.fov = std::clamp(v, 50.0f, 120.0f);
         else if (k == "skipanymovie") g_cfg.skip_movies = v != 0;
         else if (k == "reverb") g_cfg.reverb = v != 0;
@@ -84,6 +87,8 @@ void settings_save()
     fprintf(f, "mouse_sens = %.3f\nmouse_invert = %d\n", g_cfg.mouse_sens, g_cfg.mouse_invert ? 1 : 0);
     fprintf(f, "reverb = %d\nreverb_gain = %.2f\n", g_cfg.reverb ? 1 : 0, g_cfg.reverb_gain);
     fprintf(f, "autoaim = %d\n", g_cfg.autoaim ? 1 : 0);
+    fprintf(f, "reloadblur = %d\n", g_cfg.reload_blur ? 1 : 0);
+    fprintf(f, "lean_angle = %.1f\nlean_offset = %.3f\n", g_cfg.lean_angle, g_cfg.lean_offset);
     fprintf(f, "fov = %.1f\n", g_cfg.fov);
     fprintf(f, "skipanymovie = %d\n", g_cfg.skip_movies ? 1 : 0);
     fprintf(f, "seamfill = %d\n", g_cfg.seam_fill ? 1 : 0);
