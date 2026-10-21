@@ -303,10 +303,39 @@ void save_ini(FILE *f)
     }
 }
 
+void print_table()
+{
+    ensure_defaults();
+    printf("\n========================================================================================\n");
+    printf("                    BLACK Linux x86 - Keybinds e Controles Ativos                      \n");
+    printf("========================================================================================\n");
+    printf(" %-24s | %-16s | %-16s | %-20s\n", "Acao / Action", "Tecla 1", "Tecla 2", "Parametro black.ini");
+    printf("--------------------------+------------------+------------------+-----------------------\n");
+    for (int i = 0; i < kCount; i++) {
+        std::string k1 = ini_name(g_keys[i][0]);
+        std::string k2 = ini_name(g_keys[i][1]);
+        char name_mb[64];
+        snprintf(name_mb, sizeof(name_mb), "%ls", kActions[i].name);
+        printf(" %-24s | %-16s | %-16s | key_%-16s\n", name_mb, k1.c_str(), k2.c_str(), kActions[i].ini);
+    }
+    printf("========================================================================================\n");
+    printf(" [Controle do Mouse]: Rotacao de Camera (Olhar) | Clique p/ Capturar | Esc p/ Liberar   \n");
+    printf(" [Menus]: Setas (Navegacao), Enter (Selecionar/Start), Backspace (Voltar)               \n");
+    printf(" [Cutscenes]: Enter, Espaco ou Esc para pular                                           \n");
+    printf(" [Gamepad]: Suporte nativo completo via SDL2 (Xbox 360 / One / Series / PS4 / PS5)      \n");
+    printf(" Consulte KEYBINDS.md para o guia completo e lista de nomes aceitos no black.ini.       \n\n");
+}
+
 void script_hold(const std::string &name)
 {
     uint16_t k = parse_key(name);
     if (k && k < g_script.size()) g_script[k] = true;
+}
+
+int peek_menu_input()
+{
+    int v = g_menu_input.load();
+    return v && g_frame_count - g_menu_input_frame <= 2 ? v : 0;
 }
 
 int take_menu_input()
@@ -339,7 +368,7 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
                 if (raw_held(g_keys[i][s], focus, mouse)) g_stale[g_keys[i][s]] = true;
         for (uint16_t k : {VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, VK_RETURN, VK_BACK, VK_ESCAPE})
             if (raw_held(k, focus, 0)) g_stale[k] = true;
-        if (play && g_freed_by_esc && focus) host3d::request_capture(true);
+        if (play && focus) host3d::request_capture(true);
         if (play) g_freed_by_esc = false;
         g_was_play = play;
     }
@@ -391,7 +420,7 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
         g_menu_input_frame = g_frame_count.load();
         g_menu_input = input;
     }
-    g_menu_select = g_menu_down[4];
+    g_menu_select = g_menu_down[4] || (!play && (held(VK_SPACE) || held(VK_ESCAPE)));
     // Enter is the pad's A for the whole press when, as it went down, a hint stopped the game, or START when no menu
     // page was up (the intro text); a press a menu took stays the menu's.
     enum { kMenu, kA, kStart };

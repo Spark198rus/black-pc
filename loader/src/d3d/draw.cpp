@@ -13,7 +13,11 @@
 #include "fov.h"
 #include "perf.h"
 
+#ifdef _WIN32
 #include <wincodec.h>
+#else
+#include <SDL2/SDL.h>
+#endif
 
 #include <cstring>
 #include <unordered_map>
@@ -842,14 +846,9 @@ void draw_up(uint32_t xprim, uint32_t verts, const void *data, uint32_t stride)
         d->DrawPrimitiveUP(p.type, p.count, data, stride);
 }
 
-void draw_indexed_up(uint32_t xprim, uint32_t nidx, const uint16_t *idx, const void *verts, uint32_t stride)
+void draw_indexed_up(uint32_t xprim, uint32_t nidx, const uint16_t *idx, const void *verts_at_mn, uint32_t mn, uint32_t mx, uint32_t stride)
 {
     if (!nidx) return;
-    uint32_t mn = 0xFFFF, mx = 0;
-    for (uint32_t i = 0; i < nidx; i++) {
-        if (idx[i] < mn) mn = idx[i];
-        if (idx[i] > mx) mx = idx[i];
-    }
     Prim p = conv_prim(xprim, nidx);
     if (!p.count) return;
     perf::add_draw(mx - mn + 1, (mx - mn + 1) * stride);
@@ -858,11 +857,18 @@ void draw_indexed_up(uint32_t xprim, uint32_t nidx, const uint16_t *idx, const v
         for (uint32_t q = 0; q < nidx / 4; q++) {
             const uint16_t *s = idx + q * 4;
             uint16_t *o = &g_tmp_indices[q * 6];
-            o[0] = s[0]; o[1] = s[1]; o[2] = s[2]; o[3] = s[0]; o[4] = s[2]; o[5] = s[3];
+            o[0] = s[0] - mn; o[1] = s[1] - mn; o[2] = s[2] - mn;
+            o[3] = s[0] - mn; o[4] = s[2] - mn; o[5] = s[3] - mn;
+        }
+        idx = g_tmp_indices.data();
+    } else if (mn > 0) {
+        g_tmp_indices.resize(nidx);
+        for (uint32_t i = 0; i < nidx; i++) {
+            g_tmp_indices[i] = idx[i] - mn;
         }
         idx = g_tmp_indices.data();
     }
-    host3d::dev()->DrawIndexedPrimitiveUP(p.type, mn, mx - mn + 1, p.count, idx, D3DFMT_INDEX16, verts, stride);
+    host3d::dev()->DrawIndexedPrimitiveUP(p.type, 0, mx - mn + 1, p.count, idx, D3DFMT_INDEX16, verts_at_mn, stride);
 }
 
 const uint8_t *stream_data(uint32_t stream)
@@ -987,22 +993,19 @@ void __stdcall D3DDevice_DrawIndexedVertices(uint32_t PrimitiveType, uint32_t Ve
         if (debug_frame_active() && !g_cfg.debug_frame_end) // single debug frames only (ranges stay fast)
             dump_packed_normal_geometry(ctx.vs, PrimitiveType, VertexCount, pIndexData, mn, mx);
         set_decl(host3d::dev(), decl_for(ctx.vs));
-        // indices refer to vertex 0: point the data "mn vertices before" the converted block
-        draw_indexed_up(PrimitiveType, VertexCount, pIndexData, (const uint8_t *)g_conv.data() - (size_t)mn * stride, stride);
+        draw_indexed_up(PrimitiveType, VertexCount, pIndexData, g_conv.data(), mn, mx, stride);
         return;
     }
     const uint8_t *base = stream_data(0);
     uint32_t stride = g_st.streams[0].stride;
     if (!base || !stride) return;
-    if (ctx.path == Path::Fvf && (ctx.fvf & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW) {
-        uint32_t mn = 0xFFFF, mx = 0;
-        for (uint32_t i = 0; i < VertexCount; i++) {
-            mn = pIndexData[i] < mn ? pIndexData[i] : mn;
-            mx = pIndexData[i] > mx ? pIndexData[i] : mx;
-        }
-        base = scale_rhw(ctx, base, mn, mx - mn + 1, stride);
+    uint32_t mn = 0xFFFF, mx = 0;
+    for (uint32_t i = 0; i < VertexCount; i++) {
+        if (pIndexData[i] < mn) mn = pIndexData[i];
+        if (pIndexData[i] > mx) mx = pIndexData[i];
     }
-    draw_indexed_up(PrimitiveType, VertexCount, pIndexData, base, stride);
+    const uint8_t *verts_at_mn = scale_rhw(ctx, base, mn, mx - mn + 1, stride) + (size_t)mn * stride;
+    draw_indexed_up(PrimitiveType, VertexCount, pIndexData, verts_at_mn, mn, mx, stride);
 }
 
 // ---- push-buffer draws (immediate mode / inline arrays) ----
@@ -1139,6 +1142,7 @@ bool save_surface_png(IDirect3DSurface9 *src, const wchar_t *path, bool alpha_as
                 }
             }
             sys->UnlockRect();
+#ifdef _WIN32
             CoInitializeEx(nullptr, COINIT_MULTITHREADED);
             IWICImagingFactory *f = nullptr;
             IWICStream *st = nullptr;
@@ -1158,6 +1162,20 @@ bool save_surface_png(IDirect3DSurface9 *src, const wchar_t *path, bool alpha_as
             if (enc) enc->Release();
             if (st) st->Release();
             if (f) f->Release();
+#else
+            std::wstring wpath(path);
+            std::string spath(wpath.begin(), wpath.end());
+            SDL_Surface *surf = SDL_CreateRGBSurfaceFrom(px.data(), desc.Width, desc.Height, 32, desc.Width * 4,
+                                                         0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+            if (surf) {
+                std::string bmp_path = spath;
+                if (bmp_path.size() > 4 && bmp_path.substr(bmp_path.size() - 4) == ".png") {
+                    bmp_path.replace(bmp_path.size() - 4, 4, ".bmp");
+                }
+                ok = (SDL_SaveBMP(surf, bmp_path.c_str()) == 0);
+                SDL_FreeSurface(surf);
+            }
+#endif
         }
     }
     if (sys) sys->Release();

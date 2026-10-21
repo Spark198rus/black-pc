@@ -17,6 +17,9 @@
 #include "fe/pc_settings.h"
 #include "input/bindings.h"
 #include "fe/vars.h"
+#if !defined(_WIN32)
+#include "platform/host_sdl.h"
+#endif
 
 #include <cstdlib>
 #include <cstring>
@@ -91,7 +94,11 @@ void pc_back(const char *, const char *, const char *) { pauseui::back(); }
 void pc_quit(const char *, const char *, const char *)
 {
     logf("fe: QUIT on the main menu");
+#if defined(_WIN32)
     PostMessageW(host3d::window(), WM_CLOSE, 0, 0);
+#else
+    host_sdl::close_window();
+#endif
 }
 
 // a page found its menu gone and made it again (fe/pages.cpp emit_heal)
@@ -117,7 +124,7 @@ const Handler kHandlers[] = {
 } // namespace
 
 // The thunk's callee: true when the port took the call (the dispatcher then returns at once).
-static int __cdecl fe_dispatch(uint8_t *fe)
+extern "C" int __cdecl fe_dispatch(uint8_t *fe)
 {
     fe_vars_poll();
     static int s_tick;
@@ -156,6 +163,7 @@ static int __cdecl fe_dispatch(uint8_t *fe)
 
 extern "C" uint32_t g_fe_dispatch_resume = kDispatch + 7; // the dispatcher's jne
 
+#if defined(_MSC_VER)
 __declspec(naked) static void dispatch_thunk()
 {
     __asm {
@@ -170,6 +178,22 @@ __declspec(naked) static void dispatch_thunk()
         ret
     }
 }
+#else
+__attribute__((naked)) static void dispatch_thunk()
+{
+    __asm__ volatile (
+        "push %esi\n\t"
+        "call fe_dispatch\n\t"
+        "add $4, %esp\n\t"
+        "test %eax, %eax\n\t"
+        "jnz 1f\n\t"
+        "cmpl $1, 0x370(%esi)\n\t"
+        "jmp *g_fe_dispatch_resume\n\t"
+        "1:\n\t"
+        "ret\n\t"
+    );
+}
+#endif
 
 // The menus' input. Once per front-end update FUN_00118B70 clears its input id (the int registered as externObject
 // FEInputId: 1 up, 2 down, 3 left, 4 right, 5 select, 6 back) and, while menu input is on, has FUN_00118A80 (eax = a
@@ -189,23 +213,31 @@ extern "C" uint32_t g_fe_menu_input = kMenuInput;
 
 extern "C" void __cdecl fe_menu_keys(uint8_t *input)
 {
-    int key = bindings::take_menu_input();
-    if (!key || *(int32_t *)input != 0 || input[9]) return;
+    int key = bindings::peek_menu_input();
     uint32_t &check = *(uint32_t *)(input + 4);
     if (check == kListenCheck) {
-        if (key != 5) return;
         uint32_t game = *(const uint32_t *)(uintptr_t)kGameObject, controllers = *(const uint32_t *)(uintptr_t)kControllers;
-        if (!game || !controllers) return;
-        uint32_t port0 = controllers + 0x518;
-        *(uint32_t *)(uintptr_t)(game + 0x21060) = port0;
-        *(uint8_t *)(uintptr_t)(port0 + 8) = 1;
-        check = 0;
-        *(uint32_t *)(uintptr_t)kBindingTable = game + 0x20174;
-        logf("fe: Enter at PRESS START: controller port 0 plays");
+        uint32_t port0 = controllers ? controllers + 0x518 : 0;
+        bool pad_start = port0 && (*(const uint16_t *)(port0 + 0xd8) != 0 || *(const uint16_t *)(port0 + 0xa8) != 0);
+        if (key == 5 || pad_start) {
+            bindings::take_menu_input();
+            if (game && port0) {
+                *(uint32_t *)(uintptr_t)(game + 0x21060) = port0;
+                *(uint8_t *)(uintptr_t)(port0 + 8) = 1;
+                check = 0;
+                *(uint32_t *)(uintptr_t)kBindingTable = game + 0x20174;
+                logf("fe: Enter/START at PRESS START: controller port 0 plays");
+            }
+            *(int32_t *)input = 5;
+            return;
+        }
     }
+    if (!key || *(int32_t *)input != 0 || input[9]) return;
+    bindings::take_menu_input();
     *(int32_t *)input = key;
 }
 
+#if defined(_MSC_VER)
 __declspec(naked) static void menu_input_thunk()
 {
     __asm {
@@ -216,6 +248,18 @@ __declspec(naked) static void menu_input_thunk()
         ret
     }
 }
+#else
+__attribute__((naked)) static void menu_input_thunk()
+{
+    __asm__ volatile (
+        "call *g_fe_menu_input\n\t"
+        "push %ebx\n\t"
+        "call fe_menu_keys\n\t"
+        "add $4, %esp\n\t"
+        "ret\n\t"
+    );
+}
+#endif
 
 void install_fe_calls()
 {

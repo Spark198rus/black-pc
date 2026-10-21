@@ -42,7 +42,7 @@ namespace {
 bool g_installed;
 std::atomic<uint32_t> g_play_frame; // the frame of the last player update (ml_sway runs once in each)
 
-// 0x1BD6A8: addss xmm3, [esi+0x18]  (xmm3 = this frame's stick yaw step; xmm2 = zoom factor)
+#if defined(_MSC_VER)
 __declspec(naked) void yaw_thunk()
 {
     __asm {
@@ -58,7 +58,6 @@ __declspec(naked) void yaw_thunk()
     }
 }
 
-// 0x1BD6C7: addss xmm0, [esi+0x1C]  (xmm0 = this frame's stick pitch step; clamped right after)
 __declspec(naked) void pitch_thunk()
 {
     __asm {
@@ -74,7 +73,6 @@ __declspec(naked) void pitch_thunk()
     }
 }
 
-// 0x1ECF76: movss xmm0, [ebx+0x1C] right after the view update; ebx = the player controller.
 __declspec(naked) void sway_thunk()
 {
     __asm {
@@ -85,6 +83,48 @@ __declspec(naked) void sway_thunk()
         ret
     }
 }
+#else
+__attribute__((naked)) void yaw_thunk()
+{
+    __asm__ volatile (
+        "addss 0x18(%esi), %xmm3\n\t"
+        "movss %xmm7, g_ml_xmm7\n\t"
+        "movss g_ml_pending_yaw, %xmm7\n\t"
+        "movss %xmm7, g_ml_used_yaw\n\t"
+        "mulss %xmm2, %xmm7\n\t"
+        "addss %xmm7, %xmm3\n\t"
+        "movss g_ml_xmm7, %xmm7\n\t"
+        "movl $0, g_ml_pending_yaw\n\t"
+        "ret\n\t"
+    );
+}
+
+__attribute__((naked)) void pitch_thunk()
+{
+    __asm__ volatile (
+        "addss 0x1C(%esi), %xmm0\n\t"
+        "movss %xmm7, g_ml_xmm7\n\t"
+        "movss g_ml_pending_pitch, %xmm7\n\t"
+        "movss %xmm7, g_ml_used_pitch\n\t"
+        "mulss %xmm2, %xmm7\n\t"
+        "addss %xmm7, %xmm0\n\t"
+        "movss g_ml_xmm7, %xmm7\n\t"
+        "movl $0, g_ml_pending_pitch\n\t"
+        "ret\n\t"
+    );
+}
+
+__attribute__((naked)) void sway_thunk()
+{
+    __asm__ volatile (
+        "push %ebx\n\t"
+        "call ml_sway\n\t"
+        "add $4, %esp\n\t"
+        "movss 0x1C(%ebx), %xmm0\n\t"
+        "ret\n\t"
+    );
+}
+#endif
 
 struct Site {
     uint32_t addr;

@@ -1,10 +1,17 @@
 # BLACK loader
 
-Runs the original `default.xbe` natively as a 32-bit Windows process with an HLE Xbox kernel, D3D (on
-Direct3D 9), DirectSound (XAudio2) and input (XInput, keyboard and mouse). The game is playable.
+Runs the original `default.xbe` natively as a 32-bit process on Windows (`black.exe`) and Linux (`black_linux`) with an HLE Xbox kernel, D3D (Direct3D 9 / DXVK Vulkan), DirectSound (SDL2 / XAudio2) and input (SDL2 / XInput, keyboard and mouse). The game is fully playable.
 
 ## Build
 
+### Linux (Native ELF 32-bit):
+Requires GCC/G++ multilib (`gcc -m32`) and SDL2 32-bit development libraries.
+```bash
+make -j$(nproc)
+```
+Output: `black_linux` in project root.
+
+### Windows (Win32 PE):
 Needs Visual Studio 2026 (or 2022) Build Tools with the C++ x86 toolchain. CMake ships with VS
 (`...\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe`) if it is not on PATH.
 
@@ -17,10 +24,14 @@ Output: `build/win32/RelWithDebInfo/black.exe` + `blackrt.dll` (keep them togeth
 
 ## Run (from the project root)
 
-```
-loader\build\win32\RelWithDebInfo\black.exe --info game\default.xbe     # print XBE structure
-loader\build\win32\RelWithDebInfo\black.exe --timeout 30 game\default.xbe
-```
+- **Linux:**
+  ```bash
+  ./black_linux game/default.xbe
+  ```
+- **Windows:**
+  ```cmd
+  loader\build\win32\RelWithDebInfo\black.exe game\default.xbe
+  ```
 
 Options: `--hdd <dir>` (host folder for HDD partitions, default `savedata` next to black.exe), `--log <file>` (default
 `black.log` next to black.exe),

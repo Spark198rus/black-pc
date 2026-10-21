@@ -38,6 +38,7 @@ float g_fov_deg = 70.0f;
 // [[0x2D1990]+0x830D4] == 1 (FUN_001EE820)
 constexpr uint32_t kViewmodelCalls[] = {0x001EE97C, 0x001EEB2B};
 
+#if defined(_MSC_VER)
 __declspec(naked) void viewmodel_thunk()
 {
     __asm {
@@ -47,6 +48,17 @@ __declspec(naked) void viewmodel_thunk()
         ret
     }
 }
+#else
+__attribute__((naked)) void viewmodel_thunk()
+{
+    __asm__ volatile (
+        "movb $1, g_fov_viewmodel\n\t"
+        "call *g_fov_viewmodel_list\n\t"
+        "movb $0, g_fov_viewmodel\n\t"
+        "ret\n\t"
+    );
+}
+#endif
 
 struct Site {
     uint32_t addr;

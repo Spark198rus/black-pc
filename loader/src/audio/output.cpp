@@ -10,6 +10,36 @@
 
 #include "common.h"
 
+#if !defined(_WIN32)
+
+#include "platform/audio_sdl.h"
+
+namespace audio_out {
+
+bool open()
+{
+    return audio_sdl::open();
+}
+
+uint32_t blocks_wanted()
+{
+    return audio_sdl::blocks_wanted();
+}
+
+void submit(const float *lr)
+{
+    audio_sdl::submit(lr);
+}
+
+void simulate_lost()
+{
+    audio_sdl::simulate_lost();
+}
+
+} // namespace audio_out
+
+#else
+
 #include <windows.h>
 #include <xaudio2.h>
 
@@ -194,3 +224,4 @@ void submit(const float *lr)
 }
 
 } // namespace audio_out
+#endif // _WIN32

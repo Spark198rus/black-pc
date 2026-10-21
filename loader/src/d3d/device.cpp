@@ -16,7 +16,9 @@
 #include "xthread.h"
 
 #include <d3dcompiler.h>
+#ifdef _WIN32
 #include <mmsystem.h>
+#endif
 
 #include <algorithm>
 #include <cmath>
@@ -1318,8 +1320,32 @@ uint32_t __stdcall D3DDevice_Swap(uint32_t Flags)
     perf::frame_end(host_w(g_width), host_h(g_height));
     dev_field<uint32_t>(DEV_SWAPCOUNT)++;
     g_swap_count++;
+
+    static ULONGLONG s_last_fps_time = GetTickCount64();
+    static uint32_t s_last_fps_frames = 0;
+    static float s_current_fps = 0.0f;
+    static float s_current_ms = 0.0f;
+
+    ULONGLONG now_ms = GetTickCount64();
+    uint32_t elapsed_ms = (uint32_t)(now_ms - s_last_fps_time);
+    if (elapsed_ms >= 500) {
+        uint32_t delta_frames = frames - s_last_fps_frames;
+        s_current_fps = (delta_frames * 1000.0f) / (float)elapsed_ms;
+        s_current_ms = (float)elapsed_ms / (delta_frames > 0 ? delta_frames : 1);
+        s_last_fps_time = now_ms;
+        s_last_fps_frames = frames;
+
+        if (!g_cfg.background) {
+            char title[128];
+            snprintf(title, sizeof(title), "BLACK | %.1f FPS (%.2f ms) | %ux%u",
+                     s_current_fps, s_current_ms, host_w(g_width), host_h(g_height));
+            host3d::set_title(title);
+        }
+    }
+
     if (frames % 60 == 0 || frames < 4)
-        logf("[d3d] frame %u presented (%u draws, %u skipped since last report)", frames, g_st.draws, g_st.draws_skipped);
+        logf("[d3d] frame %u presented (%.1f FPS, %.2f ms, %u draws, %u skipped since last report)",
+             frames, s_current_fps, s_current_ms, g_st.draws, g_st.draws_skipped);
     if (frames % 60 == 0 || frames < 4) g_st.draws = g_st.draws_skipped = 0;
     if (auto cb = dev_field<void(__cdecl *)(void *)>(DEV_VBLANKCALLBACK)) {
         static std::atomic<bool> noted{false};

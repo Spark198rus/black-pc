@@ -1,0 +1,100 @@
+name: Cross-Platform CI (Windows & Linux)
+
+on:
+  push:
+    branches:
+      - main
+      - staging/upstream-pr
+    paths:
+      - 'loader/**'
+      - 'tests/**'
+      - 'tools/**'
+      - 'Makefile'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches:
+      - main
+      - staging/upstream-pr
+  workflow_dispatch:
+
+jobs:
+  build-win32:
+    name: Windows Win32 (MSVC VS2022)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake (Win32)
+        run: |
+          cmake -B loader/build -S loader -A Win32
+
+      - name: Build with MSVC (RelWithDebInfo)
+        run: |
+          cmake --build loader/build --config RelWithDebInfo --parallel
+
+      - name: Stage Windows Artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist-win32
+          $exe = Get-ChildItem -Path loader/build -Filter "black.exe" -Recurse | Select-Object -First 1
+          $dll = Get-ChildItem -Path loader/build -Filter "blackrt.dll" -Recurse | Select-Object -First 1
+          $map = Get-ChildItem -Path loader/build -Filter "blackrt.map" -Recurse | Select-Object -First 1
+          $pdb = Get-ChildItem -Path loader/build -Filter "blackrt.pdb" -Recurse | Select-Object -First 1
+
+          if (-not $exe -or -not $dll) {
+            Write-Error "Failed to locate compiled black.exe or blackrt.dll!"
+            exit 1
+          }
+
+          Copy-Item $exe.FullName dist-win32/
+          Copy-Item $dll.FullName dist-win32/
+          if ($map) { Copy-Item $map.FullName dist-win32/ }
+          if ($pdb) { Copy-Item $pdb.FullName dist-win32/ }
+
+      - name: Upload Windows Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: black-pc-win32
+          path: dist-win32/
+          if-no-files-found: error
+
+  build-linux:
+    name: Linux x86 Native (GCC Multilib)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install 32-bit Multilib Dependencies
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-multilib \
+            g++-multilib \
+            libsdl2-dev:i386 \
+            libvulkan-dev:i386 \
+            mesa-vulkan-drivers:i386 \
+            xvfb
+
+      - name: Build Native Linux Executable (black_linux)
+        run: |
+          make -j$(nproc)
+
+      - name: Run Automated Test Suite (22 Tests)
+        run: |
+          SDL_AUDIODRIVER=dummy xvfb-run -a make -C tests check
+
+      - name: Package Linux Release Archive
+        run: |
+          ./tools/make_release.sh
+
+      - name: Upload Linux Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: black-pc-linux-x86
+          path: dist/black-pc-*linux-x86*
+          if-no-files-found: error

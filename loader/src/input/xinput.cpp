@@ -9,6 +9,8 @@
 #include "input/bindings.h"
 #include "input/mouselook.h"
 #include "input/movies.h"
+#include "platform/host_sdl.h"
+#include "platform/input_sdl.h"
 
 #include <algorithm>
 #include <cmath>
@@ -63,6 +65,7 @@ bool g_reported_insertion;
 
 void load_xinput()
 {
+#if defined(_WIN32)
     static bool tried;
     if (tried) return;
     tried = true;
@@ -73,6 +76,9 @@ void load_xinput()
         g_pc_set = (PFN_SetState)GetProcAddress(m, "XInputSetState");
     }
     logf("[input] PC XInput %s; keyboard mapping active when the game window has focus", g_pc_get ? "loaded" : "not available");
+#else
+    logf("[input] Linux SDL2 input active; keyboard, mouse, and gamepads connected");
+#endif
 }
 
 // --press "frame:button,..." or "SECONDSs:button,...": scripted presses for unattended test runs, held for
@@ -84,6 +90,7 @@ struct Press {
     bool timed;
     std::string button;
     uint32_t hold_ms;
+    uint32_t repeat_ms; // 0 for single-shot, or repeat interval in ms
 };
 std::vector<Press> g_presses;
 ULONGLONG g_first_poll_ms;
@@ -99,23 +106,57 @@ void parse_presses()
     while (pos < s.size()) {
         size_t comma = s.find(',', pos);
         std::string item = s.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos);
-        size_t colon = item.find(':');
-        if (colon != std::string::npos) {
-            bool timed = colon > 0 && item[colon - 1] == 's';
-            uint32_t at = timed ? (uint32_t)(atof(item.c_str()) * 1000.0) : (uint32_t)atoi(item.c_str());
-            std::string b = item.substr(colon + 1);
-            size_t star = b.find('*');
-            uint32_t hold = 300;
-            if (star != std::string::npos) {
-                hold = (uint32_t)atoi(b.c_str() + star + 1);
-                b.resize(star);
+        while (!item.empty() && isspace((unsigned char)item.front())) item.erase(item.begin());
+        while (!item.empty() && isspace((unsigned char)item.back())) item.pop_back();
+
+        if (!item.empty()) {
+            if (_strnicmp(item.c_str(), "repeat:", 7) == 0 || _strnicmp(item.c_str(), "every:", 6) == 0) {
+                size_t pfx = (item[0] == 'r' || item[0] == 'R') ? 7 : 6;
+                std::string rem = item.substr(pfx);
+                size_t colon = rem.find(':');
+                if (colon != std::string::npos) {
+                    bool timed = colon > 0 && rem[colon - 1] == 's';
+                    uint32_t rep = timed ? (uint32_t)(atof(rem.c_str()) * 1000.0) : (uint32_t)atoi(rem.c_str());
+                    if (rep == 0) rep = 1000;
+                    std::string b = rem.substr(colon + 1);
+                    size_t star = b.find('*');
+                    uint32_t hold = std::min(rep, 350u);
+                    if (star != std::string::npos) {
+                        hold = (uint32_t)atoi(b.c_str() + star + 1);
+                        b.resize(star);
+                    }
+                    g_presses.push_back({rep, true, b, hold, rep});
+                }
+            } else {
+                size_t colon = item.find(':');
+                if (colon != std::string::npos) {
+                    bool timed = colon > 0 && item[colon - 1] == 's';
+                    uint32_t at = timed ? (uint32_t)(atof(item.c_str()) * 1000.0) : (uint32_t)atoi(item.c_str());
+                    std::string b = item.substr(colon + 1);
+                    size_t star = b.find('*');
+                    uint32_t hold = 300;
+                    if (star != std::string::npos) {
+                        hold = (uint32_t)atoi(b.c_str() + star + 1);
+                        b.resize(star);
+                    }
+                    g_presses.push_back({at, timed, b, hold, 0});
+                } else {
+                    // Bare button name without timestamp: periodically pulse every 1s (hold 350ms) starting at 500ms
+                    std::string b = item;
+                    size_t star = b.find('*');
+                    uint32_t hold = 350;
+                    if (star != std::string::npos) {
+                        hold = (uint32_t)atoi(b.c_str() + star + 1);
+                        b.resize(star);
+                    }
+                    g_presses.push_back({500, true, b, hold, 1000});
+                }
             }
-            g_presses.push_back({at, timed, b, hold});
         }
         if (comma == std::string::npos) break;
         pos = comma + 1;
     }
-    if (!g_presses.empty()) logf("[input] %zu scripted presses", g_presses.size());
+    if (!g_presses.empty()) logf("[input] %zu scripted presses configured", g_presses.size());
 }
 
 // Tests: show in-game hint N as the game does (FUN_0012B3C0: eax = N, arguments the HUD (*0x2D12E4 + 0xC) and a
@@ -134,12 +175,25 @@ void show_hint(int id)
     float *v = vec;
     uint32_t fn = 0x0012B3C0;
     logf("[input] tests: showing hint %d", id);
+#if defined(_MSC_VER)
     __asm {
         push v
         push hud
         mov eax, id
         call fn
     }
+#else
+    __asm__ volatile (
+        "pushl %0\n\t"
+        "pushl %1\n\t"
+        "movl %2, %%eax\n\t"
+        "call *%3\n\t"
+        "addl $8, %%esp\n\t"
+        :
+        : "m"(v), "m"(hud), "m"(id), "m"(fn)
+        : "eax", "ecx", "edx", "memory"
+    );
+#endif
 }
 
 // --press-file: a test driver appends lines while the game runs: a press as in --press without the time ("k:Enter",
@@ -197,7 +251,7 @@ void read_press_file(uint32_t now_ms)
                     hold = (uint32_t)atoi(line.c_str() + star + 1);
                     line.resize(star);
                 }
-                g_presses.push_back({at, true, line, hold});
+                g_presses.push_back({at, true, line, hold, 0});
                 logf("[input] press-file '%s' at %u ms", line.c_str(), at);
                 at += std::max(250u, hold + 100);
             }
@@ -216,7 +270,19 @@ void apply_presses(XGamepad &g)
     uint32_t ms = (uint32_t)(GetTickCount64() - g_first_poll_ms);
     read_press_file(ms);
     for (const Press &p : g_presses) {
-        if (p.timed ? (ms < p.frame || ms >= p.frame + p.hold_ms) : (f < p.frame || f >= p.frame + 10)) continue;
+        bool active = false;
+        if (p.repeat_ms > 0) {
+            if (ms >= p.frame) {
+                uint32_t offset = (ms - p.frame) % p.repeat_ms;
+                active = (offset < p.hold_ms);
+            }
+        } else if (p.timed) {
+            active = (ms >= p.frame && ms < p.frame + p.hold_ms);
+        } else {
+            active = (f >= p.frame && f < p.frame + 10);
+        }
+        if (!active) continue;
+
         const std::string &b = p.button;
         if (b.size() > 3 && (b[0] == 'l' || b[0] == 'r') && (b[1] == 'x' || b[1] == 'y') && (b[2] == '+' || b[2] == '-')) {
             int16_t v = (int16_t)std::clamp(atoi(b.c_str() + 2) * 32767 / 100, -32767, 32767);
@@ -225,23 +291,66 @@ void apply_presses(XGamepad &g)
         }
         if (b.size() > 3 && b[0] == 'm' && (b[1] == 'x' || b[1] == 'y') && (b[2] == '+' || b[2] == '-'))
             (b[1] == 'x' ? g_script_mx : g_script_my) += atoi(b.c_str() + 2);
-        if (b.size() > 2 && b[0] == 'k' && b[1] == ':') bindings::script_hold(b.substr(2)); // a bound key
-        if (b == "up") g.wButtons |= 0x01;
-        else if (b == "down") g.wButtons |= 0x02;
-        else if (b == "left") g.wButtons |= 0x04;
-        else if (b == "right") g.wButtons |= 0x08;
-        else if (b == "start") g.wButtons |= 0x10;
-        else if (b == "back") g.wButtons |= 0x20;
-        else if (b == "a") g.bAnalogButtons[0] = 255;
-        else if (b == "b") g.bAnalogButtons[1] = 255;
-        else if (b == "x") g.bAnalogButtons[2] = 255;
-        else if (b == "y") g.bAnalogButtons[3] = 255;
-        else if (b == "black") g.bAnalogButtons[4] = 255;
-        else if (b == "white") g.bAnalogButtons[5] = 255;
-        else if (b == "lt") g.bAnalogButtons[6] = 255;
-        else if (b == "rt") g.bAnalogButtons[7] = 255;
-        else if (b == "lthumb") g.wButtons |= 0x40;
-        else if (b == "rthumb") g.wButtons |= 0x80;
+        if (b.size() > 2 && b[0] == 'k' && b[1] == ':') {
+            bindings::script_hold(b.substr(2));
+        }
+
+        std::string bl = b;
+        for (char &c : bl) c = (char)tolower((unsigned char)c);
+
+        if (bl == "up") {
+            g.wButtons |= 0x01;
+            bindings::script_hold("Up");
+        } else if (bl == "down") {
+            g.wButtons |= 0x02;
+            bindings::script_hold("Down");
+        } else if (bl == "left") {
+            g.wButtons |= 0x04;
+            bindings::script_hold("Left");
+        } else if (bl == "right") {
+            g.wButtons |= 0x08;
+            bindings::script_hold("Right");
+        } else if (bl == "start") {
+            g.wButtons |= 0x10;
+            bindings::script_hold("Enter");
+        } else if (bl == "back") {
+            g.wButtons |= 0x20;
+            bindings::script_hold("Esc");
+        } else if (bl == "a") {
+            g.bAnalogButtons[0] = 255;
+            bindings::script_hold("Enter");
+        } else if (bl == "b") {
+            g.bAnalogButtons[1] = 255;
+            bindings::script_hold("Backspace");
+        } else if (bl == "x") {
+            g.bAnalogButtons[2] = 255;
+        } else if (bl == "y") {
+            g.bAnalogButtons[3] = 255;
+        } else if (bl == "black") {
+            g.bAnalogButtons[4] = 255;
+        } else if (bl == "white") {
+            g.bAnalogButtons[5] = 255;
+        } else if (bl == "lt") {
+            g.bAnalogButtons[6] = 255;
+        } else if (bl == "rt") {
+            g.bAnalogButtons[7] = 255;
+        } else if (bl == "lthumb") {
+            g.wButtons |= 0x40;
+        } else if (bl == "rthumb") {
+            g.wButtons |= 0x80;
+        } else if (bl == "enter") {
+            bindings::script_hold("Enter");
+            g.wButtons |= 0x10;
+            g.bAnalogButtons[0] = 255;
+        } else if (bl == "space") {
+            bindings::script_hold("Space");
+            g.bAnalogButtons[0] = 255;
+        } else if (bl == "esc" || bl == "escape") {
+            bindings::script_hold("Esc");
+            g.wButtons |= 0x20;
+        } else {
+            bindings::script_hold(b);
+        }
         static uint32_t logged_frame;
         if (logged_frame != p.frame) {
             logged_frame = p.frame;
@@ -284,6 +393,7 @@ void read_pad(uint32_t port, XGamepad &g)
 {
     memset(&g, 0, sizeof g);
     if (port != 0) return;
+#if defined(_WIN32)
     static uint32_t polls, absent[4]; // absent: the poll count when a slot was last found empty
     polls++;
     for (DWORD i = 0; g_pc_get && i < 4; i++) {
@@ -307,8 +417,21 @@ void read_pad(uint32_t port, XGamepad &g)
         merge_stick(g.sThumbLX, g.sThumbLY, p.sThumbLX, p.sThumbLY);
         merge_stick(g.sThumbRX, g.sThumbRY, p.sThumbRX, p.sThumbRY);
     }
-    apply_presses(g);
     bool focus = GetForegroundWindow() == host3d::window();
+#else
+    input_sdl::poll();
+    XboxInputState sdl_state{};
+    if (input_sdl::has_controller(0) && input_sdl::get_state(0, &sdl_state)) {
+        g.wButtons = sdl_state.Gamepad.wButtons;
+        memcpy(g.bAnalogButtons, sdl_state.Gamepad.bAnalogButtons, sizeof(g.bAnalogButtons));
+        g.sThumbLX = sdl_state.Gamepad.sThumbLX;
+        g.sThumbLY = sdl_state.Gamepad.sThumbLY;
+        g.sThumbRX = sdl_state.Gamepad.sThumbRX;
+        g.sThumbRY = sdl_state.Gamepad.sThumbRY;
+    }
+    bool focus = host_sdl::is_open();
+#endif
+    apply_presses(g);
     bool live = focus && host3d::mouse_captured();
     int raw_wheel;
     int wheel = mouse_look(live, &raw_wheel);
@@ -357,6 +480,7 @@ void __stdcall XInputClose(Device *h)
 uint32_t __stdcall XInputGetState(Device *h, XState *pState)
 {
     if (!h || h->magic != DEV_MAGIC) return ERROR_DEVICE_NOT_CONNECTED;
+#if defined(_WIN32)
     if (g_cfg.watch_pad && !g_pad_watch && g_frame_count >= g_cfg.watch_pad) {
         // Debug: hardware read/write breakpoint (DR3, 2 bytes) on this thread over sThumbRX of the game's buffer.
         uint32_t base = g_cfg.watch_read_deref ? *(uint32_t *)(uintptr_t)g_cfg.watch_read : g_cfg.watch_read;
@@ -371,6 +495,7 @@ uint32_t __stdcall XInputGetState(Device *h, XState *pState)
         BOOL ok = SetThreadContext(GetCurrentThread(), &c);
         logf("[input] watching right-stick reads at %08x (%s)", g_pad_watch, ok ? "set" : "FAILED");
     }
+#endif
     static std::atomic<uint32_t> polls{0};
     if ((++polls % 600) == 1) logf("[input] XInputGetState poll #%u (frame %u)", polls.load(), g_frame_count.load());
     XGamepad g;
@@ -389,7 +514,11 @@ uint32_t __stdcall XInputSetState(Device *h, uint8_t *pFeedback)
 {
     if (!h || h->magic != DEV_MAGIC) return ERROR_DEVICE_NOT_CONNECTED;
     PcVibration v = {*(uint16_t *)(pFeedback + 68), *(uint16_t *)(pFeedback + 70)};
+#if defined(_WIN32)
     for (DWORD i = 0; g_pc_set && h->port == 0 && i < 4; i++) g_pc_set(i, &v); // port 0 = every PC pad
+#else
+    if (h->port == 0) input_sdl::set_rumble(0, v.wLeftMotorSpeed, v.wRightMotorSpeed);
+#endif
     *(uint32_t *)pFeedback = ERROR_SUCCESS; // completed immediately
     if (HANDLE ev = *(HANDLE *)(pFeedback + 4)) SetEvent(ev);
     return ERROR_IO_PENDING;

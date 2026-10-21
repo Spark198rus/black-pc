@@ -18,6 +18,8 @@
   ],
   "buildPresets": [
     { "name": "win32-release", "configurePreset": "win32", "configuration": "RelWithDebInfo" },
-    { "name": "win32-debug", "configurePreset": "win32", "configuration": "Debug" }
+    { "name": "win32-debug", "configurePreset": "win32", "configuration": "Debug" },
+    { "name": "win32-vs2022-release", "configurePreset": "win32-vs2022", "configuration": "RelWithDebInfo" },
+    { "name": "win32-vs2022-debug", "configurePreset": "win32-vs2022", "configuration": "Debug" }
   ]
 }

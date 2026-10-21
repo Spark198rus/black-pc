@@ -185,12 +185,20 @@ NTSTATUS image_load_section(struct XbeSectionHeader *section);
 NTSTATUS image_unload_section(struct XbeSectionHeader *section);
 
 // Time
+#ifdef _WIN32
 inline int64_t ktime_now_100ns()
 {
     FILETIME ft;
     GetSystemTimePreciseAsFileTime(&ft);
     return ((int64_t)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
 }
+#else
+namespace xposix { int64_t ktime_now_100ns(); }
+inline int64_t ktime_now_100ns()
+{
+    return xposix::ktime_now_100ns();
+}
+#endif
 
 // Converts an NT timeout (negative = relative 100ns units, positive = absolute) to milliseconds.
 inline DWORD ktimeout_ms(const LARGE_INTEGER *timeout)

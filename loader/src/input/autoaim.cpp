@@ -30,7 +30,7 @@ constexpr uint32_t kSite = 0x001D1E40;
 const uint8_t kExpect[6] = {0x55, 0x8B, 0xEC, 0x83, 0xE4, 0xF0}; // push ebp; mov ebp,esp; and esp,-16 (replaced)
 bool g_installed;
 
-// FUN_001d1e40 is stdcall with one argument (the player controller): ret 4 skips it.
+#if defined(_MSC_VER)
 __declspec(naked) void assist_thunk()
 {
     __asm {
@@ -44,6 +44,21 @@ __declspec(naked) void assist_thunk()
         ret 4
     }
 }
+#else
+__attribute__((naked)) void assist_thunk()
+{
+    __asm__ volatile (
+        "cmpb $0, g_autoaim_off\n\t"
+        "jne 1f\n\t"
+        "push %ebp\n\t"
+        "mov %esp, %ebp\n\t"
+        "and $0xfffffff0, %esp\n\t"
+        "jmp *g_autoaim_resume\n\t"
+        "1:\n\t"
+        "ret $4\n\t"
+    );
+}
+#endif
 
 } // namespace
 

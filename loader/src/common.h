@@ -1,15 +1,18 @@
 // Shared declarations for blackrt.dll: config, logging, shutdown, symbols.
 #pragma once
 
+#if defined(_WIN32)
 #include <windows.h>
+typedef LONG NTSTATUS;
+#else
+#include "platform/windefs.h"
+#endif
 
 #include <atomic>
 #include <cstdarg>
 #include <cstdint>
 #include <cstdio>
 #include <string>
-
-typedef LONG NTSTATUS;
 
 // NTSTATUS values used by the HLE kernel (Xbox uses the NT values).
 constexpr NTSTATUS XSTATUS_SUCCESS = 0x00000000;

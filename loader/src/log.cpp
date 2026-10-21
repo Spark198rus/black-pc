@@ -33,7 +33,7 @@ void log_line(const char *fmt, va_list ap, bool console)
     QueryPerformanceCounter(&now);
     double t = double(now.QuadPart - g_t0.QuadPart) / double(g_freq.QuadPart);
     char line[2200];
-    snprintf(line, sizeof line, "%9.3f [%5lu] %s\n", t, GetCurrentThreadId(), msg);
+    snprintf(line, sizeof line, "%9.3f [%5u] %s\n", t, (unsigned)GetCurrentThreadId(), msg);
     if (!g_log_ready) {
         fputs(line, stderr);
         return;
@@ -108,7 +108,7 @@ static std::map<uint32_t, std::pair<std::string, uint32_t>> g_syms; // addr -> (
 
 void symbols_load(const std::wstring &csv_path)
 {
-    std::ifstream f(csv_path);
+    std::ifstream f(narrow(csv_path));
     if (!f) return;
     std::string line;
     std::getline(f, line); // header: address,name,size,section,refs

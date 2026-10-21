@@ -1,5 +1,88 @@
 #include "hooks.h"
 
+#if !defined(_WIN32)
+
+#include <csignal>
+#include <ucontext.h>
+#include <unistd.h>
+
+namespace {
+
+void posix_crash_handler(int sig, siginfo_t *info, void *ucontext)
+{
+    ucontext_t *ctx = (ucontext_t *)ucontext;
+    uintptr_t ip = (uintptr_t)ctx->uc_mcontext.gregs[REG_EIP];
+    uintptr_t sp = (uintptr_t)ctx->uc_mcontext.gregs[REG_ESP];
+    uintptr_t fault_addr = (uintptr_t)info->si_addr;
+
+    const char *sig_name = "UNKNOWN";
+    if (sig == SIGSEGV) sig_name = "SIGSEGV (Segmentation Fault)";
+    else if (sig == SIGBUS) sig_name = "SIGBUS (Bus Error)";
+    else if (sig == SIGILL) sig_name = "SIGILL (Illegal Instruction)";
+    else if (sig == SIGFPE) sig_name = "SIGFPE (Floating Point Exception)";
+
+    logc("================================================================================");
+    logc("FATAL: Caught %s (signal %d) at address %p!", sig_name, sig, (void*)fault_addr);
+    logc("Instruction Pointer (EIP): 0x%08x (%s)", (unsigned)ip, sym_name((uint32_t)ip).c_str());
+    logc("Stack Pointer (ESP):       0x%08x", (unsigned)sp);
+    logc("Registers: EAX=0x%08x EBX=0x%08x ECX=0x%08x EDX=0x%08x ESI=0x%08x EDI=0x%08x EBP=0x%08x",
+         (unsigned)ctx->uc_mcontext.gregs[REG_EAX],
+         (unsigned)ctx->uc_mcontext.gregs[REG_EBX],
+         (unsigned)ctx->uc_mcontext.gregs[REG_ECX],
+         (unsigned)ctx->uc_mcontext.gregs[REG_EDX],
+         (unsigned)ctx->uc_mcontext.gregs[REG_ESI],
+         (unsigned)ctx->uc_mcontext.gregs[REG_EDI],
+         (unsigned)ctx->uc_mcontext.gregs[REG_EBP]);
+
+    log_stack_trace((const uint32_t *)sp);
+    logc("================================================================================");
+    fflush(stdout);
+    _exit(128 + sig);
+}
+
+} // namespace
+
+void log_stack_trace(const uint32_t *esp)
+{
+    logc("--- Stack Trace ---");
+    if (!esp) return;
+    for (int i = 0; i < 32; i++) {
+        uint32_t val = esp[i];
+        if (val >= 0x00010000 && val <= 0x003e0000) {
+            logc("  [esp+%2d] 0x%08x: %s", i * 4, val, sym_name(val).c_str());
+        }
+    }
+}
+
+void log_stack_trace_ex(const uint32_t *esp, const uint32_t *)
+{
+    log_stack_trace(esp);
+}
+
+void dump_threads()
+{
+    logc("[threads] Active thread dump requested.");
+}
+
+void install_probes()
+{
+}
+
+void install_crash_handlers()
+{
+    struct sigaction sa{};
+    sa.sa_sigaction = posix_crash_handler;
+    sa.sa_flags = SA_SIGINFO | SA_NODEFER | SA_RESETHAND;
+    sigemptyset(&sa.sa_mask);
+
+    sigaction(SIGSEGV, &sa, nullptr);
+    sigaction(SIGBUS, &sa, nullptr);
+    sigaction(SIGILL, &sa, nullptr);
+    sigaction(SIGFPE, &sa, nullptr);
+}
+
+#else
+
 #include "image.h"
 #include "xbe.h"
 #include "xthread.h"
@@ -262,3 +345,4 @@ void install_crash_handlers()
     AddVectoredExceptionHandler(1, vectored_handler);
     SetUnhandledExceptionFilter(unhandled_filter);
 }
+#endif // _WIN32

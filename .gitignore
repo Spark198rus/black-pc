@@ -1,5 +1,6 @@
 # Never commit the game, its assets, or Microsoft XDK code. Users supply their own dump.
 game/
+games
 *.xbe
 *.iso
 *.xiso
@@ -10,6 +11,9 @@ tools/extract-xiso/
 tools/XbSymbolDatabase/
 tools/ghidra-xbe/
 tools/bin/
+tools/sdl2/
+tools/dxvk-native/
+*.deb
 
 # Ghidra projects hold the analysed game binary
 ghidra/
@@ -27,8 +31,41 @@ notes/ghidra-strings.txt
 # Loader build output and run artifacts (the HDD folder holds game-written data)
 loader/build/
 hdd/
+savedata/
 *.raw
 black.log
+
+# Test binaries
+tests/test_abi
+tests/test_kpcr_fs
+tests/test_memory_layout
+tests/test_xbe_parser
+tests/test_xbe_loader_map
+tests/test_thunk_dispatcher
+tests/test_boot_entry
+tests/test_k_sync_posix
+tests/test_k_file_posix
+tests/test_k_thread_posix
+tests/test_k_memory_posix
+tests/test_boot_pipeline
+tests/test_sdl_window
+tests/test_sdl_input
+tests/test_sdl_audio
+tests/test_host_loop
+tests/test_dxvk_device
+tests/test_dxvk_draw_pipeline
+tests/test_d3dcompiler_posix
+tests/test_render_pipeline
+tests/test_fe_apt
+tests/test_mouselook_pipeline
+savedata_backup*/
+build/
+black_linux
+scratch/
+*dxvk*.log
+*_d3d9.log
+*.dxvk.bin
+cache/
 
 # Local launcher shortcut (machine-specific; its icon comes from the user's XBE)
 *.lnk

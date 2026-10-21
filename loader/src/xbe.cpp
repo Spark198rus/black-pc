@@ -1,6 +1,6 @@
 #include "xbe.h"
 
-#include <windows.h>
+#include "common.h"
 
 #include <algorithm>
 #include <cstdio>

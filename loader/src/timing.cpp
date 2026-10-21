@@ -54,7 +54,7 @@ BOOL __stdcall xapi_QueryPerformanceCounter(LARGE_INTEGER *p)
 void __cdecl store_tsc() { *(uint64_t *)(uintptr_t)0x002C0468 = xbox_tsc(); }
 uint32_t __cdecl tsc_low() { return (uint32_t)xbox_tsc(); }
 
-// The game's helpers keep ecx; LTCG callers may rely on that, so wrap the C functions.
+#if defined(_MSC_VER)
 __declspec(naked) void store_tsc_thunk() // FUN_00084190: *(uint64 *)0x2c0468 = rdtsc
 {
     __asm {
@@ -74,6 +74,27 @@ __declspec(naked) void tsc_low_thunk() // FUN_000841a0: return (uint32)rdtsc
         ret
     }
 }
+#else
+__attribute__((naked)) void store_tsc_thunk()
+{
+    __asm__ volatile (
+        "push %ecx\n\t"
+        "call store_tsc\n\t"
+        "pop %ecx\n\t"
+        "ret\n\t"
+    );
+}
+
+__attribute__((naked)) void tsc_low_thunk()
+{
+    __asm__ volatile (
+        "push %ecx\n\t"
+        "call tsc_low\n\t"
+        "pop %ecx\n\t"
+        "ret\n\t"
+    );
+}
+#endif
 
 struct Patch {
     uint32_t addr;
@@ -125,6 +146,7 @@ extern "C" uint32_t __cdecl refire_interval(uint32_t bits)
     return bits;
 }
 
+#if defined(_MSC_VER)
 #define REFIRE_THUNK(name, reg)                                                                                    \
     __declspec(naked) void name()                                                                                  \
     {                                                                                                              \
@@ -136,6 +158,21 @@ extern "C" uint32_t __cdecl refire_interval(uint32_t bits)
         __asm popad                                                                                                \
         __asm ret                                                                                                  \
     }
+#else
+#define REFIRE_THUNK(name, reg)                                                                                    \
+    __attribute__((naked)) void name()                                                                             \
+    {                                                                                                              \
+        __asm__ volatile (                                                                                         \
+            "pushal\n\t"                                                                                           \
+            "push %" #reg "\n\t"                                                                                   \
+            "call refire_interval\n\t"                                                                             \
+            "add $4, %esp\n\t"                                                                                     \
+            "movl %eax, 0xDC(%ebp)\n\t"                                                                            \
+            "popal\n\t"                                                                                            \
+            "ret\n\t"                                                                                              \
+        );                                                                                                         \
+    }
+#endif
 REFIRE_THUNK(refire_edx, edx)
 REFIRE_THUNK(refire_ecx, ecx)
 REFIRE_THUNK(refire_eax, eax)

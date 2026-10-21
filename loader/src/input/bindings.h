@@ -27,6 +27,7 @@ std::wstring key_name(uint16_t k);
 
 bool load_ini(const char *key, const char *value); // black.ini lines key_<ini>; false if not one of ours
 void save_ini(FILE *f);
+void print_table();
 
 // Once per pad poll (input/xinput.cpp): in play, the bound keys and mouse buttons pressed into the Xbox pad, through
 // the game's current binding table; in menus, the menu keys for take_menu_input. focus: the game window is in front;
@@ -34,8 +35,7 @@ void save_ini(FILE *f);
 void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16_t &rx, int16_t &ry, bool focus,
            bool mouse_live, int wheel);
 bool in_play(); // the player is being updated (not a menu, pause or cutscene)
-// The menu key pressed (or repeating) at the last poll as the menus' input id, once: 1 up, 2 down, 3 left, 4 right,
-// 5 select (Enter), 6 back (Backspace); 0 none. The front end's input (fe/calls.cpp) takes it.
+int peek_menu_input();
 int take_menu_input();
 bool menu_select_held(); // Enter held in a menu or movie (movies: skip)
 // Tests: --press "SECONDSs:k:Name" holds a key (black.ini spelling) for the next poll, without focus.

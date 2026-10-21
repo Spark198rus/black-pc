@@ -40,7 +40,7 @@ struct Entry {
 struct Text {
     bool used;
     uint32_t hash;
-    wchar_t buf[64]; // the entry points here for good: new text is written in place
+    char16_t buf[128]; // UTF-16 LE text for the Xbox Flash/Apt UI
 };
 struct Int {
     uint32_t hash;
@@ -123,11 +123,12 @@ void fe_var_set(int n, const std::wstring &text)
         v.used = true;
         v.buf[0] = 0;
     }
-    // In place: the text fields hold the buffer's address and draw from it. The game's own setter instead hands every
-    // watcher a new pointer (FUN_00114960), but the watcher chain can still name fields of a page that is gone, so the
-    // port never walks it.
-    wcsncpy(v.buf, text.c_str(), 63);
-    v.buf[63] = 0;
+    // In place: the text fields hold the buffer's address and draw from it as UTF-16 LE.
+    size_t i = 0;
+    for (; i < text.size() && i < 127; i++) {
+        v.buf[i] = (char16_t)text[i];
+    }
+    v.buf[i] = 0;
 }
 
 void fe_int_set(const char *name, int value)
