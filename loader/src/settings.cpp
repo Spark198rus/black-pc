@@ -48,6 +48,7 @@ void settings_load()
         else if (k == "effectsnative") g_cfg.effects_native = v != 0;
         else if (k == "fps") g_cfg.fps = atoi(val) == 60 ? 60 : 30;
         else if (k == "widescreen") g_cfg.widescreen = v != 0;
+        else if (k == "ultrawide") g_cfg.ultrawide = v != 0;
         else if (k == "language") { if (language_valid(val)) g_cfg.language = val; }
         else if (k == "fullscreen") g_cfg.fullscreen = v != 0;
         else if (k == "gain") g_cfg.gain = std::clamp(v, 0.5f, 3.0f);
@@ -79,8 +80,11 @@ void settings_save()
     else fprintf(f, "render = scale\n");
     fprintf(f, "render_factor = %.2f\nscale = %.3f\n", g_cfg.render_factor, g_cfg.scale);
     int fps = g_cfg.fps_next ? g_cfg.fps_next : g_cfg.fps; // a menu choice for the next run wins
-    bool wide = g_cfg.widescreen_next >= 0 ? g_cfg.widescreen_next != 0 : g_cfg.widescreen;
-    fprintf(f, "aa = %d\nfps = %d\nwidescreen = %d\nfullscreen = %d\n", g_cfg.aa ? 1 : 0, fps, wide ? 1 : 0, g_cfg.fullscreen ? 1 : 0);
+    int aspect = g_cfg.aspect_next >= 0 ? g_cfg.aspect_next : (!g_cfg.widescreen ? 2 : (g_cfg.ultrawide ? 1 : 0));
+    bool wide = aspect != 2;
+    bool ultrawide = aspect == 1;
+    fprintf(f, "aa = %d\nfps = %d\nwidescreen = %d\nultrawide = %d\nfullscreen = %d\n",
+            g_cfg.aa ? 1 : 0, fps, wide ? 1 : 0, ultrawide ? 1 : 0, g_cfg.fullscreen ? 1 : 0);
     fprintf(f, "# auto = the Windows user interface language; or: en es de fr it ja ko zh\n");
     fprintf(f, "language = %s\n", g_cfg.language.c_str());
     fprintf(f, "gain = %.2f\ngamma = %.2f\n", g_cfg.gain, g_cfg.gamma);

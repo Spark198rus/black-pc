@@ -100,7 +100,10 @@ std::wstring lang_text(int i)
     if (lang_of(language_at_start()) == i) return kLangs[i].text;
     return std::wstring(i == 0 ? L"AUTO" : kLangs[i].text) + L" (RESTART)";
 }
-bool shown_wide() { return g_cfg.widescreen_next >= 0 ? g_cfg.widescreen_next != 0 : g_cfg.widescreen; }
+// The aspect choice is applied by the game on the next launch. Keep a pending three-way choice separately
+// from the active rendering flags so the menu can show (RESTART) and black.ini persists the selection.
+int current_aspect() { return !g_cfg.widescreen ? 2 : (g_cfg.ultrawide ? 1 : 0); }
+int shown_aspect() { return g_cfg.aspect_next >= 0 ? g_cfg.aspect_next : current_aspect(); }
 
 struct Row {
     const char *label;
@@ -128,12 +131,12 @@ const Row kRows[] = {
     {"FULLSCREEN", 2, [] { return (int)host3d::fullscreen(); }, [](int i) { host3d::set_fullscreen(i != 0); },
      [](int i) { return on_off(i); }},
     // DISPLAY
-    {"ASPECT RATIO", 2, [] { return (int)!shown_wide(); },
+    {"ASPECT RATIO", 3, shown_aspect,
+     [](int i) { g_cfg.aspect_next = i == current_aspect() ? -1 : i; },
      [](int i) {
-         bool wide = i == 0;
-         g_cfg.widescreen_next = wide == g_cfg.widescreen ? -1 : wide;
-     },
-     [](int i) { return std::wstring(i == 0 ? L"16:9" : L"4:3") + ((i == 0) != g_cfg.widescreen ? L" (RESTART)" : L""); }},
+         static const wchar_t *labels[] = {L"16:9", L"21:9", L"4:3"};
+         return std::wstring(labels[i]) + (i != current_aspect() ? L" (RESTART)" : L"");
+     }},
     {"FRAME RATE", 2, [] { return (int)(shown_fps() == 60); },
      [](int i) {
          int fps = i ? 60 : 30;
