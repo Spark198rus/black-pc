@@ -132,7 +132,8 @@ bool g_scissor_on;
 // in widescreen a picture with square pixels has x = 4/3 y. Kept within Direct3D 9's 8192 texture limit.
 void setup_render_scale(int pic_w, int pic_h)
 {
-    float aspect = g_cfg.widescreen ? 4.0f / 3.0f : 1.0f, w = (float)g_width, h = (float)g_height;
+    float aspect = !g_cfg.widescreen ? 1.0f : (g_cfg.ultrawide ? 7.0f / 4.0f : 4.0f / 3.0f);
+    float w = (float)g_width, h = (float)g_height;
     float sx = g_cfg.scale * aspect, sy = g_cfg.scale;
     if (g_cfg.render_native && pic_w > 0 && pic_h > 0) {
         sx = pic_w * g_cfg.render_factor / w;
@@ -870,7 +871,9 @@ HRESULT __stdcall Direct3D_CreateDevice(uint32_t Adapter, uint32_t DeviceType, u
     g_height = pp->BackBufferHeight ? pp->BackBufferHeight : 480;
     // The window and the host back buffer are the screen-sized output; the game renders into host render
     // targets at Xbox size x render scale, filtered into the back buffer at Swap.
-    if (!host3d::open_window(g_cfg.window_w, g_cfg.window_h, g_cfg.widescreen ? 16 : 4, g_cfg.widescreen ? 9 : 3))
+    if (!host3d::open_window(g_cfg.window_w, g_cfg.window_h,
+                             g_cfg.widescreen ? (g_cfg.ultrawide ? 21 : 16) : 4,
+                             g_cfg.widescreen ? 9 : 3))
         return D3DERR_NOTAVAILABLE;
     if (!host3d::create_device()) return D3DERR_NOTAVAILABLE;
     RECT frame, pic; // the picture's size in the window (for --resolution native)
@@ -879,7 +882,7 @@ HRESULT __stdcall Direct3D_CreateDevice(uint32_t Adapter, uint32_t DeviceType, u
     g_native_h = pic.bottom - pic.top;
     setup_render_scale(g_native_w, g_native_h);
     logf("[d3d] rendering at %ux%u (x%.4g by x%.4g the Xbox's %dx%d, %s), picture in the window %ldx%ld", host_w(g_width),
-         host_h(g_height), scale_x(), scale_y(), g_width, g_height, g_cfg.widescreen ? "widescreen 16:9" : "4:3",
+         host_h(g_height), scale_x(), scale_y(), g_width, g_height, !g_cfg.widescreen ? "4:3" : (g_cfg.ultrawide ? "ultrawide 21:9" : "widescreen 16:9"),
          pic.right - pic.left, pic.bottom - pic.top);
     host3d::dev()->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &g_host_backbuffer);
     host3d::dev()->GetDepthStencilSurface(&g_host_depth);

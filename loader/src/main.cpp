@@ -81,6 +81,7 @@ void usage()
            "                    or native (the window's size at start, the screen's with --fullscreen)\n"
            "  --window WxH      window client size (default: largest size of the game's aspect that fits the screen)\n"
            "  --normal-aspect   4:3 like an original Xbox on a standard TV (default: widescreen 16:9)\n"
+            "  --ultrawide       21:9 output (e.g. 3440x1440), with horizontal FOV set to 100 degrees\n"
            "  --fullscreen      start in borderless fullscreen\n"
            "  --fps 30|60       frame rate (default 60; 30 is the original)\n"
            "  --language L      game language on the PAL disc: auto (the Windows UI language, the default) or\n"
@@ -172,7 +173,15 @@ bool parse_args()
             g_cfg.game_cpu = _wtoi(v.c_str());
         }
         else if (a == L"--skip-videos") g_cfg.skip_videos = true;
-        else if (a == L"--normal-aspect") { g_cfg.widescreen = false; settings_mark_cli("widescreen"); }
+        else if (a == L"--normal-aspect") { g_cfg.widescreen = false; g_cfg.ultrawide = false; settings_mark_cli("widescreen"); settings_mark_cli("ultrawide"); }
+        else if (a == L"--ultrawide") {
+            g_cfg.widescreen = true;
+            g_cfg.ultrawide = true;
+            g_cfg.fov = 100.0f;
+            settings_mark_cli("widescreen");
+            settings_mark_cli("ultrawide");
+            settings_mark_cli("fov");
+        }
         else if (a == L"--fullscreen") { g_cfg.fullscreen = true; settings_mark_cli("fullscreen"); }
         else if (a == L"--no-reverb") { g_cfg.reverb = false; settings_mark_cli("reverb"); }
         else if (a == L"--no-ramp") g_cfg.ramp = false;
