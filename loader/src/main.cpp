@@ -6,6 +6,7 @@
 
 #include "d3d/dispatch.h"
 #include "fe/calls.h"
+#include "fe/fonts.h"
 #include "fe/pages.h"
 #include "bigbuf.h"
 #include "fov.h"
@@ -516,6 +517,10 @@ int run(void *reserve, unsigned reserve_size)
     if (supported_build && g_cfg.pc_menus) { // the in-game PC SETTINGS pages, from the user's own front-end file
         std::wstring cache = g_cfg.port_dir + L"\\cache\\menus";
         if (fe_build_pages(host_full_path(g_cfg.game_dir), cache)) g_cfg.menu_cache = cache;
+    }
+    if (supported_build) { // the mouse button icons for the prompts, in copies of the game's fonts
+        std::wstring cache = g_cfg.port_dir + L"\\cache\\fonts";
+        if (fe_build_fonts(host_full_path(g_cfg.game_dir), cache)) g_cfg.font_cache = cache;
     }
     if (g_cfg.fps == 60 && (!supported_build || !install_60fps_patches())) g_cfg.fps = 30; // other builds: no 60 fps patches
     if (!kdpc_init()) {

@@ -173,7 +173,7 @@ The port's settings are in the game's menus: Options > PC SETTINGS on the main m
 ## Known issues
 - The game was made for 30 fps; at 60 (the default) something may still run at the wrong speed.
 - The game's own controller layout screen still shows the Xbox pad. Hints, pick-up prompts and the menus' CONFIRM / BACK legend name
-  the bound keys while the keyboard and mouse are in use, and the pad buttons while a controller is.
+  the bound keys while the keyboard and mouse are in use (mouse buttons and the wheel as icons), and the pad buttons while a controller is.
 - Audio: the reverb is an approximation, some effect sends are not mixed, there is no subwoofer channel, and 3D sound uses distance and panning only.
 - **Only the NTSC-U and PAL Europe builds listed above are supported.** On the PAL disc the game's language follows
   Windows (`--language en|de|fr|es|it` or `language =` in black.ini to choose).
@@ -188,7 +188,7 @@ cmake --build build/win32 --config RelWithDebInfo
 
 ## Legal & Credits
 This project is not affiliated with Criterion Games or Electronic Arts. BLACK is a trademark of Electronic Arts Inc.; Xbox is a trademark of Microsoft Corporation. No original code or SDK is included. **You need your own legally obtained copy of the game.**
-Developed by Spark198rus. Linux setup structured via AI.
+Developed by Spark198rus. Linux setup structured via AI. Mouse button icons by fez.
 
 ---
 ---
@@ -362,7 +362,7 @@ Você pode usar argumentos de linha de comando (ex: `black.exe --fullscreen --re
 ## Problemas Conhecidos
 - O jogo foi feito para 30 fps; a 60 fps (padrão) alguma física pode rodar na velocidade errada.
 - A tela de layout do controle do próprio jogo ainda mostra o controle do Xbox. As dicas, os avisos de pegar armas e a legenda CONFIRM / BACK
-  dos menus mostram as teclas configuradas enquanto o teclado e o mouse estão em uso, e os botões do controle quando um controle é usado.
+  dos menus mostram as teclas configuradas enquanto o teclado e o mouse estão em uso (botões do mouse e a roda como ícones), e os botões do controle quando um controle é usado.
 - Áudio: a reverberação é aproximada e não há canal de subwoofer.
 - **Apenas as versões NTSC-U e PAL Europa listadas acima são suportadas.** No disco PAL o idioma do jogo segue o
   Windows (`--language en|de|fr|es|it` ou `language =` no black.ini).
@@ -377,4 +377,4 @@ cmake --build build/win32 --config RelWithDebInfo
 
 ## Legal e Créditos
 Este projeto não é afiliado à Criterion Games ou Electronic Arts. BLACK e Xbox são marcas registradas. Nenhum código original está incluso neste repositório. **Você precisa de uma cópia obtida legalmente do jogo.**
-Desenvolvido por Spark198rus. Guia Linux estruturado via IA.
+Desenvolvido por Spark198rus. Guia Linux estruturado via IA. Ícones dos botões do mouse por fez.

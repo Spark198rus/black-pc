@@ -87,6 +87,7 @@ struct Config {
     bool supported_build = false;
     std::wstring game_override; // --game-override: files there replace the game's of the same relative path
     std::wstring menu_cache;    // the port's rebuilt front-end files (fe/pages.cpp), served like --game-override after it
+    std::wstring font_cache;    // the fonts with the mouse icons (fe/fonts.cpp), served the same way
     bool pc_menus = true;       // build the in-game PC SETTINGS pages (--no-pc-menus: the game's own menus only)
     std::wstring press_file;    // --press-file (tests): presses and screenshot requests appended by a driver
     int fps = 60;              // 60 (default): swap interval TWO paced as ONE, world step 1/60 s, weapon refire kept at

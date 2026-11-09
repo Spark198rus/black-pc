@@ -10,13 +10,15 @@
 // placeholder is changed into the action bound to channel 0x10, so it shows A) and 0x12B4EA (the hint's text).
 //
 // The patch sends FUN_00113BF0 to expand(): while the keyboard and mouse were used last, each placeholder becomes
-// the first key bound to that action in brackets ("[R] to reload your weapon"); an action with no key keeps its
+// the first key bound to that action in brackets ("[R] to reload your weapon"), or the icon of a mouse button (added
+// to the fonts by fe/fonts.cpp; Mouse 4 / 5 have no icon yet and keep their name); an action with no key keeps its
 // pad glyph (the original function, run on just that character). The FE_HINTPROMPT call goes to expand_continue(),
 // which names Enter (the key that continues where the game waits for A, see bindings.cpp). While a controller was
 // used last, the original function runs unchanged. The device is the last one pressed (prompts_poll from read_pad, xinput.cpp).
 #include "input/prompts.h"
 
 #include "common.h"
+#include "fe/fonts.h"
 #include "fe/vars.h"
 #include "input/bindings.h"
 #include "xbe.h"
@@ -102,7 +104,8 @@ void expand_text(wchar_t *text, bool to_continue)
             continue;
         }
         uint16_t k = to_continue ? (uint16_t)VK_RETURN : c == 0xF025 ? (uint16_t)VK_RETURN : bound_key(c - 0xF000);
-        std::wstring label = k ? L"[" + key_label(k) + L"]" : pad_glyph(c);
+        wchar_t icon = fe_mouse_icon(k); // a mouse button: its icon, drawn like the pad buttons (fe/fonts.cpp)
+        std::wstring label = icon ? std::wstring(1, icon) : k ? L"[" + key_label(k) + L"]" : pad_glyph(c);
         // never longer than the caller's field: a label that does not fit falls back to the glyph
         size_t rest = in.size() - i - 1;
         if (out.size() + label.size() + rest >= kMaxChars) label = pad_glyph(c);

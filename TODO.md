@@ -24,8 +24,9 @@ Open work on the BLACK PC port. Findings and addresses live in `NOTES.md`; this 
       the mouse, resuming takes it again.
 - [ ] Key prompts (input/prompts.cpp, fe/pages.cpp core_prompts): hints, HOLD [E] TO PICK UP and the menus' ENTER CONFIRM /
       BACKSPACE BACK while the keyboard is in use; pad buttons again after a controller press. Checked: [LEFT MOUSE] TO FIRE
-      WEAPON, HOLD [E] TO PICK UP, ENTER CONFIRM on the main menu. To check: BACK rows, the switch to a controller and back,
-      rebound keys, other languages (PAL).
+      WEAPON (now the left-mouse icon), HOLD [E] TO PICK UP, ENTER CONFIRM on the main menu. To check: BACK rows, the switch
+      to a controller and back, rebound keys, other languages (PAL), the right / middle / wheel icons in play. Mouse 4 / 5 have
+      no icon yet (name shown); the pick-up line is a narrow string and keeps "[LEFT MOUSE]" if use is bound to a mouse button.
 - [ ] Aspect ratio / frame rate (main menu PC SETTINGS > DISPLAY only): the choice shows NEXT START, is saved for the
       next run, and nothing changes until then (confirm in play).
 - [ ] PC SETTINGS pages (2026-10-12): every row on the main menu and in the pause menu, the sliders, KEY BINDINGS
