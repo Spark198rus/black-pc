@@ -19,6 +19,11 @@ void frame_layout(RECT *frame, RECT *picture);
 // Mouse while captured (a click in the window captures it; focus loss releases): raw counts since the last
 // call, wheel notches (+ = away from the user), buttons bit 0-4 = left, right, middle, X1, X2.
 bool mouse_captured();
+// Menus (input/menu_mouse.cpp): while on, a click does not capture the mouse and the wheel counts for menu_wheel_take.
+void set_menu_mode(bool on);
+int menu_wheel_take();
+// The cursor over the game's picture while the mouse is not captured and the window is in front: 0..1 across and down.
+bool cursor_in_picture(float *x, float *y);
 void request_capture(bool on); // from any thread; capturing needs the window in front
 void set_fullscreen(bool on);  // from any thread (PC SETTINGS > VIDEO > FULLSCREEN)
 bool fullscreen();

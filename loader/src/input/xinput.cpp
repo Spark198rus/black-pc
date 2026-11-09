@@ -7,6 +7,7 @@
 #include "d3d/draw.h"
 #include "d3d/host.h"
 #include "input/bindings.h"
+#include "input/menu_mouse.h"
 #include "input/mouselook.h"
 #include "input/movies.h"
 #include "xbe.h"
@@ -178,6 +179,12 @@ void read_press_file(uint32_t now_ms)
                 if (line.empty()) continue;
                 if (line.rfind("shot:", 0) == 0) {
                     xd3d::request_screenshot(line.substr(5).c_str());
+                    continue;
+                }
+                if (line.rfind("mpos:", 0) == 0) { // tests: the cursor over the picture at x,y (0..1), "mpos:off" ends it
+                    float x = -1, y = -1;
+                    if (sscanf(line.c_str() + 5, "%f,%f", &x, &y) != 2) x = y = -1;
+                    menu_mouse::script_pos(x, y);
                     continue;
                 }
                 if (line == "reset") {

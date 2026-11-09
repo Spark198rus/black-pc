@@ -127,6 +127,20 @@ void back()
     refresh();
 }
 
+int row_kind(int i)
+{
+    std::wstring title;
+    std::vector<Row> rs = rows(&title);
+    if (i < 0 || i >= (int)rs.size()) return 0;
+    switch (rs[i].kind) {
+    case Row::Link: return 1;
+    case Row::Choice: return 2;
+    case Row::Slider: return 3;
+    case Row::Key: return 4;
+    }
+    return 0;
+}
+
 void refresh()
 {
     std::wstring title;

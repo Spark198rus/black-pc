@@ -15,4 +15,5 @@ constexpr int kFeVars = 19;
 void fe_vars_poll();                              // once per front-end update: keeps the values registered
 void fe_var_set(int n, const std::wstring &text); // shown at once by every text field bound to &PC_V<n>
 void fe_int_set(const char *name, int value);     // externObject.<name> for the pages' scripts (name starts with "FE")
+int fe_int_get(const char *name);                 // its value now (the scripts can write it too); 0 if never set
 uint32_t fe_hash(const char *name);               // the front end's name hash (FUN_000BF2A0)

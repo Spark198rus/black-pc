@@ -6,6 +6,9 @@
 
 namespace pcset {
 
+// the main menu's PC SETTINGS page (the list of groups) in the rows report for the mouse (fe/pages.cpp, input/menu_mouse.cpp)
+constexpr int kRootPage = 150;
+
 // a page of rows (container entry: page in lower case)
 struct Group {
     const char *page, *title;

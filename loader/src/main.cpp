@@ -20,6 +20,7 @@
 #include "kernel/ktable.h"
 #include "reload_blur.h"
 #include "cheats.h"
+#include "input/menu_mouse.h"
 #include "fe/menu_speed.h"
 #include "input/sprint.h"
 #include "kernel/xboxkrnl.h"
@@ -538,6 +539,7 @@ int run(void *reserve, unsigned reserve_size)
     if (supported_build) install_fov_patch();
     if (supported_build) install_bigbuf_patch();
     if (supported_build) install_fe_calls();
+    menu_mouse::install();
     if (supported_build && g_cfg.pc_menus) { // the in-game PC SETTINGS pages, from the user's own front-end file
         std::wstring cache = g_cfg.port_dir + L"\\cache\\menus";
         if (fe_build_pages(host_full_path(g_cfg.game_dir), cache)) g_cfg.menu_cache = cache;

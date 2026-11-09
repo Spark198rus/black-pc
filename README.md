@@ -134,7 +134,7 @@ Windows `.zip` archives extracted on Linux might generate files with literal bac
 
 ## Controls
 
-Keys and mouse buttons are bound to the game's own actions, not to controller buttons, and can be changed in PC SETTINGS > CONTROLS > KEY BINDINGS (two keys per action, saved to `black.ini`). Controllers work as well. Click the window to capture the mouse; Esc lets go of it (in play it also pauses), and play starting or resuming takes it again.
+Keys and mouse buttons are bound to the game's own actions, not to controller buttons, and can be changed in PC SETTINGS > CONTROLS > KEY BINDINGS (two keys per action, saved to `black.ini`). Controllers work as well. In play the mouse is captured (click the window if it is not); Esc lets go of it and pauses. In the menus the cursor stays free: the wheel moves up and down in every menu, and on the PC SETTINGS pages (main menu and pause menu) hovering a row selects it, a click opens it or changes its value, and a right click goes back.
 
 | Action | Default |
 |---|---|
@@ -325,7 +325,7 @@ Como arquivos `.zip` criados no Windows geram nomes com barras invertidas litera
 
 As teclas e botões do mouse são vinculados diretamente às ações do jogo (não aos botões físicos do controle original) e podem ser alterados em **PC SETTINGS > CONTROLS > KEY BINDINGS**. Controles (gamepads) também funcionam nativamente. 
 
-Clique na janela para capturar o mouse; a tecla **Esc** libera o mouse.
+Em jogo o mouse fica capturado (clique na janela se não estiver); a tecla **Esc** libera o mouse e pausa. Nos menus o cursor fica livre: a roda do mouse navega em todos os menus e, nas páginas PC SETTINGS, passar o cursor seleciona uma linha, o clique abre ou muda o valor e o botão direito volta.
 
 | Ação | Padrão |
 |---|---|

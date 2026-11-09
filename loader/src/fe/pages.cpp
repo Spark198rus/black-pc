@@ -284,12 +284,15 @@ void emit_heal(Asm &f, const std::string &row_var, const Classes &classes, const
     f.land(fine2);
 }
 
-void heal_update(Asm &a, const std::string &row_var, const Classes &classes, const std::string &tag)
+// after: more of the page's Update, after the game's own (the rows report for the mouse)
+void heal_update(Asm &a, const std::string &row_var, const Classes &classes, const std::string &tag,
+                 const std::function<void(Asm &)> &after = {})
 {
-    a.function2("Update", [row_var, classes, tag](Asm &f) {
+    a.function2("Update", [row_var, classes, tag, after](Asm &f) {
         emit_heal(f, row_var, classes, tag);
         call_function(f, "Update0");
         dbg_flush(f);
+        if (after) after(f);
     });
 }
 
@@ -360,6 +363,71 @@ void define_key_list(Asm &a)
                               at({"MyMenu", "MovedCursor"})});
         f.land(none);
     });
+}
+
+// Mouse in the port's pages (input/menu_mouse.cpp): every update the page reports where its rows are. The rows sit in
+// a container clip (Main.TextAnim on the main menu's pages, Main on the pause page); the container's transform to the
+// stage is composed up the _parent chain (stage x = A + S * local x, from each clip's _x / _xscale, _y / _yscale),
+// unrolled to eight levels. Row 0's position, the pitch to row 1, row 0's size (in the container) and which row has
+// the focus follow. Integers, positions x 64: FEPCMAx / FEPCMAy / FEPCMSx / FEPCMSy, FEPCMR0x / FEPCMR0y, FEPCMDy,
+// FEPCMW / FEPCMH, FEPCMFocus, FEPCMPage (the page id + 1), FEPCMSeq (+1 per update: the page is up).
+void emit_rows_report(Asm &f, const Path &container, int page_id, size_t nrows, const std::function<std::string(size_t)> &row_var,
+                      const std::function<Path(size_t)> &clip)
+{
+    auto num = [](float v) { return [v](Asm &g) { g.push(Value::F(v)); }; };
+    for (const char *v : {"pcMAx", "pcMAy"}) f.push(Value::S(v)).push(Value::I(0)).set_var();
+    for (const char *v : {"pcMSx", "pcMSy"}) f.push(Value::S(v)).push(Value::I(1)).set_var();
+    f.push(Value::S("pcMNd"));
+    at(container)(f);
+    f.set_var();
+    std::vector<size_t> ends;
+    for (int level = 0; level < 8; level++) {
+        at({"pcMNd"})(f);
+        f.push(Value::U()).equals2();
+        ends.push_back(f.branch(0x9D));
+        for (int axis = 0; axis < 2; axis++) {
+            const char *pos = axis ? "_y" : "_x", *scale = axis ? "_yscale" : "_xscale";
+            std::string A = axis ? "pcMAy" : "pcMAx", Sv = axis ? "pcMSy" : "pcMSx";
+            f.push(Value::S(A)); // A = node.pos + A * node.scale / 100
+            at({"pcMNd", pos})(f);
+            at({A})(f);
+            at({"pcMNd", scale})(f);
+            f.op(0x0C).push(Value::I(100)).op(0x0D).add2().set_var();
+            f.push(Value::S(Sv)); // S = S * node.scale / 100
+            at({Sv})(f);
+            at({"pcMNd", scale})(f);
+            f.op(0x0C).push(Value::I(100)).op(0x0D).set_var();
+        }
+        f.push(Value::S("pcMNd"));
+        at({"pcMNd", "_parent"})(f);
+        f.set_var();
+    }
+    for (size_t b : ends) f.land(b);
+    auto x64 = [](const Push &v) { return [v](Asm &g) { v(g); g.push(Value::I(64)).op(0x0C); }; };
+    set(f, {"_global", "externObject"}, "FEPCMAx", x64(at({"pcMAx"})));
+    set(f, {"_global", "externObject"}, "FEPCMAy", x64(at({"pcMAy"})));
+    set(f, {"_global", "externObject"}, "FEPCMSx", x64(at({"pcMSx"})));
+    set(f, {"_global", "externObject"}, "FEPCMSy", x64(at({"pcMSy"})));
+    Path r0 = clip(0), r1 = clip(nrows > 1 ? 1 : 0);
+    auto member = [](Path p, const char *m) { p.push_back(m); return at(p); };
+    set(f, {"_global", "externObject"}, "FEPCMR0x", x64(member(r0, "_x")));
+    set(f, {"_global", "externObject"}, "FEPCMR0y", x64(member(r0, "_y")));
+    set(f, {"_global", "externObject"}, "FEPCMDy", x64([=](Asm &g) { member(r1, "_y")(g); member(r0, "_y")(g); g.op(0x0B); }));
+    set(f, {"_global", "externObject"}, "FEPCMW", x64(member(r0, "_width")));
+    set(f, {"_global", "externObject"}, "FEPCMH", x64(member(r0, "_height")));
+    f.push(Value::S("pcMFr")).push(Value::I(-1)).set_var();
+    for (size_t i = 0; i < nrows; i++) {
+        at({"MyMenu", "mFocusButton"})(f);
+        at({row_var(i)})(f);
+        f.equals2().logical_not();
+        size_t other = f.branch(0x9D);
+        f.push(Value::S("pcMFr")).push(Value::I((int)i)).set_var();
+        f.land(other);
+    }
+    set(f, {"_global", "externObject"}, "FEPCMFocus", at({"pcMFr"}));
+    set(f, {"_global", "externObject"}, "FEPCMPage", I(page_id + 1));
+    set(f, {"_global", "externObject"}, "FEPCMSeq", [](Asm &g) { at({"_global", "externObject", "FEPCMSeq"})(g); g.push(Value::I(1)).add2(); });
+    (void)num;
 }
 
 // PagePrepare / PageRelease / PageDestruct for a page of rows Main...<clip prefix><i> (bar: the slider's clip)
@@ -443,6 +511,7 @@ void page_script(Movie &mv, const PageScript &p)
     a.function2("Update", [&](Asm &f) {
         emit_heal(f, row_var(0), classes, std::to_string(p.page_id));
         call_function(f, "Update0");
+        emit_rows_report(f, {"Main", "TextAnim"}, p.page_id, k, row_var, p.clip);
         if (debug) { // tests: each input reports the page's state (PCDebug in black.log)
             at({"_global", "externObject", "FEInputId"})(f);
             f.logical_not();
@@ -595,7 +664,13 @@ void pc_menu(Movie &mv)
     Classes classes = own_classes_prepare(mv);
     Asm a(mv);
     own_classes_script(a, classes, "pcs");
-    heal_update(a, "group5Button", classes, "pcs");
+    // the mouse: the six rows top to bottom are the buttons below; each button keeps its row's clip in movieClip
+    heal_update(a, "group5Button", classes, "pcs", [](Asm &f) {
+        static const char *const kButtons[6] = {"controllerButton", "soundButton", "pictureButton", "Playerprofile", "group5Button",
+                                                "group6Button"};
+        emit_rows_report(f, {"Main", "TextAnim"}, pcset::kRootPage, 6, [](size_t i) { return std::string(kButtons[i]); },
+                         [](size_t i) { return Path{kButtons[i], "movieClip"}; });
+    });
     a.push(Value::S("group5Button")).define_local2();
     a.function2("PagePrepare", [&groups](Asm &f) {
         call_function(f, "PagePrepare0");
@@ -937,6 +1012,7 @@ void pause_page(Movie &mv)
         emit_heal(f, row_var(0), classes, "pp");
         call_function(f, "Update0");
         dbg_flush(f);
+        emit_rows_report(f, {"Main"}, pauseui::kPageId, kRows, row_var, clip);
         at({"_global", "externObject", "FEPCLayout"})(f); // a new screen: rows shown, linked, focused
         at({"pcLayout"})(f);
         f.equals2();

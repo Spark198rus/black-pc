@@ -33,6 +33,9 @@ WINDOWPLACEMENT g_windowed_place = {sizeof(WINDOWPLACEMENT)};
 // releases it). The click that captures is not passed to the game.
 std::atomic<bool> g_captured{false};
 std::atomic<int> g_mouse_dx, g_mouse_dy, g_wheel, g_buttons;
+// Menus (input/menu_mouse.cpp): a click does not capture there (it goes to the menu), the wheel counts for the menus
+std::atomic<bool> g_menus{false};
+std::atomic<int> g_menu_wheel;
 bool g_hold_left; // the capturing click: masked until released
 constexpr UINT WM_APP_CAPTURE = WM_APP + 0x52; // wParam: 1 = capture, 0 = release (request_capture)
 constexpr UINT WM_APP_FULLSCREEN = WM_APP + 0x53; // wParam: 1 = fullscreen, 0 = windowed (set_fullscreen)
@@ -119,8 +122,15 @@ void raw_input(HRAWINPUT h)
     UINT size = sizeof buf;
     if (GetRawInputData(h, RID_INPUT, buf, &size, sizeof(RAWINPUTHEADER)) == (UINT)-1) return;
     const RAWINPUT *ri = (const RAWINPUT *)buf;
-    if (ri->header.dwType != RIM_TYPEMOUSE || !g_captured) return;
+    if (ri->header.dwType != RIM_TYPEMOUSE) return;
     const RAWMOUSE &m = ri->data.mouse;
+    if (!g_captured) {
+        if (g_menus && (m.usButtonFlags & RI_MOUSE_WHEEL)) {
+            SHORT d = (SHORT)m.usButtonData;
+            g_menu_wheel += d / WHEEL_DELTA ? d / WHEEL_DELTA : (d > 0 ? 1 : -1);
+        }
+        return;
+    }
     if (!(m.usFlags & MOUSE_MOVE_ABSOLUTE)) {
         g_mouse_dx += m.lLastX;
         g_mouse_dy += m.lLastY;
@@ -203,7 +213,7 @@ LRESULT CALLBACK wndproc(HWND h, UINT msg, WPARAM wp, LPARAM lp)
         if ((wp & 0xFFF0) == SC_KEYMENU) return 0; // Alt / F10 must not open the system menu by keyboard and stall input
         break;
     case WM_LBUTTONDOWN:
-        capture_mouse(true);
+        if (!g_menus) capture_mouse(true); // in the menus the click is the menu's
         return 0;
     case WM_ACTIVATE:
         if (LOWORD(wp) == WA_INACTIVE) capture_mouse(false);
@@ -344,6 +354,26 @@ void frame_layout(RECT *frame, RECT *picture)
 }
 
 bool mouse_captured() { return g_captured; }
+
+void set_menu_mode(bool on) { g_menus = on; }
+
+int menu_wheel_take() { return g_menu_wheel.exchange(0); }
+
+bool cursor_in_picture(float *x, float *y)
+{
+    if (!g_hwnd || g_captured || GetForegroundWindow() != g_hwnd || IsIconic(g_hwnd)) return false;
+    POINT p;
+    if (!GetCursorPos(&p) || !ScreenToClient(g_hwnd, &p)) return false;
+    int cw = std::max(1, g_win_w.load()), ch = std::max(1, g_win_h.load());
+    if (p.x < 0 || p.y < 0 || p.x >= cw || p.y >= ch) return false;
+    RECT frame, pic;
+    frame_layout(&frame, &pic); // in the frame's pixels; the frame is stretched to the client area
+    float fx = p.x * (float)frame.right / cw, fy = p.y * (float)frame.bottom / ch;
+    int pw = std::max(1, (int)(pic.right - pic.left)), ph = std::max(1, (int)(pic.bottom - pic.top));
+    *x = (fx - pic.left) / pw;
+    *y = (fy - pic.top) / ph;
+    return *x >= 0 && *x < 1 && *y >= 0 && *y < 1;
+}
 
 void request_capture(bool on)
 {

@@ -27,7 +27,7 @@
 namespace {
 
 constexpr uint32_t kFeObject = 0x002D199C, kStrings = 0x13A8, kMembers = 0x2530, kCrcTable = 0x002AC908;
-constexpr int kEntries = 0x70, kTypeInt = 1, kTypeString = 4, kMaxInts = 24;
+constexpr int kEntries = 0x70, kTypeInt = 1, kTypeString = 4, kMaxInts = 40;
 // references the port's entries hold: text fields going away never bring them to none (which frees the slot while the
 // fields still point at it, and their later releases would count down whatever the game put there)
 constexpr int32_t kOwnRefs = 0x10000;
@@ -129,6 +129,13 @@ void fe_var_set(int n, const std::wstring &text)
     // port never walks it.
     wcsncpy(v.buf, text.c_str(), 63);
     v.buf[63] = 0;
+}
+
+int fe_int_get(const char *name)
+{
+    for (int i = 0; i < g_nints; i++)
+        if (strcmp(g_ints[i].name, name) == 0) return g_ints[i].value;
+    return 0;
 }
 
 void fe_int_set(const char *name, int value)

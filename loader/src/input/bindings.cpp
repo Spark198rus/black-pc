@@ -26,6 +26,7 @@
 #include "input/lean.h"
 #include "input/mouselook.h"
 #include "input/sprint.h"
+#include "input/menu_mouse.h"
 #include "settings.h"
 
 #include <algorithm>
@@ -348,7 +349,7 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
                 if (raw_held(g_keys[i][s], focus, mouse)) g_stale[g_keys[i][s]] = true;
         for (uint16_t k : {VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, VK_RETURN, VK_BACK, VK_ESCAPE})
             if (raw_held(k, focus, 0)) g_stale[k] = true;
-        if (play && g_freed_by_esc && focus) host3d::request_capture(true);
+        if (play && focus) host3d::request_capture(true); // the menus leave the mouse free (input/menu_mouse.cpp)
         if (play) g_freed_by_esc = false;
         g_was_play = play;
     }
@@ -405,6 +406,13 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
     if (!input && g_repeat >= 0 && now >= g_repeat_at) {
         input = kMenuKeys[g_repeat].input;
         g_repeat_at = now + kRepeatEvery;
+    }
+    { // the mouse in the menus (not captured there): buttons straight from the system
+        bool swap = GetSystemMetrics(SM_SWAPBUTTON) != 0;
+        auto button = [&](int vk) { return g_script[vk] || (focus && (GetAsyncKeyState(vk) & 0x8000)); };
+        bool left = button(swap ? VK_RBUTTON : VK_LBUTTON), right = button(swap ? VK_LBUTTON : VK_RBUTTON);
+        int m = menu_mouse::poll(!play, left, right, input);
+        if (!input && m) input = m;
     }
     if (input) {
         g_menu_input_frame = g_frame_count.load();
