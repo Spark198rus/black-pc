@@ -54,6 +54,7 @@ void settings_load()
         else if (k == "gamma") g_cfg.gamma = std::clamp(v, 0.5f, 3.0f);
         else if (k == "mouse_sens") g_cfg.mouse_sens = std::clamp(v, 0.1f, 50.0f);
         else if (k == "mouse_invert") g_cfg.mouse_invert = v != 0;
+        else if (k == "aim_hold") g_cfg.aim_hold = v != 0;
         else if (k == "autoaim") g_cfg.autoaim = v != 0;
         else if (k == "reloadblur") g_cfg.reload_blur = v != 0;
         else if (k == "weapon_buffers_mb") g_cfg.buf_mb = (uint32_t)std::clamp((int)v, 0, 16);
@@ -86,6 +87,7 @@ void settings_save()
     fprintf(f, "language = %s\n", g_cfg.language.c_str());
     fprintf(f, "gain = %.2f\ngamma = %.2f\n", g_cfg.gain, g_cfg.gamma);
     fprintf(f, "mouse_sens = %.3f\nmouse_invert = %d\n", g_cfg.mouse_sens, g_cfg.mouse_invert ? 1 : 0);
+    fprintf(f, "aim_hold = %d\n", g_cfg.aim_hold ? 1 : 0);
     fprintf(f, "reverb = %d\nreverb_gain = %.2f\n", g_cfg.reverb ? 1 : 0, g_cfg.reverb_gain);
     fprintf(f, "autoaim = %d\n", g_cfg.autoaim ? 1 : 0);
     fprintf(f, "reloadblur = %d\n", g_cfg.reload_blur ? 1 : 0);

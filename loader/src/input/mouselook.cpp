@@ -22,6 +22,13 @@
 // them: rate = angle / (speed * frame time), deflection = rate ^ (1 / curve exponent +0xC8), clamped to 1 and
 // smoothed a little. +0xD8 has the yaw rate's sign, +0xDC the opposite of the pitch rate's (as the game
 // stores it). Later readers in the frame are the weapon sway; the values are rebuilt from the pad next frame.
+//
+// Aim mode: the same player input function has two ways to read the aim action (binding +0x40, 0x1EC871): with
+// controller +0x103 set it toggles the aim flag +0x45 on each press (edge kept in +0x104), with it clear the flag
+// follows the button. +0x103 is copied at level start (0x1D5668) from game settings +0x20166, which the settings
+// init FUN_001F8060 sets to 1 (settings +0x1A) and nothing changes: the shipped game always toggles, the hold
+// path is unused. ml_sway writes the PC setting into +0x103 every play frame (it applies from the next frame).
+// A state with [[esi+0xEC]+0xC0] set (local [esp+0x16]) takes the toggle path whatever +0x103 says, as before.
 #include "input/mouselook.h"
 
 #include "common.h"
@@ -41,6 +48,7 @@ void __cdecl ml_sway(uint8_t *ctrl);
 namespace {
 
 bool g_installed;
+bool g_aim_mode; // the read of controller +0x103 is where it was analysed
 std::atomic<uint32_t> g_play_frame; // the frame of the last player update (ml_sway runs once in each)
 
 // 0x1BD6A8: addss xmm3, [esi+0x18]  (xmm3 = this frame's stick yaw step; xmm2 = zoom factor)
@@ -116,6 +124,9 @@ void install_mouselook_patches()
         memcpy(code + 1, &rel, 4);
     }
     g_installed = true;
+    static const uint8_t kAimRead[] = {0x8A, 0x83, 0x03, 0x01, 0x00, 0x00}; // mov al, [ebx+0x103]
+    g_aim_mode = memcmp((const void *)(uintptr_t)xbe_va(0x001EC871), kAimRead, sizeof kAimRead) == 0;
+    if (!g_aim_mode) logf("mouselook: aim mode read at 0x%08x does not match this build; aim stays a toggle", xbe_va(0x001EC871));
     logf("mouselook: view angles take mouse input directly (FUN_001bd3f0); weapon sway follows it");
 }
 
@@ -126,6 +137,7 @@ uint32_t mouselook_play_frame() { return g_play_frame; }
 extern "C" void __cdecl ml_sway(uint8_t *ctrl)
 {
     g_play_frame = std::max(1u, g_frame_count.load());
+    if (g_aim_mode) ctrl[0x103] = g_cfg.aim_hold ? 0 : 1;
     static float sh, sv; // smoothed deflections
     auto f = [&](uint32_t off) { return *(const float *)(ctrl + off); };
     float dt = *(const float *)(uintptr_t)(*(const uint32_t *)(uintptr_t)xbe_va(0x002D45D4) + 0x1C);

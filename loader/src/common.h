@@ -72,6 +72,7 @@ struct Config {
     // scale most PC shooters use.
     float mouse_sens = 2.0f;
     bool mouse_invert = false;
+    bool aim_hold = false;     // aim while the aim button is held instead of toggling (input/mouselook.cpp; --hold-aim, PC SETTINGS)
     bool timer_vblank = false; // --timer-vblank: free-running 59.94 Hz vblank instead of following the display
     bool display_vblank = false; // --display-vblank (tests): follow the display even with --background
     bool effects_native = false; // the small effect buffers at their Xbox size (PC SETTINGS); default: render scale, smoothed

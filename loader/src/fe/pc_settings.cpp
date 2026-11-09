@@ -185,11 +185,15 @@ const Row kRows[] = {
          std::wstring s = mb ? number((float)mb, L"%.0f MB") : std::wstring(L"ORIGINAL");
          return mb != bigbuf_active_mb() ? s + L" (RESTART)" : s;
      }},
+    // CONTROLS (21): the game's own hold path (input/mouselook.cpp), from the next frame in play
+    {"AIM", 2, [] { return (int)g_cfg.aim_hold; }, [](int i) { g_cfg.aim_hold = i != 0; },
+     [](int i) { return std::wstring(i ? L"HOLD" : L"TOGGLE (ORIGINAL)"); }},
 };
 constexpr int kRowN = sizeof kRows / sizeof kRows[0];
 constexpr int kKeyBindings = 15;
 constexpr int kLanguage = 16;
 constexpr int kWeaponBuffers = 20;
+constexpr int kAimMode = 21;
 
 } // namespace
 
@@ -200,7 +204,7 @@ const std::vector<Group> &groups()
         {"PCDisplay", "DISPLAY", {6, 7, 8, 9}},
         {"PCTweaks", "TWEAKS", {11, 17, 18, 19, kWeaponBuffers}},
         {"PCAudio", "AUDIO AND MOVIES", {10, 12, kLanguage}},
-        {"PCControls", "CONTROLS", {13, 14, kKeyBindings}},
+        {"PCControls", "CONTROLS", {13, 14, kAimMode, kKeyBindings}},
     };
     return g;
 }

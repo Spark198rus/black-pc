@@ -93,6 +93,7 @@ void usage()
            "  --rawvideo <file> record the picture as raw BGRX frames from --shot-start for --clip-seconds (default 4)\n"
            "  --mouse-sens K    mouse look sensitivity, K x 0.022 degrees per count (default 2.0)\n"
            "  --mouse-invert    mouse forward looks down\n"
+           "  --hold-aim        aim only while the aim button is held (default: press to toggle, as the original); --toggle-aim\n"
            "  --autoaim         the game's auto-aim (the view pulling toward enemies), off by default; --no-autoaim\n"
            "  --lean-angle D    tactical lean: view roll at full lean in degrees (default 10); --lean-offset M: eye shift (0.35; PC SETTINGS > TWEAKS)\n"
            "  --no-reload-blur  no screen blur while reloading (default: on, as the original); --reload-blur\n"
@@ -216,6 +217,8 @@ bool parse_args()
             g_cfg.mouse_sens = (float)_wtof(v.c_str());
             if (g_cfg.mouse_sens < 0.05f || g_cfg.mouse_sens > 50.0f) g_cfg.mouse_sens = 2.0f;
         } else if (a == L"--mouse-invert") { g_cfg.mouse_invert = true; settings_mark_cli("mouse_invert"); }
+        else if (a == L"--hold-aim") { g_cfg.aim_hold = true; settings_mark_cli("aim_hold"); }
+        else if (a == L"--toggle-aim") { g_cfg.aim_hold = false; settings_mark_cli("aim_hold"); }
         else if (a == L"--no-autoaim") { g_cfg.autoaim = false; settings_mark_cli("autoaim"); }
         else if (a == L"--autoaim") { g_cfg.autoaim = true; settings_mark_cli("autoaim"); }
         else if (a == L"--lean-angle" || a == L"--lean-offset") {
