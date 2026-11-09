@@ -436,7 +436,8 @@ void emit_rows_report(Asm &f, const Path &container, int page_id, size_t nrows, 
 // (offsets 0..7) and, unless the walk came back round, up (-1..-7), testing each button's clip: its _x / _y through its
 // parent's transform (the first row's parent gives it for all), within 0.65 x its height above or below, from 10 left
 // of it to 345 (or its _width) right. FEPCGHit = the first offset hit, written only on a hit (pages in the background
-// report too: the port clears it after reading); FEPCGSeq counts the updates.
+// report too: the port clears it after reading); with it FEPCGRx (the cursor's x from the row's left) and FEPCGKind
+// (1: the button has an mChoiceList, a row left / right change); FEPCGSeq counts the updates.
 // Pages without MyMenu report nothing.
 void emit_ring_report(Asm &f)
 {
@@ -509,6 +510,17 @@ void emit_ring_report(Asm &f)
         require(at({"pcGmx"}), [](Asm &h) { at({"pcGx"})(h); at({"pcGb", "movieClip", "_width"})(h); at({"pcMSx"})(h); h.op(0x0C).add2(); });
         g.land(inside);
         set(g, {"_global", "externObject"}, "FEPCGHit", I(d));
+        set(g, {"_global", "externObject"}, "FEPCGRx", [](Asm &h) { // where along the row (stage units)
+            at({"pcGmx"})(h);
+            at({"pcGx"})(h);
+            h.op(0x0B);
+        });
+        set(g, {"_global", "externObject"}, "FEPCGKind", I(0)); // 1: a choice row (left / right change it); a number,
+        at({"pcGb", "mChoiceList"})(g);                          // not a boolean: the value is an int
+        g.push(Value::U()).equals2();
+        size_t plain = g.branch(0x9D);
+        set(g, {"_global", "externObject"}, "FEPCGKind", I(1));
+        g.land(plain);
         hits.push_back(g.branch(0x99));
         for (size_t m : miss) g.land(m);
     };

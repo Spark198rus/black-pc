@@ -134,7 +134,7 @@ Windows `.zip` archives extracted on Linux might generate files with literal bac
 
 ## Controls
 
-Keys and mouse buttons are bound to the game's own actions, not to controller buttons, and can be changed in PC SETTINGS > CONTROLS > KEY BINDINGS (two keys per action, saved to `black.ini`). Controllers work as well. In play the mouse is captured (click the window if it is not); Esc lets go of it and pauses. In the menus the cursor stays free: hovering a row selects it, a click opens it (on the PC SETTINGS pages it also changes a value), a right click goes back, and the wheel moves up and down.
+Keys and mouse buttons are bound to the game's own actions, not to controller buttons, and can be changed in PC SETTINGS > CONTROLS > KEY BINDINGS (two keys per action, saved to `black.ini`). Controllers work as well. In play the mouse is captured (click the window if it is not); Esc lets go of it and pauses. In the menus the cursor stays free: hovering a row selects it, a click opens it or changes its value (on the game's ON / OFF rows, click the value you want), a right click goes back, and the wheel moves up and down.
 
 | Action | Default |
 |---|---|

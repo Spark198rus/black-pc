@@ -31,7 +31,7 @@ namespace {
 
 const char *const kInts[] = {"FEPCMAx", "FEPCMAy", "FEPCMSx", "FEPCMSy", "FEPCMR0x", "FEPCMR0y", "FEPCMDy",
                              "FEPCMW",  "FEPCMH",  "FEPCMFocus", "FEPCMPage", "FEPCMSeq",
-                             "FEPCMouseX", "FEPCMouseY", "FEPCGHit", "FEPCGSeq"};
+                             "FEPCMouseX", "FEPCMouseY", "FEPCGHit", "FEPCGSeq", "FEPCGRx", "FEPCGKind"};
 
 float g_script_x = -1, g_script_y = -1; // tests: press-file mpos:X,Y (0..1 of the picture)
 struct Report {
@@ -51,6 +51,16 @@ bool g_follow, g_click, g_left_was, g_right_was;
 bool g_moved; // the cursor moved and no row was under it yet (a game page's hit comes an update later)
 int g_step_seq = -1; // the report's count when the last step went out
 int g_game_hit = -100, g_game_hit_age = 1000; // a game page's last hit and polls since
+int g_game_rx, g_game_kind;                    // with it: the cursor's x along the row, a choice row
+
+// a click on a game page's focused row: select, or on a choice row (the game's one-line ON / OFF toggles) the value
+// clicked: from about 200 to 276 stage units along the row (the first value, ON) left, past it right; on the caption right
+int game_click()
+{
+    if (!g_game_kind) return 5;
+    if (g_game_rx < 200) return 4;
+    return g_game_rx < 276 ? 3 : 4;
+}
 
 float f64(const char *name) { return fe_int_get(name) / 64.0f; }
 
@@ -153,6 +163,8 @@ int poll(bool in_menus, bool left, bool right, int key_input)
     if (h != -100) {
         g_game_hit = h;
         g_game_hit_age = 0;
+        g_game_rx = fe_int_get("FEPCGRx");
+        g_game_kind = fe_int_get("FEPCGKind");
         fe_int_set("FEPCGHit", -100);
     } else if (g_game_hit_age < 1000) {
         g_game_hit_age++;
@@ -186,7 +198,7 @@ int poll(bool in_menus, bool left, bool right, int key_input)
     }
     if (right_edge) return 6;
     if (left_edge && over) {
-        if (offset == 0) return rep == &g_own ? click_input(page, row) : 5;
+        if (offset == 0) return rep == &g_own ? click_input(page, row) : game_click();
         g_follow = g_click = true;
     }
     if (wheel) return wheel > 0 ? 1 : 2;
@@ -196,7 +208,7 @@ int poll(bool in_menus, bool left, bool right, int key_input)
         g_follow = false;
         if (g_click) {
             g_click = false;
-            return rep == &g_own ? click_input(page, row) : 5;
+            return rep == &g_own ? click_input(page, row) : game_click();
         }
         return 0;
     }
