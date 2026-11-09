@@ -31,6 +31,7 @@ add_library(blackrt SHARED
   src/fe/calls.cpp
   src/fe/vars.cpp
   src/fe/pc_settings.cpp
+  src/fe/menu_speed.cpp
   src/fe/apt.cpp
   src/fe/pages.cpp
   src/fe/bind_list.cpp

@@ -20,6 +20,7 @@
 #include "kernel/ktable.h"
 #include "reload_blur.h"
 #include "cheats.h"
+#include "fe/menu_speed.h"
 #include "input/sprint.h"
 #include "kernel/xboxkrnl.h"
 #include "xbe.h"
@@ -100,6 +101,7 @@ void usage()
            "  --sprint          run 1.25x as fast while the Sprint key (Left Shift) is held (default off; PC SETTINGS > CONTROLS); --no-sprint\n"
            "  --lean-angle D    tactical lean: view roll at full lean in degrees (default 10); --lean-offset M: eye shift (0.35; PC SETTINGS > TWEAKS)\n"
            "  --no-reload-blur  no screen blur while reloading (default: on, as the original); --reload-blur\n"
+           "  --fast-menus      menu animations twice as fast (60 fps only; default off); --no-fast-menus\n"
            "  --cheat NAME      unlock (all missions), god, ammo (no ammo used), x2, x4, onehit (damage to enemies)\n"
            "  --fov D           horizontal field of view in play, 50-120 degrees (default 70, the game's; PC SETTINGS > VIDEO)\n"
            "  --no-movie-skip   movies skip only as in the original (default: A / START skip every movie)\n"
@@ -237,6 +239,7 @@ bool parse_args()
             else g_cfg.lean_offset = std::clamp(f, -2.0f, 2.0f);
         } else if (a == L"--no-reload-blur") { g_cfg.reload_blur = false; settings_mark_cli("reloadblur"); }
         else if (a == L"--reload-blur") { g_cfg.reload_blur = true; settings_mark_cli("reloadblur"); }
+        else if (a == L"--fast-menus" || a == L"--no-fast-menus") { g_cfg.fast_menus = a == L"--fast-menus"; settings_mark_cli("fast_menus"); }
         else if (a == L"--cheat") {
             std::wstring v;
             if (!next(v)) return false;
@@ -529,6 +532,7 @@ int run(void *reserve, unsigned reserve_size)
     if (supported_build) install_autoaim_patch();
     if (supported_build) install_reload_blur_patch();
     if (supported_build) install_cheats();
+    if (supported_build) install_menu_speed_patch();
     if (supported_build) install_lean_patch();
     if (supported_build) install_sprint_patch();
     if (supported_build) install_fov_patch();

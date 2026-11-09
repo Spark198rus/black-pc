@@ -86,6 +86,7 @@ struct Config {
     bool sprint = false;       // the Sprint key runs 1.25x as fast (input/sprint.cpp; --sprint, PC SETTINGS)
     float lean_angle = 10.0f;  // tactical lean (input/lean.cpp): roll in degrees and eye shift in metres at full lean
     float lean_offset = 0.35f; // (--lean-angle, --lean-offset)
+    bool fast_menus = false;   // menu animations twice as fast at 60 fps (fe/menu_speed.cpp; --fast-menus, PC SETTINGS)
     bool reload_blur = true;   // the game's screen blur while reloading (reload_blur.cpp; --no-reload-blur, PC SETTINGS)
     float fov = 70.0f;         // horizontal field of view in play, degrees (fov.cpp; --fov, PC SETTINGS; the game's is 70)
     bool skip_movies = true;   // A / START skip any movie, also unseen ones (input/movies.cpp; --no-movie-skip, PC SETTINGS)
