@@ -8,7 +8,8 @@
 //   through the inverse of the stage matrix (FE object *0x2D199C + 0x3740: a, b, c, d, tx, ty; FUN_00113E70 shifts tx
 //   by 106.667 in widescreen), then into the rows' container. Hovering a row moves the focus there (up / down inputs,
 //   one per few polls, so the menu's own cursor sound and animation play); a click on the focused row selects it (a
-//   choice or a slider steps right, a link opens, a key row waits for a key), a right click is Back.
+//   choice steps right, a link opens, a key row waits for a key; on a slider's bar the value moves to the point
+//   pressed and follows while held), a right click is Back.
 // - The game's own pages (every page with a BkMenuList but the port's): the port gives them the cursor in stage units
 //   and each tests its buttons itself (fe/pages.cpp emit_ring_report), reporting the ring offset under the cursor from
 //   the focused button; hover steps there, a click selects (the game's rows are links or the game's own choices).
@@ -31,7 +32,7 @@ namespace {
 
 const char *const kInts[] = {"FEPCMAx", "FEPCMAy", "FEPCMSx", "FEPCMSy", "FEPCMR0x", "FEPCMR0y", "FEPCMDy",
                              "FEPCMW",  "FEPCMH",  "FEPCMFocus", "FEPCMPage", "FEPCMSeq",
-                             "FEPCMouseX", "FEPCMouseY", "FEPCGHit", "FEPCGSeq", "FEPCGRx", "FEPCGKind"};
+                             "FEPCMouseX", "FEPCMouseY", "FEPCGHit", "FEPCGSeq", "FEPCGRx", "FEPCGKind", "FEPCMBx", "FEPCMBw", "FEPCGBw", "FEPCGVal"};
 
 float g_script_x = -1, g_script_y = -1; // tests: press-file mpos:X,Y (0..1 of the picture)
 struct Report {
@@ -50,8 +51,10 @@ float g_last_x = -1, g_last_y = -1;
 bool g_follow, g_click, g_left_was, g_right_was;
 bool g_moved; // the cursor moved and no row was under it yet (a game page's hit comes an update later)
 int g_step_seq = -1; // the report's count when the last step went out
+int g_drag = -1;     // the slider setting being dragged (pressed on its bar, until the button is let go)
 int g_game_hit = -100, g_game_hit_age = 1000; // a game page's last hit and polls since
-int g_game_rx, g_game_kind;                    // with it: the cursor's x along the row, a choice row
+int g_game_rx, g_game_kind;                    // with it: the cursor's x along the row, a choice row (2: on a slider's bar)
+int g_game_bw, g_game_val;                     // a slider's bar width and value 0..1000
 
 // a click on a game page's focused row: select, or on a choice row (the game's one-line ON / OFF toggles) the value
 // clicked: from about 200 to 276 stage units along the row (the first value, ON) left, past it right; on the caption right
@@ -94,6 +97,15 @@ int row_count(int page)
     return page >= 0 && page < (int)gs.size() ? (int)gs[page].rows.size() : 0;
 }
 
+// the setting of row r of a port page, -1 if none
+int row_setting(int page, int r)
+{
+    if (page == pauseui::kPageId) return pauseui::row_setting(r);
+    const auto &gs = pcset::groups();
+    if (page >= 0 && page < (int)gs.size() && r >= 0 && r < (int)gs[page].rows.size()) return gs[page].rows[r];
+    return -1;
+}
+
 // the picture point (0..1) on the menus' stage
 bool to_stage(float px, float py, float *sx, float *sy)
 {
@@ -111,12 +123,15 @@ bool to_stage(float px, float py, float *sx, float *sy)
     return true;
 }
 
+float g_lx; // the last own_row point, in the rows' container
+
 // the port's page: the row under the stage point, or -1
 int own_row(float sx, float sy, int page)
 {
     float Sx = f64("FEPCMSx"), Sy = f64("FEPCMSy");
     if (fabsf(Sx) < 1e-4f || fabsf(Sy) < 1e-4f) return -1;
     float lx = (sx - f64("FEPCMAx")) / Sx, ly = (sy - f64("FEPCMAy")) / Sy;
+    g_lx = lx;
     float x0 = f64("FEPCMR0x"), y0 = f64("FEPCMR0y"), pitch = f64("FEPCMDy"), w = f64("FEPCMW");
     // row 0's clip can be just its caption (the PC SETTINGS list: "VIDEO"); the highlight bar spans ~345 stage units
     // from a little left of the text (measured), so every row is at least that wide
@@ -165,6 +180,8 @@ int poll(bool in_menus, bool left, bool right, int key_input)
         g_game_hit_age = 0;
         g_game_rx = fe_int_get("FEPCGRx");
         g_game_kind = fe_int_get("FEPCGKind");
+        g_game_bw = fe_int_get("FEPCGBw");
+        g_game_val = fe_int_get("FEPCGVal");
         fe_int_set("FEPCGHit", -100);
     } else if (g_game_hit_age < 1000) {
         g_game_hit_age++;
@@ -195,6 +212,30 @@ int poll(bool in_menus, bool left, bool right, int key_input)
     if (g_moved && over) {
         g_follow = true;
         g_moved = false;
+    }
+    // a port page's slider: pressed on its bar, it steps toward the cursor while the button is held, one step per report
+    // (the setting's own steps and sound), so a click anywhere on the bar sets it there and dragging follows
+    if (!left) g_drag = -1;
+    if (rep == &g_game && left && g_game_kind == 2 && g_game_hit == 0 && g_game_hit_age < 4 && g_game_bw > 1) {
+        if (left_edge) g_drag = 1000; // a game slider (no setting of the port's)
+        if (g_drag == 1000) {
+            float target = std::clamp(g_game_rx * 1000.0f / g_game_bw, 0.0f, 1000.0f);
+            if (fabsf(g_game_val - target) <= 25.0f || rep->last == g_step_seq) return 0;
+            g_step_seq = rep->last;
+            return g_game_val < target ? 4 : 3;
+        }
+    }
+    if (rep == &g_own && have && left) {
+        int n = row_setting(page, fe_int_get("FEPCMFocus"));
+        float bx = f64("FEPCMBx"), bw = f64("FEPCMBw");
+        if (left_edge && offset == 0 && n >= 0 && pcset::is_slider(n) && bw > 1 && g_lx >= bx - 15 && g_lx <= bx + bw + 15) g_drag = n;
+        if (g_drag >= 0 && g_drag == n && bw > 1) {
+            float target = std::clamp((g_lx - bx) / bw * 100.0f, 0.0f, 100.0f);
+            float cur = (float)pcset::slider_pos(n);
+            if (fabsf(cur - target) <= 2.5f || rep->last == g_step_seq) return 0;
+            g_step_seq = rep->last;
+            return cur < target ? 4 : 3;
+        }
     }
     if (right_edge) return 6;
     if (left_edge && over) {

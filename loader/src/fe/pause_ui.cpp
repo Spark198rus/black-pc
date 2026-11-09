@@ -141,6 +141,14 @@ int row_kind(int i)
     return 0;
 }
 
+int row_setting(int i)
+{
+    std::wstring title;
+    std::vector<Row> rs = rows(&title);
+    if (i < 0 || i >= (int)rs.size()) return -1;
+    return rs[i].kind == Row::Choice || rs[i].kind == Row::Slider ? rs[i].id : -1;
+}
+
 void refresh()
 {
     std::wstring title;

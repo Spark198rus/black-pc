@@ -371,8 +371,11 @@ void define_key_list(Asm &a)
 // unrolled to eight levels. Row 0's position, the pitch to row 1, row 0's size (in the container) and which row has
 // the focus follow. Integers, positions x 64: FEPCMAx / FEPCMAy / FEPCMSx / FEPCMSy, FEPCMR0x / FEPCMR0y, FEPCMDy,
 // FEPCMW / FEPCMH, FEPCMFocus, FEPCMPage (the page id + 1), FEPCMSeq (+1 per update: the page is up).
+// bar(i): row i's slider bar and whether it sits in the row (the pause page) rather than in the container; the focused
+// row's bar x and width in the container go to FEPCMBx / FEPCMBw (x 64; 0 width: no bar)
+using BarOf = std::function<std::pair<Path, bool>(size_t)>;
 void emit_rows_report(Asm &f, const Path &container, int page_id, size_t nrows, const std::function<std::string(size_t)> &row_var,
-                      const std::function<Path(size_t)> &clip)
+                      const std::function<Path(size_t)> &clip, const BarOf &bar = {})
 {
     auto num = [](float v) { return [v](Asm &g) { g.push(Value::F(v)); }; };
     for (const char *v : {"pcMAx", "pcMAy"}) f.push(Value::S(v)).push(Value::I(0)).set_var();
@@ -425,6 +428,29 @@ void emit_rows_report(Asm &f, const Path &container, int page_id, size_t nrows, 
         f.land(other);
     }
     set(f, {"_global", "externObject"}, "FEPCMFocus", at({"pcMFr"}));
+    set(f, {"_global", "externObject"}, "FEPCMBw", I(0));
+    if (bar)
+        for (size_t i = 0; i < nrows; i++) { // the focused row's bar
+            at({"pcMFr"})(f);
+            f.push(Value::I((int)i)).equals2().logical_not();
+            size_t other = f.branch(0x9D);
+            auto [b, in_row] = bar(i);
+            Path bx = b, bw = b, rx = clip(i);
+            bx.push_back("_x");
+            bw.push_back("_width");
+            rx.push_back("_x");
+            bool inside = in_row;
+            set(f, {"_global", "externObject"}, "FEPCMBx", [=](Asm &g) {
+                at(bx)(g);
+                if (inside) {
+                    at(rx)(g);
+                    g.add2();
+                }
+                g.push(Value::I(64)).op(0x0C);
+            });
+            set(f, {"_global", "externObject"}, "FEPCMBw", [=](Asm &g) { at(bw)(g); g.push(Value::I(64)).op(0x0C); });
+            f.land(other);
+        }
     set(f, {"_global", "externObject"}, "FEPCMPage", I(page_id + 1));
     set(f, {"_global", "externObject"}, "FEPCMSeq", [](Asm &g) { at({"_global", "externObject", "FEPCMSeq"})(g); g.push(Value::I(1)).add2(); });
     (void)num;
@@ -437,7 +463,8 @@ void emit_rows_report(Asm &f, const Path &container, int page_id, size_t nrows, 
 // parent's transform (the first row's parent gives it for all), within 0.65 x its height above or below, from 10 left
 // of it to 345 (or its _width) right. FEPCGHit = the first offset hit, written only on a hit (pages in the background
 // report too: the port clears it after reading); with it FEPCGRx (the cursor's x from the row's left) and FEPCGKind
-// (1: the button has an mChoiceList, a row left / right change); FEPCGSeq counts the updates.
+// (1: the button has an mChoiceList, a row left / right change; 2: on a slider's bar, its list's mMovieClip, with
+// FEPCGBw its width and FEPCGVal its value 0..1000); FEPCGSeq counts the updates.
 // Pages without MyMenu report nothing.
 void emit_ring_report(Asm &f)
 {
@@ -488,6 +515,54 @@ void emit_ring_report(Asm &f)
             at({Sv})(g);
             g.op(0x0C).add2().set_var();
         };
+        std::vector<size_t> miss;
+        // a slider (its list has a bar clip, mMovieClip, registered at its top): the bar is a hit too
+        g.push(Value::S("pcGs"));
+        at({"pcGb", "mChoiceList", "mMovieClip"})(g);
+        g.set_var();
+        at({"pcGs"})(g);
+        g.push(Value::U()).equals2();
+        size_t no_bar = g.branch(0x9D);
+        auto sv = [&g](const char *var, const char *A, const char *member, const char *Sv) {
+            g.push(Value::S(var));
+            if (A) at({A})(g);
+            at({"pcGs", member})(g);
+            at({Sv})(g);
+            g.op(0x0C);
+            if (A) g.add2();
+            g.set_var();
+        };
+        sv("pcGsy", "pcMAy", "_y", "pcMSy");
+        sv("pcGsh", nullptr, "_height", "pcMSy");
+        sv("pcGsx", "pcMAx", "_x", "pcMSx");
+        sv("pcGsw", nullptr, "_width", "pcMSx");
+        auto lt = [&g](const Push &a, const Push &b) { a(g); b(g); g.op(0x48); };
+        auto plus = [](const char *a, const char *b, float k) {
+            return [=](Asm &h) { at({a})(h); if (b) { at({b})(h); h.push(Value::F(k)).op(0x0C).add2(); } else h.push(Value::F(k)).add2(); };
+        };
+        std::vector<size_t> bar_miss;
+        auto need = [&](const Push &a, const Push &b) {
+            lt(a, b);
+            g.logical_not();
+            bar_miss.push_back(g.branch(0x9D));
+        };
+        need(plus("pcGsy", nullptr, -3), at({"pcGmy"}));       // below its top
+        need(at({"pcGmy"}), plus("pcGsy", "pcGsh", 1.0f));     // above its bottom
+        need(plus("pcGsx", nullptr, -10), at({"pcGmx"}));
+        need(at({"pcGmx"}), plus("pcGsx", "pcGsw", 1.0f));
+        set(g, {"_global", "externObject"}, "FEPCGHit", I(d));
+        set(g, {"_global", "externObject"}, "FEPCGKind", I(2));
+        set(g, {"_global", "externObject"}, "FEPCGRx", [](Asm &h) { at({"pcGmx"})(h); at({"pcGsx"})(h); h.op(0x0B); });
+        set(g, {"_global", "externObject"}, "FEPCGBw", at({"pcGsw"}));
+        set(g, {"_global", "externObject"}, "FEPCGVal", [](Asm &h) { // the value 0..1000 (mValue of mMax, the minimum 0)
+            at({"pcGb", "mChoiceList", "mValue"})(h);
+            h.push(Value::I(1000)).op(0x0C);
+            at({"pcGb", "mChoiceList", "mMax"})(h);
+            h.op(0x0D);
+        });
+        hits.push_back(g.branch(0x99));
+        for (size_t m : bar_miss) g.land(m);
+        g.land(no_bar);
         calc("pcGy", "pcMAy", "_y", "pcMSy");
         calc("pcGx", "pcMAx", "_x", "pcMSx");
         g.push(Value::S("pcGh"));
@@ -496,7 +571,6 @@ void emit_ring_report(Asm &f)
         g.op(0x0C).push(Value::F(0.65f)).op(0x0C).set_var();
         auto less = [&g](const Push &a, const Push &b) { a(g); b(g); g.op(0x48); }; // a < b on the stack
         auto sub = [](const char *a, const char *b) { return [=](Asm &h) { at({a})(h); at({b})(h); h.op(0x0B); }; };
-        std::vector<size_t> miss;
         auto require = [&](const Push &a, const Push &b) {
             less(a, b);
             g.logical_not();
@@ -677,7 +751,7 @@ void page_script(Movie &mv, const PageScript &p)
     a.function2("Update", [&](Asm &f) {
         emit_heal(f, row_var(0), classes, std::to_string(p.page_id));
         call_function(f, "Update0");
-        emit_rows_report(f, {"Main", "TextAnim"}, p.page_id, k, row_var, p.clip);
+        emit_rows_report(f, {"Main", "TextAnim"}, p.page_id, k, row_var, p.clip, [&p](size_t i) { return std::make_pair(p.bar(i), false); });
         if (debug) { // tests: each input reports the page's state (PCDebug in black.log)
             at({"_global", "externObject", "FEInputId"})(f);
             f.logical_not();
@@ -1178,7 +1252,11 @@ void pause_page(Movie &mv)
         emit_heal(f, row_var(0), classes, "pp");
         call_function(f, "Update0");
         dbg_flush(f);
-        emit_rows_report(f, {"Main"}, pauseui::kPageId, kRows, row_var, clip);
+        emit_rows_report(f, {"Main"}, pauseui::kPageId, kRows, row_var, clip, [&clip](size_t i) {
+            Path b = clip(i);
+            b.push_back("Bar");
+            return std::make_pair(b, true);
+        });
         at({"_global", "externObject", "FEPCLayout"})(f); // a new screen: rows shown, linked, focused
         at({"pcLayout"})(f);
         f.equals2();

@@ -7,6 +7,7 @@ constexpr int kRows = 6;
 constexpr int kPageId = 200; // the pause page in the rows report (fe/pages.cpp emit_rows_report)
 // row i on the screen now: 0 none, 1 link (opens a screen), 2 choice, 3 slider, 4 key (input/menu_mouse.cpp)
 int row_kind(int i);
+int row_setting(int i); // its setting (pcset row), -1 for links and keys
 // the page's texts: row i's caption fevar::kLabel + i, value fevar::kValue + i (beside the caption), number
 // fevar::kNumber + i (after the bullet bar), the title fevar::kTitle (fe/vars.h)
 
