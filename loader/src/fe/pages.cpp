@@ -1082,6 +1082,50 @@ void add_movie(Container &c, const std::string &name, Bytes data)
 
 constexpr char kBindings[] = "PCBindings";
 
+// The menus' control legend (Core.bin, movie corexbox; its prompt clips are what the pages pass to SetConfirmPrompt /
+// SetBackPrompt): CONFIRM is sprite 22 and BACK sprite 28, each a backdrop (depth 1), the pad button "Button" (depth
+// 3: a clip whose frames 1-9 pulse when the button is pressed, frame 0 stop()) and the caption "Text" (depth 5,
+// x 16: a clip holding the $FE_CONFIRM / $FE_BACK field, character 20 / 26, placed at 2, -9.3). SELECT (arrows) is
+// the arrow keys already and stays.
+// The legend sits right of the menus' vertical bars, so there is no room for a key's name left of the caption. The
+// caption field shows the port's &PC_V19 / &PC_V20 instead: the game's own word ("confirm", from its text table in the
+// player's language) while a controller is in use, "ENTER  confirm" / "BACKSPACE  back" while the keyboard is
+// (input/prompts.cpp). A two-frame clip that loops runs, in its frame 0, Button._visible = (externObject.FEPCKeys ==
+// 0) and Text._x = 16 - 26 * FEPCKeys: with the keyboard the pad button goes and the caption moves left into its
+// place (-10, where the SELECT row's arrows start).
+void core_prompts(Movie &mv)
+{
+    struct Prompt {
+        int sprite, text, var;
+    };
+    const Prompt prompts[] = {{22, 20, fevar::kKeyConfirm}, {28, 26, fevar::kKeyBack}};
+    for (const Prompt &p : prompts) {
+        uint32_t sprite = mv.character(p.sprite);
+        if (rd(mv.apt, sprite) != 5) throw Error("legend prompt is not a sprite");
+        uint32_t button = mv.find_place(sprite, 0, 3, 0), caption = mv.find_place(sprite, 0, 5, 0);
+        if (mv.str(rd(mv.apt, button + 52)) != "Button" || mv.str(rd(mv.apt, caption + 52)) != "Text" ||
+            rdf(mv.apt, caption + 32) != 16.0f)
+            throw Error("legend prompt laid out differently");
+        literal(mv, mv.character(p.text), var(p.var));
+        // the watcher: frame 0 places the pad button and the caption, frame 1 is empty, and the clip loops
+        Asm a(mv);
+        set(a, {"_parent", "Button"}, "_visible", [](Asm &f) {
+            at({"_global", "externObject", "FEPCKeys"})(f);
+            f.push(Value::I(0)).equals2();
+        });
+        set(a, {"_parent", "Text"}, "_x", [](Asm &f) {
+            f.push(Value::I(16));
+            at({"_global", "externObject", "FEPCKeys"})(f);
+            f.push(Value::I(26)).op(0x0C); // Multiply
+            f.op(0x0B);                    // Subtract: 16 - 26 * FEPCKeys
+        });
+        uint32_t ctls = mv.alloc_words({mv.do_action(a.finish())});
+        uint32_t frames = mv.alloc_words({1, ctls, 0, 0}); // frame 0: the script; frame 1: nothing
+        int watcher = mv.add_character(mv.alloc_words({5, 0x09876543, 2, frames, 0}));
+        mv.append_control(sprite, 0, mv.place(6, watcher, 6, 0.0f, 0.0f));
+    }
+}
+
 } // namespace
 
 bool fe_build_pages(const std::wstring &game_dir, const std::wstring &out_root)
@@ -1136,5 +1180,14 @@ bool fe_build_pages(const std::wstring &game_dir, const std::wstring &out_root)
     logf("fe: PC SETTINGS pages: main menu %s, pause menu %s (%s)", main_ok ? "on" : "off", pause_ok ? "on" : "off",
          narrow(out_root).c_str());
     bool text_ok = patch_strings(game_dir, out_root);
-    return main_ok || pause_ok || text_ok;
+    // the control legend names the keys while the keyboard is in use (core_prompts)
+    Bytes core;
+    bool core_ok = rebuild(game_dir, L"Core.bin", [](Container &c) {
+        Movie legend(movie(c, "corexbox"));
+        core_prompts(legend);
+        c.movies["corexbox"] = legend.build();
+    }, core) && write_file(dir + L"Core.bin", core);
+    if (!core_ok) DeleteFileW((dir + L"Core.bin").c_str());
+    logf("fe: control legend: %s", core_ok ? "keys named while the keyboard is in use" : "pad buttons only");
+    return main_ok || pause_ok || text_ok || core_ok;
 }

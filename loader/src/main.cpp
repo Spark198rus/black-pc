@@ -15,6 +15,7 @@
 #include "timing.h"
 #include "settings.h"
 #include "input/autoaim.h"
+#include "input/prompts.h"
 #include "input/lean.h"
 #include "input/mouselook.h"
 #include "kernel/ktable.h"
@@ -506,6 +507,7 @@ int run(void *reserve, unsigned reserve_size)
     if (supported_build) install_timing_patches();
     if (supported_build) install_mouselook_patches();
     if (supported_build) install_autoaim_patch();
+    if (supported_build) install_prompts_patch();
     if (supported_build) install_reload_blur_patch();
     if (supported_build) install_lean_patch();
     if (supported_build) install_fov_patch();
