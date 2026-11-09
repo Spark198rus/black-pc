@@ -430,6 +430,160 @@ void emit_rows_report(Asm &f, const Path &container, int page_id, size_t nrows, 
     (void)num;
 }
 
+// The game's own pages (input/menu_mouse.cpp): their rows are their BkMenuList's buttons, linked by buttonDown /
+// buttonUp. The port gives the cursor in stage units x 4 (FEPCMouseX / FEPCMouseY; the front end's value table has
+// too few free slots for a report per row), and every update the page walks the ring from the focused button, down
+// (offsets 0..7) and, unless the walk came back round, up (-1..-7), testing each button's clip: its _x / _y through its
+// parent's transform (the first row's parent gives it for all), within 0.65 x its height above or below, from 10 left
+// of it to 345 (or its _width) right. FEPCGHit = the first offset hit, written only on a hit (pages in the background
+// report too: the port clears it after reading); FEPCGSeq counts the updates.
+// Pages without MyMenu report nothing.
+void emit_ring_report(Asm &f)
+{
+    at({"MyMenu", "mFocusButton"})(f);
+    f.push(Value::U()).equals2();
+    size_t none = f.branch(0x9D);
+    for (int axis = 0; axis < 2; axis++) { // the cursor, in stage units
+        f.push(Value::S(axis ? "pcGmy" : "pcGmx"));
+        at({"_global", "externObject", axis ? "FEPCMouseY" : "FEPCMouseX"})(f);
+        f.push(Value::I(4)).op(0x0D).set_var();
+    }
+    // the parent's transform (as emit_rows_report)
+    for (const char *v : {"pcMAx", "pcMAy"}) f.push(Value::S(v)).push(Value::I(0)).set_var();
+    for (const char *v : {"pcMSx", "pcMSy"}) f.push(Value::S(v)).push(Value::I(1)).set_var();
+    f.push(Value::S("pcMNd"));
+    at({"MyMenu", "mFocusButton", "movieClip", "_parent"})(f);
+    f.set_var();
+    std::vector<size_t> ends;
+    for (int level = 0; level < 8; level++) {
+        at({"pcMNd"})(f);
+        f.push(Value::U()).equals2();
+        ends.push_back(f.branch(0x9D));
+        for (int axis = 0; axis < 2; axis++) {
+            const char *pos = axis ? "_y" : "_x", *scale = axis ? "_yscale" : "_xscale";
+            std::string A = axis ? "pcMAy" : "pcMAx", Sv = axis ? "pcMSy" : "pcMSx";
+            f.push(Value::S(A));
+            at({"pcMNd", pos})(f);
+            at({A})(f);
+            at({"pcMNd", scale})(f);
+            f.op(0x0C).push(Value::I(100)).op(0x0D).add2().set_var();
+            f.push(Value::S(Sv));
+            at({Sv})(f);
+            at({"pcMNd", scale})(f);
+            f.op(0x0C).push(Value::I(100)).op(0x0D).set_var();
+        }
+        f.push(Value::S("pcMNd"));
+        at({"pcMNd", "_parent"})(f);
+        f.set_var();
+    }
+    for (size_t b : ends) f.land(b);
+    // one row at ring offset d: a hit sets FEPCGHit and ends the walk
+    std::vector<size_t> hits;
+    auto row = [&hits](Asm &g, int d) {
+        auto calc = [&g](const char *var, const char *A, const char *member, const char *Sv) {
+            g.push(Value::S(var));
+            at({A})(g);
+            at({"pcGb", "movieClip", member})(g);
+            at({Sv})(g);
+            g.op(0x0C).add2().set_var();
+        };
+        calc("pcGy", "pcMAy", "_y", "pcMSy");
+        calc("pcGx", "pcMAx", "_x", "pcMSx");
+        g.push(Value::S("pcGh"));
+        at({"pcGb", "movieClip", "_height"})(g);
+        at({"pcMSy"})(g);
+        g.op(0x0C).push(Value::F(0.65f)).op(0x0C).set_var();
+        auto less = [&g](const Push &a, const Push &b) { a(g); b(g); g.op(0x48); }; // a < b on the stack
+        auto sub = [](const char *a, const char *b) { return [=](Asm &h) { at({a})(h); at({b})(h); h.op(0x0B); }; };
+        std::vector<size_t> miss;
+        auto require = [&](const Push &a, const Push &b) {
+            less(a, b);
+            g.logical_not();
+            miss.push_back(g.branch(0x9D));
+        };
+        require(sub("pcGy", "pcGmy"), at({"pcGh"}));
+        require(sub("pcGmy", "pcGy"), at({"pcGh"}));
+        require([](Asm &h) { at({"pcGx"})(h); h.push(Value::I(10)).op(0x0B); }, at({"pcGmx"}));
+        less(at({"pcGmx"}), [](Asm &h) { at({"pcGx"})(h); h.push(Value::I(345)); at({"pcMSx"})(h); h.op(0x0C).add2(); });
+        size_t inside = g.branch(0x9D);
+        require(at({"pcGmx"}), [](Asm &h) { at({"pcGx"})(h); at({"pcGb", "movieClip", "_width"})(h); at({"pcMSx"})(h); h.op(0x0C).add2(); });
+        g.land(inside);
+        set(g, {"_global", "externObject"}, "FEPCGHit", I(d));
+        hits.push_back(g.branch(0x99));
+        for (size_t m : miss) g.land(m);
+    };
+    // down from the focus
+    f.push(Value::S("pcGb"));
+    at({"MyMenu", "mFocusButton"})(f);
+    f.set_var();
+    f.push(Value::S("pcGr")).push(Value::I(0)).set_var(); // came back round
+    std::vector<size_t> down_end;
+    for (int d = 0; d < 8; d++) {
+        at({"pcGb"})(f);
+        f.push(Value::U()).equals2();
+        down_end.push_back(f.branch(0x9D));
+        if (d > 0) {
+            at({"pcGb"})(f);
+            at({"MyMenu", "mFocusButton"})(f);
+            f.equals2();
+            size_t other = f.branch(0x9D); // round again: stop, no up walk
+            size_t skip = f.branch(0x99);
+            f.land(other);
+            f.push(Value::S("pcGr")).push(Value::I(1)).set_var();
+            down_end.push_back(f.branch(0x99));
+            f.land(skip);
+        }
+        row(f, d);
+        f.push(Value::S("pcGb"));
+        at({"pcGb", "buttonDown"})(f);
+        f.set_var();
+    }
+    for (size_t b : down_end) f.land(b);
+    // up from the focus, when the ring did not come round
+    at({"pcGr"})(f);
+    size_t no_up = f.branch(0x9D);
+    f.push(Value::S("pcGb"));
+    at({"MyMenu", "mFocusButton", "buttonUp"})(f);
+    f.set_var();
+    std::vector<size_t> up_end;
+    for (int d = 1; d < 8; d++) {
+        at({"pcGb"})(f);
+        f.push(Value::U()).equals2();
+        up_end.push_back(f.branch(0x9D));
+        at({"pcGb"})(f);
+        at({"MyMenu", "mFocusButton"})(f);
+        f.equals2();
+        up_end.push_back(f.branch(0x9D));
+        row(f, -d);
+        f.push(Value::S("pcGb"));
+        at({"pcGb", "buttonUp"})(f);
+        f.set_var();
+    }
+    for (size_t b : up_end) f.land(b);
+    f.land(no_up);
+    for (size_t b : hits) f.land(b);
+    set(f, {"_global", "externObject"}, "FEPCGSeq", [](Asm &g) { at({"_global", "externObject", "FEPCGSeq"})(g); g.push(Value::I(1)).add2(); });
+    f.land(none);
+}
+
+// a game page the port does not otherwise change: its Update gets the ring report after it (pages without an Update
+// are left as they are)
+bool add_ring_report(Movie &mv)
+{
+    try {
+        mv.rename_function(mv.main_script(), "Update", "Update0");
+    } catch (const std::exception &) {
+        return false;
+    }
+    Asm a(mv);
+    a.function2("Update", [](Asm &f) {
+        call_function(f, "Update0");
+        emit_ring_report(f);
+    });
+    mv.append_control(mv.main, 0, mv.do_action(a.finish()));
+    return true;
+}
+
 // PagePrepare / PageRelease / PageDestruct for a page of rows Main...<clip prefix><i> (bar: the slider's clip)
 struct PageScript {
     std::vector<RowSpec> rows;
@@ -588,7 +742,7 @@ void options_row(Movie &mv)
     Classes classes = own_classes_prepare(mv);
     Asm a(mv);
     own_classes_script(a, classes, "opt");
-    heal_update(a, "pcButton", classes, "opt");
+    heal_update(a, "pcButton", classes, "opt", emit_ring_report);
     a.push(Value::S("pcButton")).define_local2();
     a.function2("PagePrepare", [](Asm &f) {
         call_function(f, "PagePrepare0");
@@ -623,7 +777,7 @@ void main_menu_quit(Movie &mv, int textanim, float dy, int reveal, uint32_t bar_
     Classes classes = own_classes_prepare(mv);
     Asm a(mv);
     own_classes_script(a, classes, "main");
-    heal_update(a, "quitButton", classes, "main");
+    heal_update(a, "quitButton", classes, "main", emit_ring_report);
     a.push(Value::S("quitButton")).define_local2();
     a.function2("PagePrepare", [last, first](Asm &f) {
         call_function(f, "PagePrepare0");
@@ -866,7 +1020,7 @@ void pause_row(Movie &mv)
     Classes classes = own_classes_prepare(mv);
     Asm a(mv);
     own_classes_script(a, classes, "pause");
-    heal_update(a, "pcButton", classes, "pause");
+    heal_update(a, "pcButton", classes, "pause", emit_ring_report);
     a.push(Value::S("pcButton")).define_local2();
     a.function2("PagePrepare", [](Asm &f) {
         call_function(f, "PagePrepare0");
@@ -1164,6 +1318,29 @@ bool patch_strings(const std::wstring &game_dir, const std::wstring &out_root)
     }
 }
 
+// the ring report in every page of a container but the ones the port already changed (skip)
+void ring_reports(Container &c, const std::set<std::string> &skip, const char *file)
+{
+    int n = 0;
+    std::string with, without;
+    for (auto &[name, data] : c.movies) {
+        if (skip.count(name)) continue;
+        try {
+            Movie m(data);
+            if (!add_ring_report(m)) {
+                without += " " + name;
+                continue;
+            }
+            data = m.build();
+            with += " " + name;
+            n++;
+        } catch (const std::exception &e) {
+            logf("fe: %s %s: no mouse rows (%s)", file, name.c_str(), e.what());
+        }
+    }
+    logf("fe: %s: mouse rows in %d game pages:%s; no Update:%s", file, n, with.c_str(), without.c_str());
+}
+
 const Bytes &movie(const Container &c, const char *name)
 {
     auto it = c.movies.find(name);
@@ -1206,6 +1383,9 @@ bool fe_build_pages(const std::wstring &game_dir, const std::wstring &out_root)
         Movie opt(options);
         options_row(opt);
         c.movies["optionsmenuxbox"] = opt.build();
+        std::set<std::string> changed = {"pcsettings", lower(kBindings), "optionsmenuxbox", "blacktitlemenu", "blacktitlemenu2"};
+        for (const pcset::Group &g : pcset::groups()) changed.insert(lower(g.page));
+        ring_reports(c, changed, "FEMain.bin");
         Movie title(movie(c, "blacktitlemenu")); // QUIT under OPERATOR PROFILE (rows 25.1 apart, revealed 43/46/49)
         main_menu_quit(title, 18, 25.1f, 49, 11, 12, "profileButton", "continueButton");
         c.movies["blacktitlemenu"] = title.build();
@@ -1218,6 +1398,7 @@ bool fe_build_pages(const std::wstring &game_dir, const std::wstring &out_root)
     // in-game Options in PseMenu.bin, loaded with the pause pages); both files or neither
     Bytes on, pse;
     bool pause_ok = rebuild(game_dir, L"InGameOn.bin", [](Container &c) {
+        ring_reports(c, {"pausemenu"}, "InGameOn.bin");
         Movie root(movie(c, "pausemenu"));
         pause_row(root);
         c.movies["pausemenu"] = root.build();
@@ -1225,6 +1406,7 @@ bool fe_build_pages(const std::wstring &game_dir, const std::wstring &out_root)
         Movie page(movie(c, "pausemenuoptionxbox"));
         pause_page(page);
         add_movie(c, lower(ingame("PCPage")), page.build());
+        ring_reports(c, {lower(ingame("PCPage"))}, "PseMenu.bin"); // after the copy: it is made from the original page
     }, pse) && write_file(dir + L"InGameOn.bin", on) && write_file(dir + L"PseMenu.bin", pse);
     if (!pause_ok) { // a half-written pair would point the pause menu at pages that are not there
         DeleteFileW((dir + L"InGameOn.bin").c_str());

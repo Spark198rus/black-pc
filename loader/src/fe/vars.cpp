@@ -27,7 +27,7 @@
 namespace {
 
 constexpr uint32_t kFeObject = 0x002D199C, kStrings = 0x13A8, kMembers = 0x2530, kCrcTable = 0x002AC908;
-constexpr int kEntries = 0x70, kTypeInt = 1, kTypeString = 4, kMaxInts = 40;
+constexpr int kEntries = 0x70, kTypeInt = 1, kTypeString = 4, kMaxInts = 48;
 // references the port's entries hold: text fields going away never bring them to none (which frees the slot while the
 // fields still point at it, and their later releases would count down whatever the game put there)
 constexpr int32_t kOwnRefs = 0x10000;

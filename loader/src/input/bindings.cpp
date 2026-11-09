@@ -12,7 +12,8 @@
 //
 // Menus, pauses and cutscenes (no player update, see in_play) take no bound keys and nothing goes through the pad:
 // arrows, Enter and Backspace are the menus' own inputs (up, down, left, right, select, back; held arrows repeat),
-// which fe/calls.cpp gives the menus directly; Esc there only lets go of the mouse. Outside the menus the game itself
+// which fe/calls.cpp gives the menus directly; Esc there only lets go of the mouse. A left click is Enter where no menu
+// takes it (START over the intro text, A for a hint). Outside the menus the game itself
 // waits for the pad (PRESS A TO CONTINUE after a hint, START to skip the mission's intro text): there Enter is A or
 // START (see apply). A key held across a switch between play and menus is ignored until it is released (a press that
 // starts play must not also act in it).
@@ -164,6 +165,12 @@ bool hint_stopped()
 // No menu page is up: the front end's current page name (FE object *0x2D199C + 0x3840, as FUN_00118A80 compares it with
 // "PauseMenu") is empty. So it is while a mission's intro text types out (the location and time before play), which the
 // game skips on START of the player's controller.
+bool menu_page_up()
+{
+    uint32_t fe = *(const uint32_t *)(uintptr_t)xbe_va(0x002D199C);
+    return fe && *(const char *)(uintptr_t)(fe + 0x3840) != 0;
+}
+
 bool no_menu_page()
 {
     uint32_t fe = *(const uint32_t *)(uintptr_t)xbe_va(0x002D199C);
@@ -337,7 +344,9 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
            bool mouse_live, int wheel)
 {
     ensure_defaults();
-    bool play = in_play();
+    // a menu page over play (MISSION FAILED, MISSION COMPLETE, the confirm prompts: the player update still runs behind
+    // them) is a menu: menu keys, a free cursor (input/menu_mouse.cpp); in play the front end shows no page
+    bool play = in_play() && !menu_page_up();
     int mouse = mouse_live ? host3d::mouse_buttons() : 0;
     uint16_t wkey = wheel_key(mouse_live ? wheel : 0);
 
@@ -352,6 +361,16 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
         if (play && focus) host3d::request_capture(true); // the menus leave the mouse free (input/menu_mouse.cpp)
         if (play) g_freed_by_esc = false;
         g_was_play = play;
+    }
+    { // a menu page coming up lets go of the mouse (the pause key does it itself; MISSION FAILED comes up without a key)
+        static std::string page_was;
+        uint32_t fe = *(const uint32_t *)(uintptr_t)xbe_va(0x002D199C);
+        std::string page = fe ? std::string((const char *)(uintptr_t)(fe + 0x3840), strnlen((const char *)(uintptr_t)(fe + 0x3840), 63)) : "";
+        if (page != page_was) {
+            logf("[input] front-end page '%s' (play %d)", page.c_str(), (int)play);
+            if (!page.empty() && page_was.empty() && host3d::mouse_captured()) host3d::request_capture(false);
+            page_was = page;
+        }
     }
     auto held = [&](uint16_t k) {
         if (!k) return false;
@@ -407,12 +426,14 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
         input = kMenuKeys[g_repeat].input;
         g_repeat_at = now + kRepeatEvery;
     }
-    { // the mouse in the menus (not captured there): buttons straight from the system
+    bool click = false; // the mouse in the menus (not captured there): buttons straight from the system
+    {
         bool swap = GetSystemMetrics(SM_SWAPBUTTON) != 0;
         auto button = [&](int vk) { return g_script[vk] || (focus && (GetAsyncKeyState(vk) & 0x8000)); };
         bool left = button(swap ? VK_RBUTTON : VK_LBUTTON), right = button(swap ? VK_LBUTTON : VK_RBUTTON);
         int m = menu_mouse::poll(!play, left, right, input);
         if (!input && m) input = m;
+        click = !play && left;
     }
     if (input) {
         g_menu_input_frame = g_frame_count.load();
@@ -431,6 +452,13 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
     enter_was = g_menu_select;
     if (g_menu_select && enter_as == kA) p.analog[0] = 255;
     if (g_menu_select && enter_as == kStart) p.buttons |= 0x10;
+    // a left click outside play does the same where no menu takes it: START over the intro text, A for a hint
+    static bool click_was;
+    static int click_as;
+    if (click && !click_was) click_as = hint_stopped() ? kA : no_menu_page() ? kStart : kMenu;
+    click_was = click;
+    if (click && click_as == kA) p.analog[0] = 255;
+    if (click && click_as == kStart) p.buttons |= 0x10;
     if (!play) menu_esc = held(VK_ESCAPE);
     // The pause key in play and Esc in menus also let go of the mouse; play starting or
     // resuming takes it again.

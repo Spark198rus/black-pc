@@ -9,7 +9,10 @@
 //   by 106.667 in widescreen), then into the rows' container. Hovering a row moves the focus there (up / down inputs,
 //   one per few polls, so the menu's own cursor sound and animation play); a click on the focused row selects it (a
 //   choice or a slider steps right, a link opens, a key row waits for a key), a right click is Back.
-// The game's own pages are not clickable yet (their rows are not the port's).
+// - The game's own pages (every page with a BkMenuList but the port's): the port gives them the cursor in stage units
+//   and each tests its buttons itself (fe/pages.cpp emit_ring_report), reporting the ring offset under the cursor from
+//   the focused button; hover steps there, a click selects (the game's rows are links or the game's own choices).
+// A step is sent only after the page has reported again since the last one (its report trails the focus by an update).
 #include "input/menu_mouse.h"
 
 #include "common.h"
@@ -27,13 +30,27 @@ namespace menu_mouse {
 namespace {
 
 const char *const kInts[] = {"FEPCMAx", "FEPCMAy", "FEPCMSx", "FEPCMSy", "FEPCMR0x", "FEPCMR0y", "FEPCMDy",
-                             "FEPCMW",  "FEPCMH",  "FEPCMFocus", "FEPCMPage", "FEPCMSeq"};
+                             "FEPCMW",  "FEPCMH",  "FEPCMFocus", "FEPCMPage", "FEPCMSeq",
+                             "FEPCMouseX", "FEPCMouseY", "FEPCGHit", "FEPCGSeq"};
 
 float g_script_x = -1, g_script_y = -1; // tests: press-file mpos:X,Y (0..1 of the picture)
-int g_last_seq, g_seq_age = 1000;       // polls since the page last reported
+struct Report {
+    const char *name;
+    int last = 0, age = 1000; // polls since it last counted up
+    bool fresh() const { return age < 6; }
+    void poll()
+    {
+        int seq = fe_int_get(name);
+        age = seq != last ? 0 : age + 1;
+        last = seq;
+    }
+};
+Report g_own{"FEPCMSeq"}, g_game{"FEPCGSeq"};
 float g_last_x = -1, g_last_y = -1;
-int g_target = -1, g_click = -1, g_step_wait;
-bool g_left_was, g_right_was;
+bool g_follow, g_click, g_left_was, g_right_was;
+bool g_moved; // the cursor moved and no row was under it yet (a game page's hit comes an update later)
+int g_step_seq = -1; // the report's count when the last step went out
+int g_game_hit = -100, g_game_hit_age = 1000; // a game page's last hit and polls since
 
 float f64(const char *name) { return fe_int_get(name) / 64.0f; }
 
@@ -67,40 +84,45 @@ int row_count(int page)
     return page >= 0 && page < (int)gs.size() ? (int)gs[page].rows.size() : 0;
 }
 
-// the row under the picture point (px, py: 0..1), or -1
-int hit_row(float px, float py, int page)
+// the picture point (0..1) on the menus' stage
+bool to_stage(float px, float py, float *sx, float *sy)
 {
     uint32_t fe = *(const uint32_t *)(uintptr_t)xbe_va(0x002D199C);
     uint32_t renderer = *(const uint32_t *)(uintptr_t)xbe_va(0x002D67F4);
-    if (!fe) return -1;
+    if (!fe) return false;
     bool wide = renderer && *(const uint8_t *)(uintptr_t)(renderer + 0xC);
     float X = px * (wide ? 853.333f : 640.0f), Y = py * 480.0f;
     const float *m = (const float *)(uintptr_t)(fe + 0x3740); // a b c d tx ty: X = a x + c y + tx, Y = b x + d y + ty
     float det = m[0] * m[3] - m[1] * m[2];
-    if (fabsf(det) < 1e-6f) return -1;
+    if (fabsf(det) < 1e-6f) return false;
     float dx = X - m[4], dy = Y - m[5];
-    float sx = (m[3] * dx - m[2] * dy) / det, sy = (-m[1] * dx + m[0] * dy) / det;
+    *sx = (m[3] * dx - m[2] * dy) / det;
+    *sy = (-m[1] * dx + m[0] * dy) / det;
+    return true;
+}
+
+// the port's page: the row under the stage point, or -1
+int own_row(float sx, float sy, int page)
+{
     float Sx = f64("FEPCMSx"), Sy = f64("FEPCMSy");
     if (fabsf(Sx) < 1e-4f || fabsf(Sy) < 1e-4f) return -1;
     float lx = (sx - f64("FEPCMAx")) / Sx, ly = (sy - f64("FEPCMAy")) / Sy;
     float x0 = f64("FEPCMR0x"), y0 = f64("FEPCMR0y"), pitch = f64("FEPCMDy"), w = f64("FEPCMW");
-    int n = row_count(page);
-    int hit = -1;
-    // row 0's clip can be just its caption (the PC SETTINGS list: "VIDEO"); the highlight bar spans ~345 stage units from
-    // a little left of the text (measured), so every row is at least that wide
+    // row 0's clip can be just its caption (the PC SETTINGS list: "VIDEO"); the highlight bar spans ~345 stage units
+    // from a little left of the text (measured), so every row is at least that wide
     float width = std::max(w, 345.0f / fabsf(Sx));
-    if (pitch > 1 && lx >= x0 - 10.0f / fabsf(Sx) && lx <= x0 + width) {
-        int r = (int)floorf((ly - y0) / pitch + 0.5f); // rows are centred on their _y (measured)
-        if (r >= 0 && r < n) hit = r;
-    }
-    return hit;
+    if (pitch <= 1 || lx < x0 - 10.0f / fabsf(Sx) || lx > x0 + width) return -1;
+    int r = (int)floorf((ly - y0) / pitch + 0.5f); // rows are centred on their _y (measured)
+    return r >= 0 && r < row_count(page) ? r : -1;
 }
 
 } // namespace
 
 void install()
 {
-    for (const char *n : kInts) fe_int_set(n, 0); // registered from the start: the pages write them
+    for (const char *n : kInts) fe_int_set(n, 0); // registered from the start: the pages read and write them
+    fe_int_set("FEPCMouseX", -100000);
+    fe_int_set("FEPCGHit", -100);
 }
 
 void script_pos(float x, float y)
@@ -113,55 +135,74 @@ int poll(bool in_menus, bool left, bool right, int key_input)
 {
     host3d::set_menu_mode(in_menus);
     int wheel = host3d::menu_wheel_take();
-    if (!in_menus) {
-        g_target = g_click = -1;
-        g_left_was = left;
-        g_right_was = right;
-        return 0;
-    }
     bool left_edge = left && !g_left_was, right_edge = right && !g_right_was;
     g_left_was = left;
     g_right_was = right;
-    if (key_input) {
-        g_target = g_click = -1; // the keyboard leads
+    if (!in_menus) {
+        g_follow = g_click = g_moved = false;
+        fe_int_set("FEPCMouseX", -100000);
         return 0;
     }
-    int seq = fe_int_get("FEPCMSeq");
-    g_seq_age = seq != g_last_seq ? 0 : g_seq_age + 1;
-    g_last_seq = seq;
-    bool page_up = g_seq_age < 6;
-    int page = fe_int_get("FEPCMPage") - 1;
-    float px, py;
+    if (key_input) { // the keyboard leads
+        g_follow = g_click = g_moved = false;
+        return 0;
+    }
+    g_own.poll();
+    g_game.poll();
+    int h = fe_int_get("FEPCGHit"); // the pages write it only on a hit; cleared here, kept a few polls
+    if (h != -100) {
+        g_game_hit = h;
+        g_game_hit_age = 0;
+        fe_int_set("FEPCGHit", -100);
+    } else if (g_game_hit_age < 1000) {
+        g_game_hit_age++;
+    }
+    float px, py, sx = 0, sy = 0;
     bool have = g_script_x >= 0 ? (px = g_script_x, py = g_script_y, true) : host3d::cursor_in_picture(&px, &py);
-    int hit = have && page_up ? hit_row(px, py, page) : -1;
+    if (have) have = to_stage(px, py, &sx, &sy);
+    fe_int_set("FEPCMouseX", have ? (int)lroundf(sx * 4) : -100000);
+    fe_int_set("FEPCMouseY", have ? (int)lroundf(sy * 4) : -100000);
     bool moved = have && (fabsf(px - g_last_x) > 0.002f || fabsf(py - g_last_y) > 0.002f);
     if (have) {
         g_last_x = px;
         g_last_y = py;
     }
-    if (moved && hit >= 0) g_target = hit;
-    int focus = fe_int_get("FEPCMFocus");
+    // the ring offset from the focus to the row under the cursor, on whichever page reports
+    const Report *rep = g_own.fresh() ? &g_own : g_game.fresh() ? &g_game : nullptr;
+    int offset = -100, page = -1, row = -1;
+    if (rep == &g_own && have) {
+        page = fe_int_get("FEPCMPage") - 1;
+        row = own_row(sx, sy, page);
+        int focus = fe_int_get("FEPCMFocus");
+        if (row >= 0 && focus >= 0) offset = row - focus;
+    } else if (rep == &g_game && have) {
+        offset = g_game_hit_age < 4 ? g_game_hit : -100;
+    }
+    bool over = offset != -100;
+    if (moved) g_moved = true;
+    if (g_moved && over) {
+        g_follow = true;
+        g_moved = false;
+    }
     if (right_edge) return 6;
-    if (left_edge && hit >= 0) {
-        if (hit == focus) return click_input(page, hit);
-        g_target = g_click = hit;
+    if (left_edge && over) {
+        if (offset == 0) return rep == &g_own ? click_input(page, row) : 5;
+        g_follow = g_click = true;
     }
     if (wheel) return wheel > 0 ? 1 : 2;
-    if (!page_up || focus < 0) return 0;
-    if (g_target >= 0 && g_target != focus) {
-        if (g_step_wait > 0) {
-            g_step_wait--;
-            return 0;
+    if (!rep || !g_follow) return 0;
+    if (!over) return 0; // off the rows: the focus stays
+    if (offset == 0) {
+        g_follow = false;
+        if (g_click) {
+            g_click = false;
+            return rep == &g_own ? click_input(page, row) : 5;
         }
-        g_step_wait = 2;
-        return g_target > focus ? 2 : 1;
+        return 0;
     }
-    g_target = -1;
-    if (g_click >= 0 && g_click == focus) {
-        g_click = -1;
-        return click_input(page, focus);
-    }
-    return 0;
+    if (rep->last == g_step_seq) return 0; // the page has not reported since the last step
+    g_step_seq = rep->last;
+    return offset > 0 ? 2 : 1;
 }
 
 } // namespace menu_mouse
