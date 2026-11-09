@@ -9,7 +9,14 @@
 // mulss / addss at 0x1CC5CD / 0x1CC5D5 and 0x1CC705 / 0x1CC70D are pointed at port floats 0.3 * s and 1.0 * s:
 // s scales the speed and the cap together. ml_sway (input/mouselook.cpp) runs earlier in the same player update
 // and sets s: 1.25 while the key is held, moving forward (+0xE4 > 0), not crouched (+0x40), not aiming
-// (+0x45) and without the +0x106 weapon flag; 1 otherwise.
+// (+0x45), without the +0x106 weapon flag and not reloading; 1 otherwise.
+//
+// Reloading (user: no reload while sprinting, a reload blocks sprint): the weapon controller's state +0xD8 is 4 while
+// a magazine reload plays, 8 from the refill (an animation event, 0x1E89DA -> FUN_001BAF70) to the end of the
+// animation, 5 / 6 in the shotgun's shell-by-shell reload; 0 idle, 1 firing. While sprinting the reload request
+// (controller +0x44, action 11, set at 0x1ECC2E) is cleared. A reload cannot be interrupted instead: the first-person
+// animation drives it (state 4 set back to 0 still played the reload and its event still refilled, tested), and the
+// original has no way to stop it (the weapon state machine's state 4 takes no input).
 #include "input/sprint.h"
 
 #include "common.h"
@@ -58,7 +65,7 @@ void install_sprint_patch()
 
 void sprint_input(bool held) { g_held = held; }
 
-void sprint_frame(const uint8_t *ctrl)
+void sprint_frame(uint8_t *ctrl)
 {
     if (!g_installed) return;
     float s = 1.0f;
@@ -67,8 +74,16 @@ void sprint_frame(const uint8_t *ctrl)
         bool crouched = ctrl[0x40] != 0, aiming = ctrl[0x45] != 0, slow = false;
         uint32_t body = *(const uint32_t *)(ctrl + 0x8C);
         uint32_t weapon = body ? *(const uint32_t *)(uintptr_t)(body + 0x29C) : 0;
-        if (weapon) slow = *(const uint8_t *)(uintptr_t)(weapon + 0x106) != 0;
-        if (forward > 0.0f && !crouched && !aiming && !slow) s = 1.25f;
+        bool reloading = false;
+        if (weapon) {
+            slow = *(const uint8_t *)(uintptr_t)(weapon + 0x106) != 0;
+            uint32_t state = *(const uint32_t *)(uintptr_t)(weapon + 0xD8);
+            reloading = state == 4 || state == 8 || state == 5 || state == 6;
+        }
+        if (forward > 0.0f && !crouched && !aiming && !slow && !reloading) {
+            s = 1.25f;
+            ctrl[0x44] = 0; // no reload starts while sprinting (the request, action 11, set at 0x1ECC2E)
+        }
     }
     g_sprint_mul = 0.3f * s;
     g_sprint_add = 1.0f * s;

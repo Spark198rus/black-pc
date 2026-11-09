@@ -5,4 +5,4 @@
 
 void install_sprint_patch();
 void sprint_input(bool held);           // each pad poll (input/bindings.cpp): the Sprint key, in play only
-void sprint_frame(const uint8_t *ctrl); // each player update (input/mouselook.cpp), before the movement
+void sprint_frame(uint8_t *ctrl);       // each player update (input/mouselook.cpp), before the movement and the weapon
