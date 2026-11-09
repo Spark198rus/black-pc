@@ -1,7 +1,8 @@
 // Mouse in the menus (issue #41). In the menus the mouse is not captured (host3d::set_menu_mode): the cursor shows, a
 // click goes to the menu, and play starting or resuming captures it (input/bindings.cpp).
 //
-// - The wheel is up / down in every menu (the menus' own inputs, as the arrow keys).
+// - The wheel is up / down in every menu (the menus' own inputs, as the arrow keys); left / right on MISSION SELECT,
+//   where a click anywhere confirms.
 // - The port's pages (the main menu's PC SETTINGS page, its group pages and KEY BINDINGS, the pause menu's PC SETTINGS page)
 //   report each update where their rows are (fe/pages.cpp emit_rows_report). The cursor is mapped to the menus' stage:
 //   the picture's 0..1 to the 640 x 480 the front end draws (the stage width is 853.33 in widescreen, 640 in 4:3), then
@@ -26,6 +27,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 namespace menu_mouse {
 namespace {
@@ -97,6 +99,15 @@ int row_count(int page)
     return page >= 0 && page < (int)gs.size() ? (int)gs[page].rows.size() : 0;
 }
 
+// a page that picks with left / right instead of a list (MISSION SELECT: the mission name, A confirms): the wheel is
+// left / right there and a click anywhere confirms (user: the wheel and the click did nothing there)
+bool sideways_page()
+{
+    uint32_t fe = *(const uint32_t *)(uintptr_t)xbe_va(0x002D199C);
+    if (!fe) return false;
+    return _strnicmp((const char *)(uintptr_t)(fe + 0x3840), "MissionModeSelect", 17) == 0;
+}
+
 // the setting of row r of a port page, -1 if none
 int row_setting(int page, int r)
 {
@@ -160,6 +171,12 @@ int poll(bool in_menus, bool left, bool right, int key_input)
 {
     host3d::set_menu_mode(in_menus);
     int wheel = host3d::menu_wheel_take();
+    { // one wheel step per 0.25 s at most (user): notches in between are dropped, so a flick does not skip pages
+        static ULONGLONG last;
+        ULONGLONG now = GetTickCount64();
+        if (wheel && now - last < 250) wheel = 0;
+        else if (wheel) last = now;
+    }
     bool left_edge = left && !g_left_was, right_edge = right && !g_right_was;
     g_left_was = left;
     g_right_was = right;
@@ -238,6 +255,11 @@ int poll(bool in_menus, bool left, bool right, int key_input)
         }
     }
     if (right_edge) return 6;
+    if (sideways_page()) {
+        g_follow = g_click = false;
+        if (left_edge) return 5;
+        return wheel ? (wheel > 0 ? 3 : 4) : 0;
+    }
     if (left_edge && over) {
         if (offset == 0) return rep == &g_own ? click_input(page, row) : game_click();
         g_follow = g_click = true;
