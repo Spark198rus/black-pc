@@ -15,6 +15,7 @@
 #include "bigbuf.h"
 #include "language.h"
 #include "reload_blur.h"
+#include "cheats.h"
 #include "settings.h"
 
 #include <algorithm>
@@ -188,6 +189,15 @@ const Row kRows[] = {
     // CONTROLS (21): the game's own hold path (input/mouselook.cpp), from the next frame in play
     {"AIM", 2, [] { return (int)g_cfg.aim_hold; }, [](int i) { g_cfg.aim_hold = i != 0; },
      [](int i) { return std::wstring(i ? L"HOLD" : L"TOGGLE (ORIGINAL)"); }},
+    // CHEATS (22-25, cheats.cpp), live
+    {"UNLOCK ALL MISSIONS", 2, [] { return (int)g_cfg.cheat_unlock; },
+     [](int i) { g_cfg.cheat_unlock = i != 0; cheats_apply(); }, [](int i) { return on_off(i); }},
+    {"GOD MODE", 2, [] { return (int)g_cfg.cheat_god; }, [](int i) { g_cfg.cheat_god = i != 0; cheats_apply(); },
+     [](int i) { return on_off(i); }},
+    {"INFINITE AMMO", 2, [] { return (int)g_cfg.cheat_ammo; }, [](int i) { g_cfg.cheat_ammo = i != 0; cheats_apply(); },
+     [](int i) { return on_off(i); }},
+    {"DAMAGE TO ENEMIES", 4, [] { return g_cfg.cheat_damage; }, [](int i) { g_cfg.cheat_damage = i; cheats_apply(); },
+     [](int i) { return std::wstring(i == 3 ? L"ONE-HIT KILL" : i == 2 ? L"X4" : i == 1 ? L"X2" : L"X1 (ORIGINAL)"); }},
 };
 constexpr int kRowN = sizeof kRows / sizeof kRows[0];
 constexpr int kKeyBindings = 15;
@@ -205,6 +215,7 @@ const std::vector<Group> &groups()
         {"PCTweaks", "TWEAKS", {11, 17, 18, 19, kWeaponBuffers}},
         {"PCAudio", "AUDIO AND MOVIES", {10, 12, kLanguage}},
         {"PCControls", "CONTROLS", {13, 14, kAimMode, kKeyBindings}},
+        {"PCCheats", "CHEATS", {22, 23, 24, 25}},
     };
     return g;
 }

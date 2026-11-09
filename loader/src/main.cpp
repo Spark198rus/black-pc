@@ -19,6 +19,7 @@
 #include "input/mouselook.h"
 #include "kernel/ktable.h"
 #include "reload_blur.h"
+#include "cheats.h"
 #include "kernel/xboxkrnl.h"
 #include "xbe.h"
 #include "xthread.h"
@@ -97,6 +98,7 @@ void usage()
            "  --autoaim         the game's auto-aim (the view pulling toward enemies), off by default; --no-autoaim\n"
            "  --lean-angle D    tactical lean: view roll at full lean in degrees (default 10); --lean-offset M: eye shift (0.35; PC SETTINGS > TWEAKS)\n"
            "  --no-reload-blur  no screen blur while reloading (default: on, as the original); --reload-blur\n"
+           "  --cheat NAME      unlock (all missions), god, ammo (no ammo used), x2, x4, onehit (damage to enemies)\n"
            "  --fov D           horizontal field of view in play, 50-120 degrees (default 70, the game's; PC SETTINGS > VIDEO)\n"
            "  --no-movie-skip   movies skip only as in the original (default: A / START skip every movie)\n"
            "  --no-pc-menus     no PC SETTINGS pages in the game's Options menu (built at start into cache\\menus\n"
@@ -230,6 +232,17 @@ bool parse_args()
             else g_cfg.lean_offset = std::clamp(f, -2.0f, 2.0f);
         } else if (a == L"--no-reload-blur") { g_cfg.reload_blur = false; settings_mark_cli("reloadblur"); }
         else if (a == L"--reload-blur") { g_cfg.reload_blur = true; settings_mark_cli("reloadblur"); }
+        else if (a == L"--cheat") {
+            std::wstring v;
+            if (!next(v)) return false;
+            if (v == L"unlock") { g_cfg.cheat_unlock = true; settings_mark_cli("cheat_unlock"); }
+            else if (v == L"god") { g_cfg.cheat_god = true; settings_mark_cli("cheat_god"); }
+            else if (v == L"ammo") { g_cfg.cheat_ammo = true; settings_mark_cli("cheat_ammo"); }
+            else if (v == L"x2" || v == L"x4" || v == L"onehit") {
+                g_cfg.cheat_damage = v == L"x2" ? 1 : v == L"x4" ? 2 : 3;
+                settings_mark_cli("cheat_damage");
+            } else fprintf(stderr, "unknown --cheat %ls\n", v.c_str());
+        }
         else if (a == L"--fov") {
             settings_mark_cli("fov");
             std::wstring v;
@@ -510,6 +523,7 @@ int run(void *reserve, unsigned reserve_size)
     if (supported_build) install_mouselook_patches();
     if (supported_build) install_autoaim_patch();
     if (supported_build) install_reload_blur_patch();
+    if (supported_build) install_cheats();
     if (supported_build) install_lean_patch();
     if (supported_build) install_fov_patch();
     if (supported_build) install_bigbuf_patch();

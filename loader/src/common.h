@@ -72,6 +72,11 @@ struct Config {
     // scale most PC shooters use.
     float mouse_sens = 2.0f;
     bool mouse_invert = false;
+    // cheats (cheats.cpp; PC SETTINGS > CHEATS, --cheat NAME), all off by default
+    bool cheat_unlock = false; // every mission selectable (the profile keeps the real progress)
+    bool cheat_god = false;    // the player takes no damage
+    bool cheat_ammo = false;   // firing uses no ammo (no reloads)
+    int cheat_damage = 0;      // damage to enemies: 0 x1, 1 x2, 2 x4, 3 one-hit kill
     bool aim_hold = false;     // aim while the aim button is held instead of toggling (input/mouselook.cpp; --hold-aim, PC SETTINGS)
     bool timer_vblank = false; // --timer-vblank: free-running 59.94 Hz vblank instead of following the display
     bool display_vblank = false; // --display-vblank (tests): follow the display even with --background

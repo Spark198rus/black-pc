@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
+#include <set>
 #include <iterator>
 
 namespace {
@@ -477,19 +478,19 @@ void page_script(Movie &mv, const PageScript &p)
 // frame (a Move with a colour transform) with a flash bar. The copy: depth 2, dy lower, named `name`, revealed 3
 // frames after the bottom row with its own bar at new_bar_depth.
 void add_menu_row(Movie &mv, uint32_t textanim, const std::string &label, const std::string &name, float dy, int reveal,
-                  uint32_t bar_depth, uint32_t new_bar_depth)
+                  uint32_t bar_depth, uint32_t new_bar_depth, uint32_t text_depth)
 {
     int t = mv.add_character(mv.clone_text(mv.character(5), label, label));
     int s6 = mv.add_character(mv.clone_sprite(mv.character(6), {{5, t}}));
     int s7 = mv.add_character(mv.clone_sprite(mv.character(7), {{6, s6}}));
     Bytes row = body(mv, mv.find_place(textanim, 0, 1));
-    wr(row, 8, 2);
+    wr(row, 8, text_depth);
     wr(row, 12, (uint32_t)s7);
     wrf(row, 36, rdf(row, 36) + dy);
     wr(row, 52, mv.cstring(name));
     mv.append_control(textanim, 0, mv.alloc(row.data(), 64));
     Bytes show = body(mv, mv.find_place(textanim, reveal, 1, 1));
-    wr(show, 8, 2);
+    wr(show, 8, text_depth);
     mv.append_control(textanim, reveal + 3, mv.alloc(show.data(), 64));
     Bytes bar = body(mv, mv.find_place(textanim, reveal, bar_depth));
     wr(bar, 8, new_bar_depth);
@@ -497,9 +498,21 @@ void add_menu_row(Movie &mv, uint32_t textanim, const std::string &label, const 
     mv.append_control(textanim, reveal + 3, mv.alloc(bar.data(), 64));
 }
 
+// the first depth from `from` up that no PlaceObject in any frame of the sprite uses
+uint32_t free_depth(const Movie &mv, uint32_t sprite, uint32_t from)
+{
+    std::set<uint32_t> used;
+    uint32_t frames = rd(mv.apt, sprite + 8);
+    for (uint32_t f = 0; f < frames; f++)
+        for (uint32_t c : mv.controls(sprite, (int)f))
+            if (rd(mv.apt, c) == 3) used.insert(rd(mv.apt, c + 8));
+    while (used.count(from)) from++;
+    return from;
+}
+
 void options_row(Movie &mv)
 {
-    add_menu_row(mv, mv.character(27), "PC SETTINGS", "PCSettings_Text", 25.9f, 55, 21, 22); // below the Profile row
+    add_menu_row(mv, mv.character(27), "PC SETTINGS", "PCSettings_Text", 25.9f, 55, 21, 22, 2); // below the Profile row
 
     uint32_t script = mv.main_script();
     for (const char *f : {"PagePrepare", "PageRelease", "PageDestruct", "Update"}) mv.rename_function(script, f, std::string(f) + "0");
@@ -535,7 +548,7 @@ void options_row(Movie &mv)
 void main_menu_quit(Movie &mv, int textanim, float dy, int reveal, uint32_t bar_depth, uint32_t new_bar_depth,
                     const char *last, const char *first)
 {
-    add_menu_row(mv, mv.character(textanim), "QUIT", "Quit_Text", dy, reveal, bar_depth, new_bar_depth);
+    add_menu_row(mv, mv.character(textanim), "QUIT", "Quit_Text", dy, reveal, bar_depth, new_bar_depth, 2);
     uint32_t script = mv.main_script();
     for (const char *f : {"PagePrepare", "PageRelease", "PageDestruct", "Update"}) mv.rename_function(script, f, std::string(f) + "0");
     Classes classes = own_classes_prepare(mv);
@@ -569,11 +582,14 @@ void main_menu_quit(Movie &mv, int textanim, float dy, int reveal, uint32_t bar_
 void pc_menu(Movie &mv)
 {
     const auto &groups = pcset::groups();
-    if (groups.size() != 5) throw Error("the PC SETTINGS menu has five rows");
+    if (groups.size() != 6) throw Error("the PC SETTINGS menu has six rows");
     literal(mv, mv.character(18), "PC SETTINGS");
     const int texts[4] = {14, 11, 8, 5}; // rows top to bottom: ControllerSetup, SoundSetup, PictureSetup, Playerprofile
     for (int i = 0; i < 4; i++) literal(mv, mv.character(texts[i]), groups[i].title);
-    add_menu_row(mv, mv.character(27), groups[4].title, "PCGroup5_Text", 25.9f, 55, 21, 22); // the fifth, as in Options
+    // the fifth and sixth below the Options rows, as PC SETTINGS in Options (each at depths no frame uses yet)
+    for (int i = 4; i < 6; i++)
+        add_menu_row(mv, mv.character(27), groups[i].title, "PCGroup" + std::to_string(i + 1) + "_Text", 25.9f * (i - 3), 55, 21,
+                     free_depth(mv, mv.character(27), 22), free_depth(mv, mv.character(27), 2));
     uint32_t script = mv.main_script();
     for (const char *f : {"PagePrepare", "PageRelease", "PageDestruct", "Update"}) mv.rename_function(script, f, std::string(f) + "0");
     Classes classes = own_classes_prepare(mv);
@@ -584,12 +600,15 @@ void pc_menu(Movie &mv)
     a.function2("PagePrepare", [&groups](Asm &f) {
         call_function(f, "PagePrepare0");
         make(f, "group5Button", "BkMenuButton", {at({"Main", "TextAnim", "PCGroup5_Text"})});
+        make(f, "group6Button", "BkMenuButton", {at({"Main", "TextAnim", "PCGroup6_Text"})});
         set(f, {"Playerprofile"}, "buttonDown", at({"group5Button"}));
         set(f, {"group5Button"}, "buttonUp", at({"Playerprofile"}));
-        set(f, {"group5Button"}, "buttonDown", at({"controllerButton"}));
-        set(f, {"controllerButton"}, "buttonUp", at({"group5Button"}));
-        const char *buttons[5] = {"controllerButton", "soundButton", "pictureButton", "Playerprofile", "group5Button"};
-        for (int i = 0; i < 5; i++) set(f, {buttons[i]}, "actionSelectPage", S(groups[i].page));
+        set(f, {"group5Button"}, "buttonDown", at({"group6Button"}));
+        set(f, {"group6Button"}, "buttonUp", at({"group5Button"}));
+        set(f, {"group6Button"}, "buttonDown", at({"controllerButton"}));
+        set(f, {"controllerButton"}, "buttonUp", at({"group6Button"}));
+        const char *buttons[6] = {"controllerButton", "soundButton", "pictureButton", "Playerprofile", "group5Button", "group6Button"};
+        for (int i = 0; i < 6; i++) set(f, {buttons[i]}, "actionSelectPage", S(groups[i].page));
         call(f, {"MyMenu"}, "SetFunctionBack"); // no argument: not Options' own back (save and leave)
         call(f, {"MyMenu"}, "SetPageBack", {S("OptionsMenuXbox")});
         f.push_true().ret();
@@ -597,10 +616,12 @@ void pc_menu(Movie &mv)
     a.function2("PageRelease", [](Asm &f) {
         call_function(f, "PageRelease0");
         call(f, {"group5Button"}, "Release");
+        call(f, {"group6Button"}, "Release");
     });
     a.function2("PageDestruct", [](Asm &f) {
         call_function(f, "PageDestruct0");
         f.push(Value::S("group5Button")).delete2().pop();
+        f.push(Value::S("group6Button")).delete2().pop();
     });
     mv.append_control(mv.main, 0, mv.do_action(a.finish()));
 }
