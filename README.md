@@ -166,7 +166,7 @@ The port's settings are in the game's menus: Options > PC SETTINGS on the main m
 | DISPLAY | aspect ratio, frame rate (main menu only), filling geometry seams, effects at Xbox size |
 | TWEAKS | auto-aim, reload blur, lean angle, lean distance, weapon buffers (bigger weapon files for mods; from the next start) |
 | AUDIO AND MOVIES | room reverb, skipping any movie, language (PAL disc; from the next start) |
-| CONTROLS | mouse sensitivity, mouse inversion, aim (toggle as the original, or hold), key bindings |
+| CONTROLS | mouse sensitivity, mouse inversion, aim (toggle as the original, or hold), sprint (on: hold Left Shift to run faster forward; off as the original), key bindings |
 | CHEATS | unlock all missions on easy, normal and hard (the save keeps your real progress), god mode, infinite ammo and grenades (yours only), damage to enemies (x2, x4, one-hit kill: your bullets; explosions and other damage enemies take are scaled whoever caused them) |
 
 `black.exe --help` lists the command-line options. They override `black.ini` for that run (e.g., `--fullscreen --resolution 1080 --fps 30 --fov 86`).
@@ -355,7 +355,7 @@ Os ajustes do port ficam dentro do menu do jogo: **Options > PC SETTINGS** e no 
 | DISPLAY | Proporção de tela, Taxa de Quadros, Preenchimento de costuras, Efeitos no tamanho do Xbox |
 | TWEAKS | Mira Automática, Desfoque ao recarregar, Ângulo e distância da inclinação, Buffers de armas (arquivos de armas maiores para mods; na próxima inicialização) |
 | AUDIO AND MOVIES | Reverberação de ambiente, Pular qualquer cutscene, Idioma (disco PAL; na próxima inicialização) |
-| CONTROLS | Sensibilidade do Mouse, Inversão do Mouse, Mira (alternar como no original, ou segurar), Mapeamento de Teclas |
+| CONTROLS | Sensibilidade do Mouse, Inversão do Mouse, Mira (alternar como no original, ou segurar), Corrida (ligada: segure Shift esquerdo para correr mais rápido; desligada como no original), Mapeamento de Teclas |
 | CHEATS | Desbloquear todas as missões no fácil, normal e difícil (o save mantém o progresso real), Modo Deus, Munição e granadas infinitas (só as suas), Dano aos inimigos (x2, x4, morte com um tiro) |
 
 Você pode usar argumentos de linha de comando (ex: `black.exe --fullscreen --resolution 1080 --fps 30 --fov 86`).

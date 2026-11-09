@@ -83,6 +83,7 @@ struct Config {
     bool effects_native = false; // the small effect buffers at their Xbox size (PC SETTINGS); default: render scale, smoothed
     bool seam_fill = true;     // fill hairline cracks between geometry pieces (PC SETTINGS, --no-seamfill)
     bool autoaim = false;      // the game's view pull toward targets, off by default (input/autoaim.cpp; --autoaim, PC SETTINGS)
+    bool sprint = false;       // the Sprint key runs 1.25x as fast (input/sprint.cpp; --sprint, PC SETTINGS)
     float lean_angle = 10.0f;  // tactical lean (input/lean.cpp): roll in degrees and eye shift in metres at full lean
     float lean_offset = 0.35f; // (--lean-angle, --lean-offset)
     bool reload_blur = true;   // the game's screen blur while reloading (reload_blur.cpp; --no-reload-blur, PC SETTINGS)

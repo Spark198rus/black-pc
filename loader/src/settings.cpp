@@ -63,6 +63,7 @@ void settings_load()
         else if (k == "reloadblur") g_cfg.reload_blur = v != 0;
         else if (k == "weapon_buffers_mb") g_cfg.buf_mb = (uint32_t)std::clamp((int)v, 0, 16);
         else if (k == "lean_angle") g_cfg.lean_angle = std::clamp(v, -45.0f, 45.0f);
+        else if (k == "sprint") g_cfg.sprint = v != 0;
         else if (k == "lean_offset") g_cfg.lean_offset = std::clamp(v, -2.0f, 2.0f);
         else if (k == "fov") g_cfg.fov = std::clamp(v, 50.0f, 120.0f);
         else if (k == "skipanymovie") g_cfg.skip_movies = v != 0;
@@ -99,6 +100,7 @@ void settings_save()
     fprintf(f, "reloadblur = %d\n", g_cfg.reload_blur ? 1 : 0);
     fprintf(f, "weapon_buffers_mb = %u\n", g_cfg.buf_mb);
     fprintf(f, "lean_angle = %.1f\nlean_offset = %.3f\n", g_cfg.lean_angle, g_cfg.lean_offset);
+    fprintf(f, "sprint = %d\n", g_cfg.sprint ? 1 : 0);
     fprintf(f, "fov = %.1f\n", g_cfg.fov);
     fprintf(f, "skipanymovie = %d\n", g_cfg.skip_movies ? 1 : 0);
     fprintf(f, "seamfill = %d\n", g_cfg.seam_fill ? 1 : 0);

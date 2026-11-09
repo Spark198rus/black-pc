@@ -16,6 +16,7 @@
 #include "language.h"
 #include "reload_blur.h"
 #include "cheats.h"
+#include "input/sprint.h"
 #include "settings.h"
 
 #include <algorithm>
@@ -198,6 +199,8 @@ const Row kRows[] = {
      [](int i) { return on_off(i); }},
     {"DAMAGE TO ENEMIES", 4, [] { return g_cfg.cheat_damage; }, [](int i) { g_cfg.cheat_damage = i; cheats_apply(); },
      [](int i) { return std::wstring(i == 3 ? L"ONE-HIT KILL" : i == 2 ? L"X4" : i == 1 ? L"X2" : L"X1 (ORIGINAL)"); }},
+    // CONTROLS (26): the Sprint key (input/sprint.cpp), live
+    {"SPRINT", 2, [] { return (int)g_cfg.sprint; }, [](int i) { g_cfg.sprint = i != 0; }, [](int i) { return on_off(i); }},
 };
 constexpr int kRowN = sizeof kRows / sizeof kRows[0];
 constexpr int kKeyBindings = 15;
@@ -214,7 +217,7 @@ const std::vector<Group> &groups()
         {"PCDisplay", "DISPLAY", {6, 7, 8, 9}},
         {"PCTweaks", "TWEAKS", {11, 17, 18, 19, kWeaponBuffers}},
         {"PCAudio", "AUDIO AND MOVIES", {10, 12, kLanguage}},
-        {"PCControls", "CONTROLS", {13, 14, kAimMode, kKeyBindings}},
+        {"PCControls", "CONTROLS", {13, 14, kAimMode, 26, kKeyBindings}},
         {"PCCheats", "CHEATS", {22, 23, 24, 25}},
     };
     return g;

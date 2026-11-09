@@ -20,6 +20,7 @@
 #include "kernel/ktable.h"
 #include "reload_blur.h"
 #include "cheats.h"
+#include "input/sprint.h"
 #include "kernel/xboxkrnl.h"
 #include "xbe.h"
 #include "xthread.h"
@@ -96,6 +97,7 @@ void usage()
            "  --mouse-invert    mouse forward looks down\n"
            "  --hold-aim        aim only while the aim button is held (default: press to toggle, as the original); --toggle-aim\n"
            "  --autoaim         the game's auto-aim (the view pulling toward enemies), off by default; --no-autoaim\n"
+           "  --sprint          run 1.25x as fast while the Sprint key (Left Shift) is held (default off; PC SETTINGS > CONTROLS); --no-sprint\n"
            "  --lean-angle D    tactical lean: view roll at full lean in degrees (default 10); --lean-offset M: eye shift (0.35; PC SETTINGS > TWEAKS)\n"
            "  --no-reload-blur  no screen blur while reloading (default: on, as the original); --reload-blur\n"
            "  --cheat NAME      unlock (all missions), god, ammo (no ammo used), x2, x4, onehit (damage to enemies)\n"
@@ -223,7 +225,10 @@ bool parse_args()
         else if (a == L"--toggle-aim") { g_cfg.aim_hold = false; settings_mark_cli("aim_hold"); }
         else if (a == L"--no-autoaim") { g_cfg.autoaim = false; settings_mark_cli("autoaim"); }
         else if (a == L"--autoaim") { g_cfg.autoaim = true; settings_mark_cli("autoaim"); }
-        else if (a == L"--lean-angle" || a == L"--lean-offset") {
+        else if (a == L"--sprint" || a == L"--no-sprint") {
+            g_cfg.sprint = a == L"--sprint";
+            settings_mark_cli("sprint");
+        } else if (a == L"--lean-angle" || a == L"--lean-offset") {
             std::wstring v;
             if (!next(v)) return false;
             float f = (float)_wtof(v.c_str());
@@ -525,6 +530,7 @@ int run(void *reserve, unsigned reserve_size)
     if (supported_build) install_reload_blur_patch();
     if (supported_build) install_cheats();
     if (supported_build) install_lean_patch();
+    if (supported_build) install_sprint_patch();
     if (supported_build) install_fov_patch();
     if (supported_build) install_bigbuf_patch();
     if (supported_build) install_fe_calls();

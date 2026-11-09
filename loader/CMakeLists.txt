@@ -38,6 +38,7 @@ add_library(blackrt SHARED
   src/input/mouselook.cpp
   src/input/autoaim.cpp
   src/input/lean.cpp
+  src/input/sprint.cpp
   src/input/bindings.cpp
   src/input/movies.cpp
   src/audio/reverb.cpp
