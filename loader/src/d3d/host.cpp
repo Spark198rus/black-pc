@@ -38,6 +38,8 @@ std::atomic<bool> g_menus{false};
 std::atomic<int> g_menu_wheel;
 bool g_hold_left; // the capturing click: masked until released
 constexpr UINT WM_APP_CAPTURE = WM_APP + 0x52; // wParam: 1 = capture, 0 = release (request_capture)
+constexpr UINT WM_APP_CURSOR = WM_APP + 0x54;  // the cursor's visibility changed (set_cursor_hidden)
+std::atomic<bool> g_cursor_hidden{false};      // a movie plays: no cursor over the window
 constexpr UINT WM_APP_FULLSCREEN = WM_APP + 0x53; // wParam: 1 = fullscreen, 0 = windowed (set_fullscreen)
 
 // Borderless window over the whole monitor, or back to the window it was.
@@ -221,8 +223,17 @@ LRESULT CALLBACK wndproc(HWND h, UINT msg, WPARAM wp, LPARAM lp)
     case WM_KILLFOCUS:
         capture_mouse(false);
         break;
+    case WM_APP_CURSOR: { // now, not at the next mouse move
+        POINT p;
+        RECT r;
+        GetCursorPos(&p);
+        ScreenToClient(h, &p);
+        GetClientRect(h, &r);
+        if (PtInRect(&r, p)) SetCursor(g_captured || g_cursor_hidden ? nullptr : LoadCursorW(nullptr, IDC_ARROW));
+        return 0;
+    }
     case WM_SETCURSOR:
-        if (g_captured && LOWORD(lp) == HTCLIENT) {
+        if ((g_captured || g_cursor_hidden) && LOWORD(lp) == HTCLIENT) {
             SetCursor(nullptr);
             return TRUE;
         }
@@ -356,6 +367,11 @@ void frame_layout(RECT *frame, RECT *picture)
 bool mouse_captured() { return g_captured; }
 
 void set_menu_mode(bool on) { g_menus = on; }
+
+void set_cursor_hidden(bool on)
+{
+    if (g_cursor_hidden.exchange(on) != on && g_hwnd) PostMessageW(g_hwnd, WM_APP_CURSOR, 0, 0);
+}
 
 int menu_wheel_take() { return g_menu_wheel.exchange(0); }
 

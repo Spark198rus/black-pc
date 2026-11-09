@@ -21,6 +21,7 @@ void frame_layout(RECT *frame, RECT *picture);
 bool mouse_captured();
 // Menus (input/menu_mouse.cpp): while on, a click does not capture the mouse and the wheel counts for menu_wheel_take.
 void set_menu_mode(bool on);
+void set_cursor_hidden(bool on); // no cursor over the window while on (a movie plays)
 int menu_wheel_take();
 // The cursor over the game's picture while the mouse is not captured and the window is in front: 0..1 across and down.
 bool cursor_in_picture(float *x, float *y);

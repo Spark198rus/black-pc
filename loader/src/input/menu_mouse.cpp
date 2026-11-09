@@ -2,7 +2,7 @@
 // click goes to the menu, and play starting or resuming captures it (input/bindings.cpp).
 //
 // - The wheel is up / down in every menu (the menus' own inputs, as the arrow keys); left / right on MISSION SELECT,
-//   where a click anywhere confirms.
+//   where a click anywhere confirms, as on MISSION COMPLETE and the results.
 // - The port's pages (the main menu's PC SETTINGS page, its group pages and KEY BINDINGS, the pause menu's PC SETTINGS page)
 //   report each update where their rows are (fe/pages.cpp emit_rows_report). The cursor is mapped to the menus' stage:
 //   the picture's 0..1 to the 640 x 480 the front end draws (the stage width is 853.33 in widescreen, 640 in 4:3), then
@@ -106,6 +106,15 @@ bool sideways_page()
     uint32_t fe = *(const uint32_t *)(uintptr_t)xbe_va(0x002D199C);
     if (!fe) return false;
     return _strnicmp((const char *)(uintptr_t)(fe + 0x3840), "MissionModeSelect", 17) == 0;
+}
+
+// a page with nothing to point at but CONFIRM (MISSION COMPLETE, the results): a click anywhere confirms (user)
+bool confirm_page()
+{
+    uint32_t fe = *(const uint32_t *)(uintptr_t)xbe_va(0x002D199C);
+    if (!fe) return false;
+    const char *page = (const char *)(uintptr_t)(fe + 0x3840);
+    return _strnicmp(page, "MissionComplete", 15) == 0 || _strnicmp(page, "Results", 7) == 0;
 }
 
 // the setting of row r of a port page, -1 if none
@@ -255,6 +264,10 @@ int poll(bool in_menus, bool left, bool right, int key_input)
         }
     }
     if (right_edge) return 6;
+    if (confirm_page()) {
+        g_follow = g_click = false;
+        return left_edge ? 5 : 0;
+    }
     if (sideways_page()) {
         g_follow = g_click = false;
         if (left_edge) return 5;

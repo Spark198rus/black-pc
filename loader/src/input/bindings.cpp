@@ -28,6 +28,7 @@
 #include "input/mouselook.h"
 #include "input/sprint.h"
 #include "input/menu_mouse.h"
+#include "input/movies.h"
 #include "settings.h"
 
 #include <algorithm>
@@ -332,7 +333,8 @@ int take_menu_input()
     return v && g_frame_count - g_menu_input_frame <= 2 ? v : 0;
 }
 
-bool menu_select_held() { return g_menu_select; }
+bool g_click_held; // a left click outside play (the mouse is free there)
+bool menu_select_held() { return g_menu_select || g_click_held; }
 
 bool in_play()
 {
@@ -434,7 +436,9 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
         int m = menu_mouse::poll(!play, left, right, input);
         if (!input && m) input = m;
         click = !play && left;
+        g_click_held = click;
     }
+    host3d::set_cursor_hidden(!play && movie_playing()); // no cursor over a movie
     if (input) {
         g_menu_input_frame = g_frame_count.load();
         g_menu_input = input;

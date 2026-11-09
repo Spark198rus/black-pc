@@ -6,7 +6,7 @@
 // +0x1A8 (0x1C playing, 0x37 idle), flags +0x198 (bit 0 = loop, the menu backgrounds), stop request +0x1B9, file
 // name +0x84 (FUN_001F3630 queues one; FUN_00209DC0 runs it once per frame). The sequencer FUN_0020ECF0 tells the
 // front end "FmvHasFinished" whenever the player is idle, so a stopped movie continues exactly like one that ended.
-// Here a press of A, START or Enter during a movie that does not loop stops it, unless the game reacted to the press
+// Here a press of A, START, Enter or a left click (input/bindings.cpp menu_select_held) during a movie that does not loop stops it, unless the game reacted to the press
 // itself within 10 frames (a movie it already lets you skip moves on to the next one, which is not stopped again).
 #include "input/movies.h"
 
@@ -34,6 +34,12 @@ uint8_t *player()
 bool playing_once(const uint8_t *p) { return *(const int32_t *)(p + kState) == kPlaying && !(*(const uint32_t *)(p + kFlags) & 1); }
 
 } // namespace
+
+bool movie_playing()
+{
+    const uint8_t *p = g_cfg.supported_build ? player() : nullptr;
+    return p && playing_once(p);
+}
 
 void movies_poll(uint16_t buttons, const uint8_t analog[8], bool enter)
 {
