@@ -108,13 +108,14 @@ bool sideways_page()
     return _strnicmp((const char *)(uintptr_t)(fe + 0x3840), "MissionModeSelect", 17) == 0;
 }
 
-// a page with nothing to point at but CONFIRM (MISSION COMPLETE, the results): a click anywhere confirms (user)
+// a page with nothing to point at but CONFIRM (MISSION COMPLETE, the results, the unlocks): a click anywhere confirms (user)
 bool confirm_page()
 {
     uint32_t fe = *(const uint32_t *)(uintptr_t)xbe_va(0x002D199C);
     if (!fe) return false;
     const char *page = (const char *)(uintptr_t)(fe + 0x3840);
-    return _strnicmp(page, "MissionComplete", 15) == 0 || _strnicmp(page, "Results", 7) == 0;
+    return _strnicmp(page, "MissionComplete", 15) == 0 || _strnicmp(page, "Results", 7) == 0 ||
+           _strnicmp(page, "Unlock", 6) == 0; // Unlocks (seen), unlockweapons
 }
 
 // the setting of row r of a port page, -1 if none
