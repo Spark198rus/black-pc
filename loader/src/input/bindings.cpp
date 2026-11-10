@@ -29,6 +29,7 @@
 #include "input/sprint.h"
 #include "input/menu_mouse.h"
 #include "input/movies.h"
+#include "checkpoints.h"
 #include "settings.h"
 
 #include <algorithm>
@@ -370,6 +371,7 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
         std::string page = fe ? std::string((const char *)(uintptr_t)(fe + 0x3840), strnlen((const char *)(uintptr_t)(fe + 0x3840), 63)) : "";
         if (page != page_was) {
             logf("[input] front-end page '%s' (play %d)", page.c_str(), (int)play);
+            checkpoints_page(page.c_str()); // a completed mission drops the kept checkpoint
             if (!page.empty() && page_was.empty() && host3d::mouse_captured()) host3d::request_capture(false);
             page_was = page;
         }

@@ -20,6 +20,7 @@
 #include "kernel/ktable.h"
 #include "reload_blur.h"
 #include "cheats.h"
+#include "checkpoints.h"
 #include "input/menu_mouse.h"
 #include "fe/menu_speed.h"
 #include "input/sprint.h"
@@ -533,6 +534,7 @@ int run(void *reserve, unsigned reserve_size)
     if (supported_build) install_autoaim_patch();
     if (supported_build) install_reload_blur_patch();
     if (supported_build) install_cheats();
+    if (supported_build) install_checkpoints();
     if (supported_build) install_menu_speed_patch();
     if (supported_build) install_lean_patch();
     if (supported_build) install_sprint_patch();

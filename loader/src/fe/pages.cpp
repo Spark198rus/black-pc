@@ -853,11 +853,15 @@ void options_row(Movie &mv)
 
 // The main menu (blacktitlemenu: CONTINUE MISSION / OPTIONS / OPERATOR PROFILE; blacktitlemenu2 with a new profile:
 // START MISSION / OPTIONS) gets QUIT at the bottom, in the up / down ring between the last and the first button; it
-// asks the port to close the game (PCQuit, like closing the window).
+// asks the port to close the game (PCQuit, like closing the window). CONTINUE LAST GAME goes above the first row
+// (rows above the bottom one; checkpoints.cpp): while a checkpoint is kept (externObject.FEPCHasCheckpoint) it is in the
+// ring between QUIT and the first button and starts that mission there (PCContinue); otherwise it is hidden.
 void main_menu_quit(Movie &mv, int textanim, float dy, int reveal, uint32_t bar_depth, uint32_t new_bar_depth,
-                    const char *last, const char *first)
+                    const char *last, const char *first, int rows)
 {
     add_menu_row(mv, mv.character(textanim), "QUIT", "Quit_Text", dy, reveal, bar_depth, new_bar_depth, 2);
+    add_menu_row(mv, mv.character(textanim), "CONTINUE LAST GAME", "LastGame_Text", -dy * rows, reveal, bar_depth,
+                 free_depth(mv, mv.character(textanim), new_bar_depth + 1), free_depth(mv, mv.character(textanim), 3));
     uint32_t script = mv.main_script();
     for (const char *f : {"PagePrepare", "PageRelease", "PageDestruct", "Update"}) mv.rename_function(script, f, std::string(f) + "0");
     Classes classes = own_classes_prepare(mv);
@@ -865,9 +869,11 @@ void main_menu_quit(Movie &mv, int textanim, float dy, int reveal, uint32_t bar_
     own_classes_script(a, classes, "main");
     heal_update(a, "quitButton", classes, "main", emit_ring_report);
     a.push(Value::S("quitButton")).define_local2();
+    a.push(Value::S("lastButton")).define_local2();
     a.function2("PagePrepare", [last, first](Asm &f) {
         call_function(f, "PagePrepare0");
         make(f, "quitButton", "BkMenuButton", {at({"Main", "TextAnim", "Quit_Text"})});
+        make(f, "lastButton", "BkMenuButton", {at({"Main", "TextAnim", "LastGame_Text"})});
         set(f, {last}, "buttonDown", at({"quitButton"}));
         set(f, {"quitButton"}, "buttonUp", at({last}));
         set(f, {"quitButton"}, "buttonDown", at({first}));
@@ -875,15 +881,30 @@ void main_menu_quit(Movie &mv, int textanim, float dy, int reveal, uint32_t bar_
         set(f, {"quitButton"}, "actionSelectFunction", [](Asm &g) {
             g.function2("", [](Asm &h) { trigger(h, "PCQuit", {}); });
         });
+        set(f, {"lastButton"}, "actionSelectFunction", [](Asm &g) {
+            g.function2("", [](Asm &h) { trigger(h, "PCContinue", {}); });
+        });
+        at({"_global", "externObject", "FEPCHasCheckpoint"})(f);
+        size_t kept = f.branch(0x9D);
+        set(f, {"Main", "TextAnim", "LastGame_Text"}, "_visible", [](Asm &g) { g.push(Value::I(0)); });
+        size_t done = f.branch(0x99);
+        f.land(kept); // QUIT -> CONTINUE LAST GAME -> the first row
+        set(f, {"quitButton"}, "buttonDown", at({"lastButton"}));
+        set(f, {"lastButton"}, "buttonUp", at({"quitButton"}));
+        set(f, {"lastButton"}, "buttonDown", at({first}));
+        set(f, {first}, "buttonUp", at({"lastButton"}));
+        f.land(done);
         f.push_true().ret();
     });
     a.function2("PageRelease", [](Asm &f) {
         call_function(f, "PageRelease0");
         call(f, {"quitButton"}, "Release");
+        call(f, {"lastButton"}, "Release");
     });
     a.function2("PageDestruct", [](Asm &f) {
         call_function(f, "PageDestruct0");
         f.push(Value::S("quitButton")).delete2().pop();
+        f.push(Value::S("lastButton")).delete2().pop();
     });
     mv.append_control(mv.main, 0, mv.do_action(a.finish()));
 }
@@ -1477,10 +1498,10 @@ bool fe_build_pages(const std::wstring &game_dir, const std::wstring &out_root)
         for (const pcset::Group &g : pcset::groups()) changed.insert(lower(g.page));
         ring_reports(c, changed, "FEMain.bin");
         Movie title(movie(c, "blacktitlemenu")); // QUIT under OPERATOR PROFILE (rows 25.1 apart, revealed 43/46/49)
-        main_menu_quit(title, 18, 25.1f, 49, 11, 12, "profileButton", "continueButton");
+        main_menu_quit(title, 18, 25.1f, 49, 11, 12, "profileButton", "continueButton", 3);
         c.movies["blacktitlemenu"] = title.build();
         Movie fresh(movie(c, "blacktitlemenu2")); // QUIT under OPTIONS (revealed 43/46)
-        main_menu_quit(fresh, 14, 25.0f, 46, 7, 8, "optionsButton", "startButton");
+        main_menu_quit(fresh, 14, 25.0f, 46, 7, 8, "optionsButton", "startButton", 2);
         c.movies["blacktitlemenu2"] = fresh.build();
     }, fe) && write_file(dir + L"FEMain.bin", fe);
     if (!main_ok) DeleteFileW((dir + L"FEMain.bin").c_str()); // not an old build of the pages

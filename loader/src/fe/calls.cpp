@@ -9,6 +9,7 @@
 // dropped. A thunk at the dispatcher's entry shows every call to the port first: names starting with "PC" are the
 // port's own (handled and cleared here), the others go on to the game and are logged.
 #include "fe/calls.h"
+#include "checkpoints.h"
 
 #include "common.h"
 #include "d3d/host.h"
@@ -95,6 +96,9 @@ void pc_quit(const char *, const char *, const char *)
     PostMessageW(host3d::window(), WM_CLOSE, 0, 0);
 }
 
+// CONTINUE LAST GAME on the main menu (fe/pages.cpp main_menu_quit): the kept checkpoint's mission, started there
+void pc_continue(const char *, const char *, const char *) { checkpoints_continue(); }
+
 // a page found its menu gone and made it again (fe/pages.cpp emit_heal)
 void pc_healed(const char *, const char *, const char *) { logf("fe: a page's menu was gone; made again"); }
 
@@ -113,6 +117,7 @@ const Handler kHandlers[] = {
     {"PCBack", pc_back},
     {"PCHealed", pc_healed},
     {"PCQuit", pc_quit},
+    {"PCContinue", pc_continue},
 };
 
 } // namespace
@@ -133,6 +138,7 @@ static int __cdecl fe_dispatch(uint8_t *fe)
         p3(fe, kParam[2], kParamSize);
     if (strncmp(name.s, "PC", 2) != 0) {
         logf("fe: game call %s('%s', '%s', '%s')", name.s, p1.s, p2.s, p3.s);
+        if (!strcmp(name.s, "RestartLevel") || !strcmp(name.s, "RestartMission")) checkpoints_drop("the mission restarts");
         return 0;
     }
     logf("fe: port call %s('%s', '%s', '%s')", name.s, p1.s, p2.s, p3.s);

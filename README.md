@@ -167,6 +167,7 @@ The port's settings are in the game's menus: Options > PC SETTINGS on the main m
 | TWEAKS | auto-aim, reload blur, lean angle, lean distance, fast menus (menu animations twice as fast, at 60 fps), weapon buffers (bigger weapon files for mods; from the next start) |
 | AUDIO AND MOVIES | room reverb, skipping any movie, language (PAL disc; from the next start) |
 | CONTROLS | mouse sensitivity, mouse inversion, aim (toggle as the original, or hold), sprint (on: hold Left Shift to run faster forward; off as the original), key bindings |
+| (main menu) | CONTINUE LAST GAME: every checkpoint the game takes is kept in the save folder; after a restart this row starts that mission there (gone once the mission is complete or restarted) |
 | CHEATS | unlock all missions on easy, normal and hard (the save keeps your real progress), god mode, infinite ammo and grenades (yours only), damage to enemies (x2, x4, one-hit kill: your bullets; explosions and other damage enemies take are scaled whoever caused them) |
 
 `black.exe --help` lists the command-line options. They override `black.ini` for that run (e.g., `--fullscreen --resolution 1080 --fps 30 --fov 86`).
