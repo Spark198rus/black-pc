@@ -17,6 +17,10 @@
 // (controller +0x44, action 11, set at 0x1ECC2E) is cleared. A reload cannot be interrupted instead: the first-person
 // animation drives it (state 4 set back to 0 still played the reload and its event still refilled, tested), and the
 // original has no way to stop it (the weapon state machine's state 4 takes no input).
+//
+// Firing (user: no sprinting and shooting at once; shooting breaks the sprint, the Sprint key does nothing while
+// shooting): the trigger held (weapon +0x105) or the firing state (+0xD8 = 1) stops the sprint, and it stays off
+// until the Sprint key is pressed again after the shooting; a press while shooting is ignored.
 #include "input/sprint.h"
 
 #include "common.h"
@@ -45,6 +49,7 @@ const Operand kOps[] = {
 
 bool g_installed;
 volatile bool g_held;
+bool g_was_held, g_armed; // armed: the Sprint key was pressed while not shooting
 
 } // namespace
 
@@ -69,7 +74,15 @@ void sprint_frame(uint8_t *ctrl)
 {
     if (!g_installed) return;
     float s = 1.0f;
-    if (g_held && g_cfg.sprint) {
+    bool held = g_held, press = held && !g_was_held;
+    g_was_held = held;
+    bool firing = false;
+    if (uint32_t body = *(const uint32_t *)(ctrl + 0x8C))
+        if (uint32_t weapon = *(const uint32_t *)(uintptr_t)(body + 0x29C))
+            firing = *(const uint8_t *)(uintptr_t)(weapon + 0x105) != 0 || *(const uint32_t *)(uintptr_t)(weapon + 0xD8) == 1;
+    if (!held || firing) g_armed = false;
+    else if (press) g_armed = true;
+    if (g_armed && g_cfg.sprint) {
         float forward = *(const float *)(ctrl + 0xE4);
         bool crouched = ctrl[0x40] != 0, aiming = ctrl[0x45] != 0, slow = false;
         uint32_t body = *(const uint32_t *)(ctrl + 0x8C);

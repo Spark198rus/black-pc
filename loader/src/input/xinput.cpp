@@ -146,7 +146,9 @@ void show_hint(int id)
 
 // --press-file: a test driver appends lines while the game runs: a press as in --press without the time ("k:Enter",
 // "a", "lx+80*500"), "shot:NAME" for a screenshot of the next whole frame, "reset" (a Direct3D device Reset as after
-// sleep), "audio-lost" (the XAudio2 device gone) or "hint:N" (show_hint). Presses read together are 250 ms apart.
+// sleep), "audio-lost" (the XAudio2 device gone) or "hint:N" (show_hint). Presses read together are 250 ms apart and
+// each waits for the previous hold to end; a line starting with '+' starts with the previous press instead, or N ms
+// after its start with "+N:" ("k:W*5000", "+k:LShift*3000", "+1500:k:Mouse1*500": fire 1.5 s into holding both).
 void read_press_file(uint32_t now_ms)
 {
     static ULONGLONG next_check;
@@ -171,6 +173,7 @@ void read_press_file(uint32_t now_ms)
         if (last != std::string::npos) {
             pos += (long long)last + 1;
             uint32_t at = std::max(now_ms, queue_end);
+            static uint32_t prev_at, prev_end;
             for (size_t s = 0; s <= last;) {
                 size_t e = buf.find('\n', s);
                 std::string line = buf.substr(s, e - s);
@@ -199,15 +202,29 @@ void read_press_file(uint32_t now_ms)
                     show_hint(atoi(line.c_str() + 5));
                     continue;
                 }
+                bool with_prev = line[0] == '+';
+                uint32_t offset = 0;
+                if (with_prev) {
+                    line.erase(0, 1);
+                    size_t digits = 0;
+                    while (digits < line.size() && isdigit((unsigned char)line[digits])) digits++;
+                    if (digits && digits < line.size() && line[digits] == ':') {
+                        offset = (uint32_t)atoi(line.c_str());
+                        line.erase(0, digits + 1);
+                    }
+                }
                 uint32_t hold = 150;
                 size_t star = line.find('*');
                 if (star != std::string::npos) {
                     hold = (uint32_t)atoi(line.c_str() + star + 1);
                     line.resize(star);
                 }
-                g_presses.push_back({at, true, line, hold});
-                logf("[input] press-file '%s' at %u ms", line.c_str(), at);
-                at += std::max(250u, hold + 100);
+                uint32_t start = with_prev ? prev_at + offset : at;
+                g_presses.push_back({start, true, line, hold});
+                logf("[input] press-file '%s' at %u ms", line.c_str(), start);
+                prev_at = start;
+                prev_end = with_prev ? std::max(prev_end, start + std::max(250u, hold + 100)) : start + std::max(250u, hold + 100);
+                at = std::max(at, prev_end);
             }
             queue_end = at;
         }
