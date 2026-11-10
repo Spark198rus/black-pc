@@ -18,7 +18,7 @@
 // START (see apply). A key held across a switch between play and menus is ignored until it is released (a press that
 // starts play must not also act in it).
 // Port actions (game index -1, at the end of the list) are not the game's: the lean keys go to input/lean.cpp, the
-// Sprint key to input/sprint.cpp.
+// Sprint key to input/sprint.cpp, the Show weapon key to input/inspect.cpp.
 #include "input/bindings.h"
 #include "xbe.h"
 
@@ -27,6 +27,7 @@
 #include "input/lean.h"
 #include "input/mouselook.h"
 #include "input/sprint.h"
+#include "input/inspect.h"
 #include "input/menu_mouse.h"
 #include "input/movies.h"
 #include "checkpoints.h"
@@ -71,6 +72,7 @@ const Action kActions[] = {
     {"lean_left", L"Lean left", -1, {'V', 0}},
     {"lean_right", L"Lean right", -1, {'B', 0}},
     {"sprint", L"Sprint", -1, {VK_LSHIFT, 0}}, // input/sprint.cpp (PC SETTINGS > CONTROLS > SPRINT)
+    {"inspect", L"Show weapon", -1, {'T', 0}}, // input/inspect.cpp
 };
 constexpr int kCount = sizeof kActions / sizeof kActions[0];
 constexpr int kPause = 21;
@@ -390,7 +392,7 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
     const int32_t *table = game_table();
     bool pause_down = false;
     int lean = 0;
-    bool sprint = false;
+    bool sprint = false, inspect = false;
     for (int i = 0; play && i < kCount && table; i++) {
         bool down = false;
         for (int s = 0; s < kSlots; s++) down |= held(g_keys[i][s]);
@@ -400,6 +402,7 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
             if (!strcmp(kActions[i].ini, "lean_left")) lean--;
             else if (!strcmp(kActions[i].ini, "lean_right")) lean++;
             else if (!strcmp(kActions[i].ini, "sprint")) sprint = true;
+            else if (!strcmp(kActions[i].ini, "inspect")) inspect = true;
             continue;
         }
         int ch = table[kActions[i].game];
@@ -413,6 +416,7 @@ void apply(uint16_t &buttons, uint8_t analog[8], int16_t &lx, int16_t &ly, int16
     }
     lean_input(lean); // 0 outside play: the view eases back upright
     sprint_input(sprint);
+    inspect_input(inspect);
     bool menu_esc = false;
     int input = 0;
     ULONGLONG now = GetTickCount64();

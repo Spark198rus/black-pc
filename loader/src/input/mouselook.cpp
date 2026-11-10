@@ -33,6 +33,7 @@
 
 #include "cheats.h"
 #include "input/sprint.h"
+#include "input/inspect.h"
 #include "common.h"
 #include "xbe.h"
 
@@ -142,6 +143,7 @@ extern "C" void __cdecl ml_sway(uint8_t *ctrl)
     if (g_aim_mode) ctrl[0x103] = g_cfg.aim_hold ? 0 : 1;
     cheats_frame();
     sprint_frame(ctrl); // before the movement later in this update (0x1ECFBC)
+    inspect_frame();
     static float sh, sv; // smoothed deflections
     auto f = [&](uint32_t off) { return *(const float *)(ctrl + off); };
     float dt = *(const float *)(uintptr_t)(*(const uint32_t *)(uintptr_t)xbe_va(0x002D45D4) + 0x1C);

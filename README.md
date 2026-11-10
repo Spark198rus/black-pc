@@ -152,6 +152,7 @@ Keys and mouse buttons are bound to the game's own actions, not to controller bu
 | Health pack | X |
 | Show objectives | Space |
 | Lean left / right (experimental) | V / B |
+| Show weapon (plays the game's own weapon inspection, as standing still for 20 s does) | T |
 | Pause | Esc |
 
 In menus the arrow keys move, Enter selects and Backspace goes back; Enter also passes PRESS START, skips movies and intro text, and closes hints. QUIT at the bottom of the main menu closes the game. 
@@ -344,6 +345,7 @@ Em jogo o mouse fica capturado (clique na janela se não estiver); a tecla **Esc
 | Kit Médico | X |
 | Mostrar Objetivos | Espaço |
 | Inclinar à esquerda / direita (experimental) | V / B |
+| Mostrar a arma (a inspeção da própria arma do jogo) | T |
 | Pausar | Esc |
 
 ## Configurações

@@ -41,6 +41,7 @@ add_library(blackrt SHARED
   src/input/autoaim.cpp
   src/input/lean.cpp
   src/input/sprint.cpp
+  src/input/inspect.cpp
   src/input/menu_mouse.cpp
   src/input/bindings.cpp
   src/input/movies.cpp
