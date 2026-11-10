@@ -21,6 +21,7 @@
 #include "fe/fonts.h"
 #include "fe/vars.h"
 #include "input/bindings.h"
+#include "util/prompt_text.h"
 #include "xbe.h"
 
 #include <cstring>
@@ -41,7 +42,6 @@ constexpr uint32_t kContinueCall = 0x0012B4DB; // call FUN_00113BF0 for FE_HINTP
 // sub esp, 0x40; push ebx; push ebp (the 5 bytes replaced by the jump)
 const uint8_t kPrologue[5] = {0x83, 0xEC, 0x40, 0x53, 0x55};
 constexpr size_t kMaxChars = 0x78; // the smallest field the callers expand into (in-game hints), with its NUL
-constexpr wchar_t kFirst = 0xF001, kLast = 0xF0FF;
 
 bool g_installed;
 
@@ -96,21 +96,13 @@ std::wstring pad_glyph(wchar_t c)
 
 void expand_text(wchar_t *text, bool to_continue)
 {
-    std::wstring in = text, out;
-    for (size_t i = 0; i < in.size(); i++) {
-        wchar_t c = in[i];
-        if (c < kFirst || c > kLast) {
-            out += c;
-            continue;
-        }
-        uint16_t k = to_continue ? (uint16_t)VK_RETURN : c == 0xF025 ? (uint16_t)VK_RETURN : bound_key(c - 0xF000);
+    auto label = [&](wchar_t c) -> std::wstring {
+        uint16_t k = to_continue || c == 0xF025 ? (uint16_t)VK_RETURN : bound_key(c - 0xF000);
+        if (!k) return {}; // no key: the pad glyph
         wchar_t icon = fe_mouse_icon(k); // a mouse button: its icon, drawn like the pad buttons (fe/fonts.cpp)
-        std::wstring label = icon ? std::wstring(1, icon) : k ? L"[" + key_label(k) + L"]" : pad_glyph(c);
-        // never longer than the caller's field: a label that does not fit falls back to the glyph
-        size_t rest = in.size() - i - 1;
-        if (out.size() + label.size() + rest >= kMaxChars) label = pad_glyph(c);
-        out += label;
-    }
+        return icon ? std::wstring(1, icon) : L"[" + key_label(k) + L"]";
+    };
+    std::wstring out = util::expand_placeholders(text, kMaxChars, label, pad_glyph);
     memcpy(text, out.c_str(), (out.size() + 1) * sizeof(wchar_t));
 }
 

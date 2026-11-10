@@ -28,6 +28,7 @@
 #include "fe/pc_settings.h"
 #include "fe/vars.h"
 #include "language.h"
+#include "util/files.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -958,23 +959,13 @@ void pause_page(Movie &mv)
 }
 
 // ---------------------------------------------------------------------------------------------------- files
-bool read_file(const std::wstring &path, Bytes &out)
-{
-    std::ifstream f(path, std::ios::binary);
-    if (!f) return false;
-    out.assign(std::istreambuf_iterator<char>(f), {});
-    return true;
-}
+using util::read_file;
 
 bool write_file(const std::wstring &path, const Bytes &data)
 {
-    for (size_t i = path.find(L'\\', 3); i != std::wstring::npos; i = path.find(L'\\', i + 1))
-        CreateDirectoryW(path.substr(0, i).c_str(), nullptr); // each folder on the way
-    std::ofstream f(path, std::ios::binary | std::ios::trunc);
-    f.write((const char *)data.data(), (std::streamsize)data.size());
-    f.close();
-    if (!f) logf("fe: cannot write %s", narrow(path).c_str());
-    return (bool)f;
+    if (util::write_file(path, data)) return true;
+    logf("fe: cannot write %s", narrow(path).c_str());
+    return false;
 }
 
 // one container: read it, let edit() change it, keep the result; false (logged) if it does not fit

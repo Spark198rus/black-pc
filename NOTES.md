@@ -144,7 +144,7 @@ Decomp target is functionally equivalent C++, not byte-matching (the XDK compile
   (sprites 14-16, arrows) is left alone. Text alignment at text +28: 0 left, 1 right, 2 centre. A text character placed
   straight into a sprite did not show (wrapped in a holder clip it did; untested why). The captions are bound to
   &PC_V19 / &PC_V20 and a looping two-frame clip sets Button._visible and Text._x from externObject.FEPCKeys.
-- **Fonts and the mouse icons** (`src/fe/fonts.cpp`; 2026-11-09). Language\Fonts\Small.bin / Big.bin ("4.1v"): +4 texture
+- **Fonts and the mouse icons** (`src/fe/fonts.cpp`, format and patching in `src/util/font.cpp`, tested in `tests/test_font.cpp`; 2026-11-09). Language\Fonts\Small.bin / Big.bin ("4.1v"): +4 texture
   offset, +8..+0x18 floats (+8 / +0xC = texture width / height over the design size: 128/15, 256/15 in Small; 256/30 in Big),
   +0x1C default glyph (the last), +0x20 128 bucket heads (code & 0x7F; empty = the default glyph), glyphs from +0x220, 0x28
   bytes, sorted by bucket: u, v, w, h (0..1 of the texture), x / y offset, advance, code (word) and two dwords. The lookup

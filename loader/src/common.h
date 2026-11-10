@@ -9,6 +9,8 @@
 #include <cstdio>
 #include <string>
 
+#include "util/text.h" // narrow, widen
+
 typedef LONG NTSTATUS;
 
 // NTSTATUS values used by the HLE kernel (Xbox uses the NT values).
@@ -136,8 +138,6 @@ void logf(const char *fmt, ...); // the log file (and the console with --verbose
 void logv(const char *fmt, va_list ap);
 void logc(const char *fmt, ...); // the log file and the console: startup, setup errors, exit, crashes
 [[noreturn]] void fatal(const char *fmt, ...);
-std::string narrow(const std::wstring &w);
-std::wstring widen(const std::string &s);
 std::wstring host_full_path(const std::wstring &p); // absolute (kernel/k_file.cpp)
 
 // Request process exit; the host main thread performs it.
