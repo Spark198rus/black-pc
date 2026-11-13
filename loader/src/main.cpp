@@ -24,6 +24,7 @@
 #include "input/menu_mouse.h"
 #include "fe/menu_speed.h"
 #include "input/sprint.h"
+#include "fe/settings_autosave.h"
 #include "input/inspect.h"
 #include "kernel/xboxkrnl.h"
 #include "xbe.h"
@@ -540,6 +541,7 @@ int run(void *reserve, unsigned reserve_size)
     if (supported_build) install_lean_patch();
     if (supported_build) install_sprint_patch();
     if (supported_build) install_inspect_patch();
+    if (supported_build) install_settings_autosave_patch();
     if (supported_build) install_fov_patch();
     if (supported_build) install_bigbuf_patch();
     if (supported_build) install_fe_calls();
