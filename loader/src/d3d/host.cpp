@@ -6,6 +6,7 @@
 #include <shellapi.h>
 
 #include <algorithm>
+#include <cmath>
 #include <string>
 
 // Common controls 6 (themed message boxes): a manifest dependency the linker
@@ -41,6 +42,103 @@ constexpr UINT WM_APP_CAPTURE = WM_APP + 0x52; // wParam: 1 = capture, 0 = relea
 constexpr UINT WM_APP_CURSOR = WM_APP + 0x54;  // the cursor's visibility changed (set_cursor_hidden)
 std::atomic<bool> g_cursor_hidden{false};      // a movie plays: no cursor over the window
 constexpr UINT WM_APP_FULLSCREEN = WM_APP + 0x53; // wParam: 1 = fullscreen, 0 = windowed (set_fullscreen)
+constexpr UINT WM_APP_DISPLAY = WM_APP + 0x55;    // the render size changed (update_display_mode)
+
+bool is_fullscreen() { return !(GetWindowLongW(g_hwnd, GWL_STYLE) & WS_OVERLAPPEDWINDOW); }
+
+// Fullscreen at a fixed render height (PC SETTINGS > VIDEO > RESOLUTION 480P-2160P; user, 2026-11-13, issue #40):
+// the display is switched to a mode of that height with the desktop's shape (the panel's: 1280x720 for 720P on a
+// 16:9 screen; a 4:3 picture is pillarboxed in it as in any window), 32-bit, the desktop's refresh rate if it has
+// it. Modes of another shape are not used (720x480 or 720x576 on a 16:9 panel would be stretched by the display).
+// A height without such a mode (624P, usually) keeps the desktop mode and renders at that size as in a window. WINDOW SIZE (and
+// the RENDER SCALE slider) keeps the desktop mode. The mode is temporary (CDS_FULLSCREEN): the desktop's comes back
+// when the window is left (Alt+Tab; the window is minimised then), when it goes windowed and when the port exits
+// (Windows restores it if the process ends any other way). The device is windowed, so a mode change only loses it
+// (recover_device resets it). The mode waits for the device: the back buffer is sized from the monitors at start.
+bool g_mode_set;           // a mode of ours is on
+wchar_t g_mode_dev[32];    // on this display device
+DWORD g_mode_w, g_mode_h;  // its size
+
+int wanted_display_height()
+{
+    return !g_cfg.render_native && !g_cfg.render_w && g_cfg.render_h > 0 ? g_cfg.render_h : 0;
+}
+
+void restore_display_mode()
+{
+    if (!g_mode_set) return;
+    ChangeDisplaySettingsExW(g_mode_dev, nullptr, nullptr, 0, nullptr);
+    g_mode_set = false;
+    logf("host: display back to the desktop mode");
+}
+
+// The window over the whole monitor it is on (after a mode change the monitor's size is the mode's).
+void fit_to_monitor()
+{
+    MONITORINFO mi = {sizeof mi};
+    if (!GetMonitorInfoW(MonitorFromWindow(g_hwnd, MONITOR_DEFAULTTOPRIMARY), &mi)) return;
+    SetWindowPos(g_hwnd, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right - mi.rcMonitor.left,
+                 mi.rcMonitor.bottom - mi.rcMonitor.top, SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
+}
+
+// Window thread: the display mode the settings ask for while fullscreen and in front, else the desktop's.
+void apply_display_mode()
+{
+    int h = g_dev && is_fullscreen() && GetForegroundWindow() == g_hwnd && !IsIconic(g_hwnd) ? wanted_display_height() : 0;
+    MONITORINFOEXW mi;
+    mi.cbSize = sizeof mi;
+    if (!GetMonitorInfoW(MonitorFromWindow(g_hwnd, MONITOR_DEFAULTTOPRIMARY), &mi)) return;
+    DEVMODEW best = {};
+    bool found = false;
+    if (h) {
+        DEVMODEW desk = {};
+        desk.dmSize = sizeof desk;
+        EnumDisplaySettingsW(mi.szDevice, ENUM_REGISTRY_SETTINGS, &desk);
+        float desk_aspect = desk.dmPelsHeight ? (float)desk.dmPelsWidth / desk.dmPelsHeight : 16.0f / 9.0f;
+        float want_w = h * desk_aspect, best_score = 0;
+        DEVMODEW dm = {};
+        dm.dmSize = sizeof dm;
+        for (DWORD i = 0; EnumDisplaySettingsW(mi.szDevice, i, &dm); i++) {
+            if (dm.dmPelsHeight != (DWORD)h || dm.dmBitsPerPel != 32) continue;
+            if (std::fabs((float)dm.dmPelsWidth / dm.dmPelsHeight - desk_aspect) > desk_aspect * 0.02f) continue; // another shape
+            float score = std::fabs((float)dm.dmPelsWidth - want_w) * 1000.0f +
+                          std::fabs((float)dm.dmDisplayFrequency - (float)desk.dmDisplayFrequency);
+            if (!found || score < best_score) {
+                best = dm;
+                best_score = score;
+                found = true;
+            }
+        }
+        if (found && desk.dmPelsWidth == best.dmPelsWidth && desk.dmPelsHeight == best.dmPelsHeight) found = false; // the desktop's size already
+        else if (!found) {
+            static int told;
+            if (told != h) logf("host: the display has no mode %d lines high in the desktop's shape; fullscreen keeps the desktop mode", h);
+            told = h;
+        }
+    }
+    if (!found) {
+        bool was = g_mode_set;
+        restore_display_mode();
+        if (was && is_fullscreen()) fit_to_monitor();
+        return;
+    }
+    if (g_mode_set && !wcscmp(g_mode_dev, mi.szDevice) && g_mode_w == best.dmPelsWidth && g_mode_h == best.dmPelsHeight) return;
+    best.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT | DM_DISPLAYFREQUENCY;
+    LONG r = ChangeDisplaySettingsExW(mi.szDevice, &best, nullptr, CDS_FULLSCREEN, nullptr);
+    if (r != DISP_CHANGE_SUCCESSFUL) {
+        logf("host: display mode %lux%lu %lu Hz refused (%ld); fullscreen keeps the desktop mode", best.dmPelsWidth,
+             best.dmPelsHeight, best.dmDisplayFrequency, r);
+        restore_display_mode();
+        return;
+    }
+    g_mode_set = true;
+    wcsncpy_s(g_mode_dev, mi.szDevice, _TRUNCATE);
+    g_mode_w = best.dmPelsWidth;
+    g_mode_h = best.dmPelsHeight;
+    logf("host: display mode %lux%lu %lu Hz for the %d-line render size", best.dmPelsWidth, best.dmPelsHeight,
+         best.dmDisplayFrequency, h);
+    fit_to_monitor();
+}
 
 // Borderless window over the whole monitor, or back to the window it was.
 void toggle_fullscreen()
@@ -56,7 +154,9 @@ void toggle_fullscreen()
         SetWindowPos(g_hwnd, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right - mi.rcMonitor.left,
                      mi.rcMonitor.bottom - mi.rcMonitor.top, SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
         logf("host: fullscreen %ldx%ld", mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top);
+        apply_display_mode();
     } else {
+        restore_display_mode();
         SetWindowLongW(g_hwnd, GWL_STYLE, (style & ~WS_POPUP) | WS_OVERLAPPEDWINDOW);
         g_cfg.fullscreen = false;
         SetWindowPlacement(g_hwnd, &g_windowed_place);
@@ -152,8 +252,6 @@ void raw_input(HRAWINPUT h)
     }
 }
 
-bool is_fullscreen() { return !(GetWindowLongW(g_hwnd, GWL_STYLE) & WS_OVERLAPPEDWINDOW); }
-
 // A performance recording was saved (perf.cpp): windowed, offer to open its folder; fullscreen, the title says it.
 void perf_report(HWND hwnd)
 {
@@ -170,11 +268,15 @@ LRESULT CALLBACK wndproc(HWND h, UINT msg, WPARAM wp, LPARAM lp)
 {
     switch (msg) {
     case WM_CLOSE:
+        restore_display_mode();
         g_closed = true;
         settings_save();
         request_exit(0, "window closed");
         return 0;
-    case WM_APP_FULLSCREEN: // PC SETTINGS > VIDEO > FULLSCREEN (fe/pc_settings.cpp)
+    case WM_APP_DISPLAY:
+        apply_display_mode();
+        return 0;
+    case WM_APP_FULLSCREEN: // PC SETTINGS > DISPLAY > FULLSCREEN (fe/pc_settings.cpp)
         if ((wp != 0) != is_fullscreen()) {
             toggle_fullscreen();
             settings_save();
@@ -218,7 +320,14 @@ LRESULT CALLBACK wndproc(HWND h, UINT msg, WPARAM wp, LPARAM lp)
         if (!g_menus) capture_mouse(true); // in the menus the click is the menu's
         return 0;
     case WM_ACTIVATE:
-        if (LOWORD(wp) == WA_INACTIVE) capture_mouse(false);
+        if (LOWORD(wp) == WA_INACTIVE) {
+            capture_mouse(false);
+            if (g_mode_set) { // the desktop's mode for the other windows; ours again when the game is in front
+                restore_display_mode();
+                ShowWindow(h, SW_MINIMIZE);
+            }
+        } else if (is_fullscreen())
+            PostMessageW(h, WM_APP_DISPLAY, 0, 0);
         break;
     case WM_KILLFOCUS:
         capture_mouse(false);
@@ -401,6 +510,11 @@ void set_fullscreen(bool on)
     if (g_hwnd) PostMessageW(g_hwnd, WM_APP_FULLSCREEN, on ? 1 : 0, 0);
 }
 
+void update_display_mode()
+{
+    if (g_hwnd) PostMessageW(g_hwnd, WM_APP_DISPLAY, 0, 0);
+}
+
 bool fullscreen() { return g_hwnd && is_fullscreen(); }
 
 int mouse_buttons() { return g_captured ? g_buttons.load() : 0; }
@@ -456,6 +570,7 @@ bool create_device()
                                                 D3DRTYPE_TEXTURE, FMT_INTZ));
     logf("host: Direct3D 9 device, back buffer %dx%d on '%s'; INTZ depth textures %s", g_bb_w, g_bb_h, id.Description,
          g_intz ? "supported" : "NOT supported (depth-buffer reads return zero)");
+    update_display_mode(); // fullscreen from black.ini at a fixed height: the display mode now (after the back buffer)
     return true;
 }
 

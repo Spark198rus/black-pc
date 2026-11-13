@@ -163,8 +163,8 @@ The port's settings are in the game's menus: Options > PC SETTINGS on the main m
 
 | Page | Settings |
 |---|---|
-| VIDEO | render resolution, anti-aliasing, field of view, brightness, gamma, fullscreen |
-| DISPLAY | aspect ratio, frame rate (main menu only), filling geometry seams, effects at Xbox size |
+| VIDEO | render resolution (window size, or 480p as on the Xbox, 576p, 624p, 720p, 768p, 900p, 1080p, 1440p, 2160p; in fullscreen the display switches to that height when it has a mode of it in the desktop's shape), render scale (a slider: 50-200% of the window; moving it sets window size), anti-aliasing, field of view, brightness, gamma |
+| DISPLAY | fullscreen, aspect ratio, frame rate (main menu only), filling geometry seams, effects at Xbox size |
 | TWEAKS | auto-aim, reload blur, lean angle, lean distance, fast menus (menu animations twice as fast, at 60 fps), weapon buffers (bigger weapon files for mods; from the next start) |
 | AUDIO AND MOVIES | room reverb, skipping any movie, language (PAL disc; from the next start) |
 | CONTROLS | mouse sensitivity, mouse inversion, aim (toggle as the original, or hold), sprint (on: hold Left Shift to run faster forward; shooting stops it until Shift is pressed again; off as the original), key bindings |
@@ -354,8 +354,8 @@ Os ajustes do port ficam dentro do menu do jogo: **Options > PC SETTINGS** e no 
 
 | Página | Configurações |
 |---|---|
-| VIDEO | Resolução, Anti-aliasing, FOV, Brilho, Gama, Tela Cheia |
-| DISPLAY | Proporção de tela, Taxa de Quadros, Preenchimento de costuras, Efeitos no tamanho do Xbox |
+| VIDEO | Resolução (tamanho da janela, ou 480p como no Xbox, 576p, 624p, 720p, 768p, 900p, 1080p, 1440p, 2160p; em tela cheia o monitor muda para essa altura quando tem um modo dela no formato da área de trabalho), Escala de renderização (controle deslizante: 50-200% da janela; mexer nele volta para tamanho da janela), Anti-aliasing, FOV, Brilho, Gama |
+| DISPLAY | Tela Cheia, Proporção de tela, Taxa de Quadros, Preenchimento de costuras, Efeitos no tamanho do Xbox |
 | TWEAKS | Mira Automática, Desfoque ao recarregar, Ângulo e distância da inclinação, Menus rápidos (animações dos menus 2x mais rápidas, a 60 fps), Buffers de armas (arquivos de armas maiores para mods; na próxima inicialização) |
 | AUDIO AND MOVIES | Reverberação de ambiente, Pular qualquer cutscene, Idioma (disco PAL; na próxima inicialização) |
 | CONTROLS | Sensibilidade do Mouse, Inversão do Mouse, Mira (alternar como no original, ou segurar), Corrida (ligada: segure Shift esquerdo para correr mais rápido; atirar interrompe até apertar Shift de novo; desligada como no original), Mapeamento de Teclas |

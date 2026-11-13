@@ -35,34 +35,72 @@ std::wstring number(float v, const wchar_t *fmt = L"%.1f")
     return s;
 }
 
-// render size: native multiples of the window, fixed heights, or the default (3 x Xbox)
+// Render size (issue #40; user 2026-11-13). RESOLUTION: WINDOW SIZE (the picture in the window, times RENDER SCALE)
+// or a fixed height (width from the aspect). The default (--scale 3: 3 x the Xbox's 480 lines) is the same size as
+// 1440P and shows as it. 480P is the Xbox's own size; 576P and 624P are 1024x576 and 1109x624 in 16:9, 768P is
+// 1024x768 in 4:3 (the issue's sizes for an iGPU). Fullscreen at a fixed height also switches the display to a mode
+// of that height when it has one (host3d::update_display_mode). RENDER SCALE: a share of the window, 50-200%;
+// moving it sets RESOLUTION to WINDOW SIZE. It keeps its value while a fixed height is chosen (render_factor).
 struct Res {
-    bool native;
-    float factor;
-    int height;
+    int height; // 0 = WINDOW SIZE
     const wchar_t *text;
 };
-const Res kRes[] = {{true, 1.0f, 0, L"WINDOW SIZE"}, {true, 1.5f, 0, L"1.5 X WINDOW"}, {true, 2.0f, 0, L"2 X WINDOW"},
-                    {false, 1.0f, 720, L"720P"},     {false, 1.0f, 1080, L"1080P"},   {false, 1.0f, 1440, L"1440P"},
-                    {false, 1.0f, 2160, L"2160P"},   {false, 1.0f, 0, L"3 X ORIGINAL"}};
+const Res kRes[] = {{0, L"WINDOW SIZE"}, {480, L"480P"},   {576, L"576P"},   {624, L"624P"},   {720, L"720P"},
+                    {768, L"768P"},      {900, L"900P"},   {1080, L"1080P"}, {1440, L"1440P"}, {2160, L"2160P"}};
 constexpr int kResN = sizeof kRes / sizeof kRes[0];
 int res_get()
 {
-    for (int i = 0; i < kResN; i++) {
-        const Res &r = kRes[i];
-        if (r.native ? g_cfg.render_native && close_to(g_cfg.render_factor, r.factor)
-                     : !g_cfg.render_native && !g_cfg.render_w && g_cfg.render_h == r.height)
+    if (g_cfg.render_native) return 0;
+    if (g_cfg.render_w) return -1;
+    for (int i = 1; i < kResN; i++)
+        if (g_cfg.render_h == kRes[i].height || (!g_cfg.render_h && kRes[i].height == 1440 && close_to(g_cfg.scale, 3.0f)))
             return i;
-    }
     return -1; // a size from the command line
+}
+void render_changed()
+{
+    xd3d::request_render_change();
+    host3d::update_display_mode();
 }
 void res_set(int i)
 {
-    g_cfg.render_native = kRes[i].native;
-    g_cfg.render_factor = kRes[i].factor;
+    g_cfg.render_native = kRes[i].height == 0; // WINDOW SIZE keeps the slider's share
     g_cfg.render_w = 0;
     g_cfg.render_h = kRes[i].height;
-    xd3d::request_render_change();
+    render_changed();
+}
+// RENDER SCALE positions (the slider clip has 26): 50-150% in steps of 5, then 160-200% in steps of 10.
+const float kScales[] = {50,  55,  60,  65,  70,  75,  80,  85,  90,  95,  100, 105, 110,
+                         115, 120, 125, 130, 135, 140, 145, 150, 160, 170, 180, 190, 200};
+static_assert(sizeof kScales / sizeof kScales[0] == 26, "the slider has 26 positions");
+void picture_size(int *w, int *h)
+{
+    RECT frame, pic;
+    host3d::frame_layout(&frame, &pic);
+    *w = pic.right - pic.left;
+    *h = pic.bottom - pic.top;
+}
+int scale_get();
+void scale_set(int i)
+{
+    g_cfg.render_native = true;
+    g_cfg.render_factor = kScales[i] / 100.0f;
+    g_cfg.render_w = g_cfg.render_h = 0;
+    render_changed();
+}
+std::wstring scale_text(int i)
+{
+    wchar_t s[16];
+    swprintf(s, 16, L"%.0f%%", kScales[i]);
+    return s;
+}
+// A size from the command line shows as its pixels.
+std::wstring res_text(int i)
+{
+    if (i >= 0) return kRes[i].text;
+    wchar_t s[32];
+    swprintf(s, 32, L"%dX%d", (int)xd3d::host_w(640), (int)xd3d::host_h(480));
+    return s;
 }
 
 // A slider row has the 26 positions of the game's slider clip (Sound Setup's bullet bar): field of view 70-120 in
@@ -79,6 +117,7 @@ template <size_t N> int nearest(const float (&list)[N], float v)
         if (std::fabs(list[i] - v) < std::fabs(list[best] - v)) best = i;
     return best;
 }
+int scale_get() { return nearest(kScales, g_cfg.render_factor * 100.0f); }
 
 int shown_fps() { return g_cfg.fps_next ? g_cfg.fps_next : g_cfg.fps; }
 
@@ -116,7 +155,7 @@ struct Row {
 
 const Row kRows[] = {
     // VIDEO
-    {"RESOLUTION", kResN, res_get, res_set, [](int i) { return std::wstring(i < 0 ? L"CUSTOM" : kRes[i].text); }},
+    {"RESOLUTION", kResN, res_get, res_set, res_text},
     {"ANTI-ALIASING", 2, [] { return (int)g_cfg.aa; }, [](int i) { g_cfg.aa = i != 0; }, [](int i) { return on_off(i); }},
     {"FIELD OF VIEW", kSteps, [] { return step_of(g_cfg.fov, 70, 2); },
      [](int i) {
@@ -203,6 +242,8 @@ const Row kRows[] = {
     {"SPRINT", 2, [] { return (int)g_cfg.sprint; }, [](int i) { g_cfg.sprint = i != 0; }, [](int i) { return on_off(i); }},
     // TWEAKS (27): menu animations twice as fast (fe/menu_speed.cpp), live
     {"FAST MENUS", 2, [] { return (int)g_cfg.fast_menus; }, [](int i) { g_cfg.fast_menus = i != 0; }, [](int i) { return on_off(i); }},
+    // VIDEO (28): the render size as a share of the window (issue #40), live
+    {"RENDER SCALE", kSteps, scale_get, scale_set, scale_text, true},
 };
 constexpr int kRowN = sizeof kRows / sizeof kRows[0];
 constexpr int kKeyBindings = 15;
@@ -215,8 +256,8 @@ constexpr int kAimMode = 21;
 const std::vector<Group> &groups()
 {
     static const std::vector<Group> g = {
-        {"PCVideo", "VIDEO", {0, 1, 2, 3, 4, 5}},
-        {"PCDisplay", "DISPLAY", {6, 7, 8, 9}},
+        {"PCVideo", "VIDEO", {0, 28, 1, 2, 3, 4}},
+        {"PCDisplay", "DISPLAY", {5, 6, 7, 8, 9}},
         {"PCTweaks", "TWEAKS", {11, 17, 18, 19, 27, kWeaponBuffers}},
         {"PCAudio", "AUDIO AND MOVIES", {10, 12, kLanguage}},
         {"PCControls", "CONTROLS", {13, 14, kAimMode, 26, kKeyBindings}},

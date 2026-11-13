@@ -41,7 +41,7 @@ void settings_load()
             g_cfg.render_h = g_cfg.render_native ? 0 : std::clamp(atoi(val), 0, 8192);
             g_cfg.render_w = 0;
             if (g_cfg.render_h && g_cfg.render_h < 240) g_cfg.render_h = 0;
-        } else if (k == "render_factor") g_cfg.render_factor = std::clamp(v, 1.0f, 2.0f);
+        } else if (k == "render_factor") g_cfg.render_factor = std::clamp(v, 0.5f, 2.0f);
         else if (k == "scale") g_cfg.scale = std::clamp(v, 0.5f, 8.0f);
         else if (k == "aa") g_cfg.aa = v != 0;
         else if (k == "seamfill") g_cfg.seam_fill = v != 0;

@@ -28,6 +28,9 @@ bool cursor_in_picture(float *x, float *y);
 void request_capture(bool on); // from any thread; capturing needs the window in front
 void set_fullscreen(bool on);  // from any thread (PC SETTINGS > VIDEO > FULLSCREEN)
 bool fullscreen();
+// From any thread after a render-size change: fullscreen at a fixed height (480P-2160P) switches the display to a
+// mode of that height while the game is in front; otherwise the desktop mode (host.cpp apply_display_mode).
+void update_display_mode();
 void mouse_take(int *dx, int *dy, int *wheel);
 int mouse_buttons();
 IDirect3DDevice9 *dev();
