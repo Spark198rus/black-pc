@@ -6,20 +6,30 @@
 
 namespace xk {
 
+// The 8-bit ("ANSI") strings are UTF-8 throughout the port: file paths (k_file.cpp resolve, widen), directory
+// listings and these two conversions (issue #38: a save named in Chinese, the zh-CN fan translation's default
+// profile name, was written but read back as "??" here and judged damaged; before, these mapped bytes 1:1 to
+// Latin-1 and code points above 0xFF to '?', while the paths decoded the same bytes as UTF-8). ASCII is unchanged.
+// Bytes that are not valid UTF-8 keep the old 1:1 mapping.
 NTSTATUS __stdcall RtlAnsiStringToUnicodeString(XUNICODE_STRING *Destination, const XANSI_STRING *Source, BOOLEAN Allocate)
 {
     KTRACE("%p, '%s', %u", Destination, xstr(Source).c_str(), Allocate);
     uint32_t n = Source->Length;
+    int need = n ? MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Source->Buffer, (int)n, nullptr, 0) : 0;
+    bool utf8 = need > 0 || n == 0;
+    uint32_t len = utf8 ? (uint32_t)need : n; // characters out
     if (Allocate) {
-        Destination->Buffer = (wchar_t *)ExAllocatePoolWithTag((n + 1) * 2, 'grtS');
+        Destination->Buffer = (wchar_t *)ExAllocatePoolWithTag((len + 1) * 2, 'grtS');
         if (!Destination->Buffer) return XSTATUS_NO_MEMORY;
-        Destination->MaximumLength = (uint16_t)((n + 1) * 2);
-    } else if (Destination->MaximumLength < n * 2) {
+        Destination->MaximumLength = (uint16_t)((len + 1) * 2);
+    } else if (Destination->MaximumLength < len * 2) {
         return (NTSTATUS)0x80000005; // STATUS_BUFFER_OVERFLOW
     }
-    for (uint32_t i = 0; i < n; i++) Destination->Buffer[i] = (wchar_t)(unsigned char)Source->Buffer[i];
-    Destination->Length = (uint16_t)(n * 2);
-    if (Destination->MaximumLength >= (n + 1) * 2) Destination->Buffer[n] = 0;
+    if (utf8 && n) MultiByteToWideChar(CP_UTF8, 0, Source->Buffer, (int)n, Destination->Buffer, (int)len);
+    else
+        for (uint32_t i = 0; i < n; i++) Destination->Buffer[i] = (wchar_t)(unsigned char)Source->Buffer[i];
+    Destination->Length = (uint16_t)(len * 2);
+    if (Destination->MaximumLength >= (len + 1) * 2) Destination->Buffer[len] = 0;
     return XSTATUS_SUCCESS;
 }
 
@@ -27,19 +37,18 @@ NTSTATUS __stdcall RtlUnicodeStringToAnsiString(XANSI_STRING *Destination, const
 {
     KTRACE("%p, %p, %u", Destination, Source, Allocate);
     uint32_t n = Source->Length / 2;
+    int need = n ? WideCharToMultiByte(CP_UTF8, 0, Source->Buffer, (int)n, nullptr, 0, nullptr, nullptr) : 0;
+    uint32_t len = need > 0 ? (uint32_t)need : 0; // bytes out
     if (Allocate) {
-        Destination->Buffer = (char *)ExAllocatePoolWithTag(n + 1, 'grtS');
+        Destination->Buffer = (char *)ExAllocatePoolWithTag(len + 1, 'grtS');
         if (!Destination->Buffer) return XSTATUS_NO_MEMORY;
-        Destination->MaximumLength = (uint16_t)(n + 1);
-    } else if (Destination->MaximumLength < n) {
+        Destination->MaximumLength = (uint16_t)(len + 1);
+    } else if (Destination->MaximumLength < len) {
         return (NTSTATUS)0x80000005;
     }
-    for (uint32_t i = 0; i < n; i++) {
-        wchar_t c = Source->Buffer[i];
-        Destination->Buffer[i] = c < 256 ? (char)c : '?';
-    }
-    Destination->Length = (uint16_t)n;
-    if (Destination->MaximumLength > n) Destination->Buffer[n] = 0;
+    if (len) WideCharToMultiByte(CP_UTF8, 0, Source->Buffer, (int)n, Destination->Buffer, (int)len, nullptr, nullptr);
+    Destination->Length = (uint16_t)len;
+    if (Destination->MaximumLength > len) Destination->Buffer[len] = 0;
     return XSTATUS_SUCCESS;
 }
 

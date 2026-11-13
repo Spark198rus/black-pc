@@ -78,6 +78,41 @@ struct Resolved {
     bool raw_volume = false;
 };
 
+// Saves written before issue #38's fix: a name with Latin-1 letters (accents) went through the old byte-wise
+// RtlUnicodeStringToAnsiString (one byte per letter, not UTF-8), and the path decoded those bytes as UTF-8, so the
+// file or folder on disk has U+FFFD in their place. The game now asks for the real name; where that is missing and
+// the old spelling exists, the old one is renamed (one component at a time, HDD only). Names above 0xFF became '?'
+// then, which Windows does not allow in a file name, so none of those were ever written.
+void migrate_legacy_names(const std::wstring &host_root, const std::string &rest)
+{
+    bool ascii = true;
+    for (char c : rest)
+        if ((unsigned char)c >= 0x80) ascii = false;
+    if (ascii) return;
+    std::wstring cur = host_root;
+    size_t pos = 0;
+    while (pos < rest.size()) {
+        size_t next = rest.find('\\', pos);
+        std::string comp = rest.substr(pos, next == std::string::npos ? std::string::npos : next - pos);
+        pos = next == std::string::npos ? rest.size() : next + 1;
+        if (comp.empty()) continue;
+        std::wstring now = widen(comp);
+        std::wstring want = cur + L"\\" + now;
+        if (GetFileAttributesW(want.c_str()) == INVALID_FILE_ATTRIBUTES) {
+            std::string old_bytes;
+            for (wchar_t c : now) old_bytes += c < 256 ? (char)c : '?';
+            std::wstring old = cur + L"\\" + widen(old_bytes);
+            if (old == want || GetFileAttributesW(old.c_str()) == INVALID_FILE_ATTRIBUTES) return; // nothing further can exist
+            if (MoveFileW(old.c_str(), want.c_str())) logf("files: renamed %s to %s (a name from before UTF-8 names, issue #38)", narrow(old).c_str(), narrow(want).c_str());
+            else {
+                logf("files: could not rename %s to %s (%lu)", narrow(old).c_str(), narrow(want).c_str(), GetLastError());
+                return;
+            }
+        }
+        cur = want;
+    }
+}
+
 NTSTATUS resolve(HANDLE root, const XANSI_STRING *name, Resolved &r)
 {
     std::lock_guard<std::recursive_mutex> g(g_mutex);
@@ -126,6 +161,7 @@ NTSTATUS resolve(HANDLE root, const XANSI_STRING *name, Resolved &r)
     while (!rest.empty() && rest.back() == '\\') rest.pop_back();
     for (char &c : rest)
         if (c == '/') c = '\\';
+    if (best->partition >= 0) migrate_legacy_names(best->host, rest);
     r.host_nt = L"\\??\\" + best->host + widen(rest);
     // --game-override, then the port's rebuilt menus: a file of the same relative path there replaces the game's
     if (best->partition == -1 && !rest.empty())
@@ -266,12 +302,8 @@ NTSTATUS open_common(const char *what, HANDLE *FileHandle, ACCESS_MASK access, X
     return s;
 }
 
-std::wstring ansi_to_wide(const char *s, size_t n)
-{
-    std::wstring w;
-    for (size_t i = 0; i < n; i++) w += (wchar_t)(unsigned char)s[i];
-    return w;
-}
+// The game's 8-bit names are UTF-8 here, as in resolve() (issue #38; see k_rtl.cpp).
+std::wstring ansi_to_wide(const char *s, size_t n) { return widen(std::string(s, n)); }
 
 } // namespace
 
@@ -556,8 +588,10 @@ NTSTATUS __stdcall NtQueryDirectoryFile(HANDLE FileHandle, HANDLE Event, void *A
         // Host FILE_DIRECTORY_INFORMATION: same fields, WCHAR name at offset 64.
         uint32_t name_bytes = *(uint32_t *)(buf + 60);
         const wchar_t *wname = (const wchar_t *)(buf + 64);
-        uint32_t nchars = name_bytes / 2;
-        if ((nchars == 1 && wname[0] == L'.') || (nchars == 2 && wname[0] == L'.' && wname[1] == L'.')) continue;
+        uint32_t nwide = name_bytes / 2;
+        if ((nwide == 1 && wname[0] == L'.') || (nwide == 2 && wname[0] == L'.' && wname[1] == L'.')) continue;
+        std::string name = narrow(std::wstring(wname, nwide)); // UTF-8, as the paths (was Latin-1, '_' above 0xFF)
+        uint32_t nchars = (uint32_t)name.size();
         uint32_t need = 64 + nchars;
         if (Length < 64) {
             complete(IoStatusBlock, XSTATUS_BUFFER_TOO_SMALL, 0, Event);
@@ -568,7 +602,7 @@ NTSTATUS __stdcall NtQueryDirectoryFile(HANDLE FileHandle, HANDLE Event, void *A
         *(uint32_t *)out = 0; // NextEntryOffset: one entry per call
         *(uint32_t *)(out + 60) = nchars;
         uint32_t copy = need <= Length ? nchars : Length - 64;
-        for (uint32_t i = 0; i < copy; i++) out[64 + i] = wname[i] < 256 ? (char)wname[i] : '_';
+        memcpy(out + 64, name.data(), copy);
         NTSTATUS rs = copy < nchars ? (NTSTATUS)0x80000005 /* BUFFER_OVERFLOW */ : XSTATUS_SUCCESS;
         complete(IoStatusBlock, rs, 64 + copy, Event);
         return rs;
