@@ -9,6 +9,8 @@
 #include <cstdio>
 #include <string>
 
+#include "util/text.h" // narrow, widen
+
 typedef LONG NTSTATUS;
 
 // NTSTATUS values used by the HLE kernel (Xbox uses the NT values).
@@ -95,6 +97,7 @@ struct Config {
     bool supported_build = false;
     std::wstring game_override; // --game-override: files there replace the game's of the same relative path
     std::wstring menu_cache;    // the port's rebuilt front-end files (fe/pages.cpp), served like --game-override after it
+    std::wstring font_cache;    // the fonts with the mouse icons (fe/fonts.cpp), served the same way
     bool pc_menus = true;       // build the in-game PC SETTINGS pages (--no-pc-menus: the game's own menus only)
     std::wstring press_file;    // --press-file (tests): presses and screenshot requests appended by a driver
     int fps = 60;              // 60 (default): swap interval TWO paced as ONE, world step 1/60 s, weapon refire kept at
@@ -143,8 +146,6 @@ void logf(const char *fmt, ...); // the log file (and the console with --verbose
 void logv(const char *fmt, va_list ap);
 void logc(const char *fmt, ...); // the log file and the console: startup, setup errors, exit, crashes
 [[noreturn]] void fatal(const char *fmt, ...);
-std::string narrow(const std::wstring &w);
-std::wstring widen(const std::string &s);
 std::wstring host_full_path(const std::wstring &p); // absolute (kernel/k_file.cpp)
 
 // Request process exit; the host main thread performs it.

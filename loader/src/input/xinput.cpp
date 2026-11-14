@@ -10,6 +10,7 @@
 #include "input/menu_mouse.h"
 #include "input/mouselook.h"
 #include "input/movies.h"
+#include "input/prompts.h"
 #include "xbe.h"
 
 #include <algorithm>
@@ -303,6 +304,21 @@ int mouse_look(bool live, int *raw_wheel)
     return wheel;
 }
 
+// The device used last picks the button prompts (input/prompts.cpp): a pad button, trigger or stick past half
+// way means the controller; a key or mouse button pressed while the game window is in front means the keyboard.
+void note_device(const XGamepad &g)
+{
+    bool pad = (g.wButtons & 0xFF) != 0;
+    for (int i = 0; i < 8; i++) pad |= g.bAnalogButtons[i] > 128;
+    pad |= std::abs(g.sThumbLX) > 16000 || std::abs(g.sThumbLY) > 16000 || std::abs(g.sThumbRX) > 16000 ||
+           std::abs(g.sThumbRY) > 16000;
+    int device = pad ? 0 : -1;
+    if (!pad && GetForegroundWindow() == host3d::window())
+        for (int vk = 1; vk < 0xFF && device < 0; vk++)
+            if (vk != VK_CANCEL && (GetAsyncKeyState(vk) & 0x8000)) device = 1;
+    prompts_poll(device);
+}
+
 // The game plays on Xbox port 0; every connected PC controller (any XInput user index) feeds it, so a
 // pad that Windows put on index 1-3 works without setup.
 void read_pad(uint32_t port, XGamepad &g)
@@ -332,6 +348,7 @@ void read_pad(uint32_t port, XGamepad &g)
         merge_stick(g.sThumbLX, g.sThumbLY, p.sThumbLX, p.sThumbLY);
         merge_stick(g.sThumbRX, g.sThumbRY, p.sThumbRX, p.sThumbRY);
     }
+    note_device(g);
     apply_presses(g);
     bool focus = GetForegroundWindow() == host3d::window();
     bool live = focus && host3d::mouse_captured();

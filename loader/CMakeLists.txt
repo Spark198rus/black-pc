@@ -15,6 +15,19 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+# blackutil: code with no game state (file helpers, text, images, the font format, prompt text), shared by blackrt
+# and the unit tests.
+add_library(blackutil STATIC
+  src/util/files.cpp
+  src/util/text.cpp
+  src/util/image.cpp
+  src/util/font.cpp
+  src/util/prompt_text.cpp
+)
+target_include_directories(blackutil PUBLIC src)
+target_compile_definitions(blackutil PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS UNICODE _UNICODE)
+target_compile_options(blackutil PRIVATE /W3 /utf-8 /EHsc)
+
 # blackrt.dll: XBE loader, HLE kernel, hooks. Everything that is real code lives here.
 add_library(blackrt SHARED
   src/main.cpp
@@ -37,10 +50,12 @@ add_library(blackrt SHARED
   src/fe/settings_autosave.cpp
   src/fe/apt.cpp
   src/fe/pages.cpp
+  src/fe/fonts.cpp
   src/fe/bind_list.cpp
   src/fe/pause_ui.cpp
   src/input/mouselook.cpp
   src/input/autoaim.cpp
+  src/input/prompts.cpp
   src/input/lean.cpp
   src/input/sprint.cpp
   src/input/inspect.cpp
@@ -80,7 +95,7 @@ target_include_directories(blackrt PRIVATE src)
 target_compile_definitions(blackrt PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS UNICODE _UNICODE
   BLACK_VERSION="${PROJECT_VERSION}")
 target_compile_options(blackrt PRIVATE /W3 /utf-8 /EHsc)
-target_link_libraries(blackrt PRIVATE ntdll bcrypt d3d9 d3dcompiler windowscodecs ole32 user32 gdi32 winmm dbghelp advapi32 shell32)
+target_link_libraries(blackrt PRIVATE blackutil ntdll bcrypt d3d9 d3dcompiler windowscodecs ole32 user32 gdi32 winmm dbghelp advapi32 shell32)
 # Xbox SEH handlers run through the same fs:[0] chain; no SafeSEH tables anywhere in the process.
 target_link_options(blackrt PRIVATE /SAFESEH:NO /MAP) # blackrt.map: port addresses in crash logs -> functions
 
@@ -95,3 +110,15 @@ target_compile_options(black PRIVATE /GS- /Gs999999)
 target_link_options(black PRIVATE
   /BASE:0x10000 /FIXED /DYNAMICBASE:NO /NXCOMPAT:NO /SAFESEH:NO /LARGEADDRESSAWARE
   /NODEFAULTLIB /ENTRY:StubEntry /SUBSYSTEM:WINDOWS /MANIFEST:NO /INCREMENTAL:NO)
+
+# Unit tests for blackutil: ctest --preset win32-release (or run blackutil_tests.exe). They never read the game's files
+# unless BLACK_GAME_DIR names a game folder.
+option(BLACK_TESTS "Build the unit tests" ON)
+if(BLACK_TESTS)
+  enable_testing()
+  add_executable(blackutil_tests tests/main.cpp tests/test_image.cpp tests/test_font.cpp tests/test_prompt_text.cpp tests/test_files.cpp)
+  target_link_libraries(blackutil_tests PRIVATE blackutil)
+  target_compile_definitions(blackutil_tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS UNICODE _UNICODE)
+  target_compile_options(blackutil_tests PRIVATE /W3 /utf-8 /EHsc)
+  add_test(NAME blackutil COMMAND blackutil_tests)
+endif()

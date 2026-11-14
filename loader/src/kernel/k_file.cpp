@@ -163,9 +163,9 @@ NTSTATUS resolve(HANDLE root, const XANSI_STRING *name, Resolved &r)
         if (c == '/') c = '\\';
     if (best->partition >= 0) migrate_legacy_names(best->host, rest);
     r.host_nt = L"\\??\\" + best->host + widen(rest);
-    // --game-override, then the port's rebuilt menus: a file of the same relative path there replaces the game's
+    // --game-override, then the port's rebuilt menus and fonts: a file of the same relative path there replaces the game's
     if (best->partition == -1 && !rest.empty())
-        for (const std::wstring *root : {&g_cfg.game_override, &g_cfg.menu_cache}) {
+        for (const std::wstring *root : {&g_cfg.game_override, &g_cfg.menu_cache, &g_cfg.font_cache}) {
             if (root->empty()) continue;
             std::wstring alt = full_path(*root) + widen(rest);
             DWORD a = GetFileAttributesW(alt.c_str());
