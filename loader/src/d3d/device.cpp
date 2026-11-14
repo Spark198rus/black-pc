@@ -1029,6 +1029,28 @@ void pace_swap()
     }
     uint32_t now_vb = g_vblank_count.load();
     perf::pace_end(now_vb - last_vb, n ? n : 1);
+    // Slow motion: the game steps a fixed time per frame (1/30 or 1/60 s), so a frame that misses its vblank does
+    // not skip ahead, the game runs slower than real time. Over windows of ~10 s of vblanks, when more than 10% of
+    // the frames were late, say so (at most once a minute): it otherwise shows only in a performance recording.
+    // The first frame (no previous vblank) is not counted.
+    static uint32_t win_frames, win_late, win_vb, win_wanted;
+    static ULONGLONG last_told;
+    if (last_vb && n) {
+        uint32_t took = now_vb - last_vb;
+        win_frames++;
+        win_vb += took;
+        win_wanted += n;
+        if (took > n) win_late++;
+        if (win_vb >= 600) {
+            ULONGLONG t = GetTickCount64();
+            if (win_late * 10 > win_frames && (!last_told || t - last_told >= 60000)) {
+                logf("[d3d] slow motion: %u of the last %u frames were late; the game ran at %.0f%% speed (the PC "
+                     "did not keep up with %u fps)", win_late, win_frames, 100.0 * win_wanted / win_vb, n == 1 ? 60u : 60u / n);
+                last_told = t;
+            }
+            win_frames = win_late = win_vb = win_wanted = 0;
+        }
+    }
     last_vb = now_vb;
 }
 

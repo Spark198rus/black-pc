@@ -212,7 +212,7 @@ bool parse_args()
             settings_mark_cli("fps");
             std::wstring v;
             if (!next(v)) return false;
-            g_cfg.fps = _wtoi(v.c_str()) == 60 ? 60 : 30;
+            g_cfg.fps = fps_setting(_wtoi(v.c_str()));
         }
         else if (a == L"--language") {
             settings_mark_cli("language");
@@ -467,6 +467,7 @@ int run(void *reserve, unsigned reserve_size)
     logc("BLACK loader " BLACK_VERSION " (blackrt) - XBE %s, hdd %s, log %s%s%s", narrow(g_cfg.xbe_path).c_str(), narrow(g_cfg.hdd_dir).c_str(),
          narrow(g_cfg.log_path).c_str(), g_cfg.trace ? ", trace" : "", g_cfg.strict ? ", strict" : "");
     logf("address-space stub: reserve %p + 0x%x", reserve, reserve_size);
+    fps_setting_note();
 
     std::string err;
     if (!g_xbe.load(g_cfg.xbe_path, err)) {

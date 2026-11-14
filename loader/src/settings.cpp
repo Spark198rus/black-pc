@@ -24,6 +24,20 @@ bool cli(const char *key) { return g_cli.count(key) != 0; }
 
 void settings_mark_cli(const char *key) { g_cli.insert(key); }
 
+static int s_fps_above_60; // the request, logged once the log is open (the settings are read before it)
+
+int fps_setting(int requested)
+{
+    if (requested > 60) s_fps_above_60 = requested;
+    return requested >= 60 ? 60 : 30;
+}
+
+void fps_setting_note()
+{
+    if (s_fps_above_60)
+        logf("settings: frame rate %d requested; 60 is the highest (the game steps a fixed time per frame)", s_fps_above_60);
+}
+
 void settings_load()
 {
     if (g_cfg.background) return;
@@ -46,7 +60,7 @@ void settings_load()
         else if (k == "aa") g_cfg.aa = v != 0;
         else if (k == "seamfill") g_cfg.seam_fill = v != 0;
         else if (k == "effectsnative") g_cfg.effects_native = v != 0;
-        else if (k == "fps") g_cfg.fps = atoi(val) == 60 ? 60 : 30;
+        else if (k == "fps") g_cfg.fps = fps_setting(atoi(val));
         else if (k == "widescreen") g_cfg.widescreen = v != 0;
         else if (k == "language") { if (language_valid(val)) g_cfg.language = val; }
         else if (k == "fullscreen") g_cfg.fullscreen = v != 0;

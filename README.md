@@ -16,7 +16,7 @@ The game is fully playable. Please report problems in the issue tracker and incl
 
 - Any render resolution (720p to 4K and beyond, or a multiple of the window size), anti-aliasing
 - Widescreen 16:9 (the game's own widescreen mode) or 4:3, adjustable field of view
-- 60 fps (the default) or the original 30 fps
+- 60 fps (the default) or the original 30 fps; more than 60 is not offered (the game steps a fixed time per frame), and when the PC cannot keep up the game slows down rather than skipping frames (the log says so)
 - Mouse look, with the weapon swaying as it does with the stick; keys bound to the game's actions; XInput controllers
 - The port's settings in the game's own menus (Options > PC SETTINGS, and in the pause menu), including borderless fullscreen
 - Room reverb, the game's own brightness and gamma ramp; auto-aim off by default; every movie can be skipped
@@ -209,7 +209,7 @@ O jogo é totalmente jogável. Por favor, reporte problemas no rastreador de iss
 
 - Qualquer resolução de renderização (de 720p a 4K e além), anti-aliasing.
 - Widescreen 16:9 (o próprio modo widescreen nativo do jogo) ou 4:3, com campo de visão (FOV) ajustável.
-- 60 fps (padrão) ou os 30 fps originais.
+- 60 fps (padrão) ou os 30 fps originais; mais de 60 não é oferecido (o jogo avança um tempo fixo por quadro), e quando o PC não acompanha o jogo fica mais lento em vez de pular quadros (o log avisa).
 - Visão pelo mouse (Mouse look), com a arma balançando; teclas vinculadas às ações do jogo; suporte a controles XInput.
 - Configurações do port integradas aos próprios menus do jogo (Options > PC SETTINGS e no menu de pausa), incluindo tela cheia sem bordas (borderless fullscreen).
 - Reverberação de ambiente, rampa de brilho e gama do próprio jogo; mira automática (auto-aim) desativada por padrão; todas as cutscenes podem ser puladas.

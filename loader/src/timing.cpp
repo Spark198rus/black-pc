@@ -114,16 +114,28 @@ struct Operand {
 } // namespace
 
 // Weapon refire at 60 fps. FUN_001EEFD0 (weapon state machine, ebp = weapon user) fires when its timer
-// [ebp+0xDC] is <= 0 (FUN_001F0210 subtracts the frame time first) and then sets the timer to the weapon's
-// refire interval (e.g. 0.04 s). Checked once per frame, the interval is effectively rounded up to whole
-// frames: at 30 fps 0.04 s fires every 2nd frame (66 ms, ~15 shots/s), at 60 fps every 3rd (50 ms, ~20/s).
-// The original rate is the 30 fps rounding, so the interval is rounded up to whole 1/30 s steps (minus a
-// little, so the 4th 1/60 s frame fires and not the 5th).
+// [ebp+0xDC] is <= 0 (FUN_001F0210 subtracts the frame time first: movss / subss, float32) and then sets the timer
+// to the weapon's refire interval (e.g. 0.04 s). Checked once per frame, the interval is effectively rounded up to
+// whole frames: at 30 fps 0.04 s fires every 2nd frame (66 ms, ~15 shots/s), at 60 fps every 3rd (50 ms, ~20/s).
+// The original rate is the 30 fps one: the frames the game's own float32 countdown of 1/30 takes (n), so the timer
+// gets 2n - 1/2 steps of 1/60 and fires on the 2n-th 1/60 s frame. (The earlier rounding, ceil(t * 30) / 30, missed
+// the float32 rounding of that countdown: 0.2, 0.3 ... s take one 1/30 s step more at 30 fps, 233 ms for 0.2 s,
+// and fired 17% faster at 60 fps; 40 of the intervals 2 ms .. 5 s, all of them now. Found by an audit in a fork,
+// freeforall1932-design/black-pc PR 3, and checked here against the game's code and a float32 model.)
 extern "C" uint32_t __cdecl refire_interval(uint32_t bits)
 {
     float t;
     memcpy(&t, &bits, 4);
-    if (t > 0.0f) t = ceilf(t * 30.0f - 1e-3f) / 30.0f - 0.0005f;
+    if (t > 0.0f && t < 60.0f) {
+        volatile float left = t; // float32 at every step, as the game's subss
+        const float step = 1.0f / 30.0f;
+        int n = 0;
+        do {
+            left = left - step;
+            n++;
+        } while (left > 0.0f);
+        t = (2.0f * (float)n - 0.5f) * (1.0f / 60.0f);
+    }
     memcpy(&bits, &t, 4);
     return bits;
 }
@@ -143,24 +155,33 @@ REFIRE_THUNK(refire_edx, edx)
 REFIRE_THUNK(refire_ecx, ecx)
 REFIRE_THUNK(refire_eax, eax)
 
-bool install_refire_patches()
+struct RefireSite {
+    uint32_t addr;
+    uint8_t expect[6]; // mov [ebp+0DCh], reg
+    void (*thunk)();
+};
+const RefireSite kRefireSites[] = {
+    {0x001EFC72, {0x89, 0x95, 0xDC, 0x00, 0x00, 0x00}, refire_edx}, // interval from the fire mode (+0xCC)
+    {0x001EFC94, {0x89, 0x8D, 0xDC, 0x00, 0x00, 0x00}, refire_ecx}, // interval (+0x20), main fire path
+    {0x001EFCA6, {0x89, 0x85, 0xDC, 0x00, 0x00, 0x00}, refire_eax}, // interval (+0x20), first shot
+    {0x001EFEF3, {0x89, 0x8D, 0xDC, 0x00, 0x00, 0x00}, refire_ecx}, // interval (+0x20), other fire path
+};
+
+bool refire_sites_match()
 {
-    struct Site {
-        uint32_t addr;
-        uint8_t expect[6]; // mov [ebp+0DCh], reg
-        void (*thunk)();
-    } sites[] = {
-        {0x001EFC72, {0x89, 0x95, 0xDC, 0x00, 0x00, 0x00}, refire_edx}, // interval from the fire mode (+0xCC)
-        {0x001EFC94, {0x89, 0x8D, 0xDC, 0x00, 0x00, 0x00}, refire_ecx}, // interval (+0x20), main fire path
-        {0x001EFCA6, {0x89, 0x85, 0xDC, 0x00, 0x00, 0x00}, refire_eax}, // interval (+0x20), first shot
-        {0x001EFEF3, {0x89, 0x8D, 0xDC, 0x00, 0x00, 0x00}, refire_ecx}, // interval (+0x20), other fire path
-    };
-    for (const Site &s : sites)
+    for (const RefireSite &s : kRefireSites)
         if (memcmp((const void *)(uintptr_t)xbe_va(s.addr), s.expect, 6)) {
-            logf("timing: weapon refire site 0x%08x does not match this build", xbe_va(s.addr));
+            logf("timing: weapon refire site 0x%08x does not match this build; staying at 30 fps", xbe_va(s.addr));
             return false;
         }
-    for (const Site &s : sites) { // call thunk; nop (the 6-byte store it replaces)
+    return true;
+}
+
+// The thunks' C call leaves EFLAGS and xmm0-7 changed where the store they replace did not; harmless here (each
+// site is followed by jmp 0x1F00AF, whose code sets the flags before it tests them and reads no xmm register).
+void install_refire_patches()
+{
+    for (const RefireSite &s : kRefireSites) { // call thunk; nop (the 6-byte store it replaces)
         uint32_t addr = xbe_va(s.addr);
         auto *code = (uint8_t *)(uintptr_t)addr;
         code[0] = 0xE8;
@@ -168,7 +189,6 @@ bool install_refire_patches()
         memcpy(code + 1, &rel, 4);
         code[5] = 0x90;
     }
-    return true;
 }
 
 bool install_60fps_patches()
@@ -188,12 +208,15 @@ bool install_60fps_patches()
             return false;
         }
     }
+    // All or nothing: a world at 1/60 s with the weapons at the 30 fps refire count would fire twice as fast, so
+    // the weapon sites are checked before anything is written (the reload blur below is cosmetic: it only logs).
+    if (!refire_sites_match()) return false;
     for (const Operand &o : ops) {
         auto *code = (uint8_t *)(uintptr_t)xbe_va(o.insn);
         if (o.imm) *(uint32_t *)(code + o.op_len + 4) = 16; // 16 ms per frame
         else *(uint32_t *)(code + o.op_len) = frame;           // the frame time: 1/60
     }
-    bool refire = install_refire_patches();
+    install_refire_patches();
     // Reload blur (the post-process controller at *0x2D1990 + 0x830A0, mode 1): its hold time is set at
     // 0x17B314 to reload-animation length [anim+0x1C] (in 30 fps animation frames) * frame time (game
     // +0x2013C, = 1/60 now) * 0.5 - c, so it halved at 60 fps and the blur cleared early. Use 1/30 there.
@@ -206,7 +229,7 @@ bool install_60fps_patches()
     } else {
         logf("timing: reload blur site 0x%08x does not match this build", xbe_va(0x0017B314));
     }
-    logf("timing: world steps 1/60 s per frame (60 fps)%s", refire ? "; weapon refire keeps the 30 fps rhythm" : "");
+    logf("timing: world steps 1/60 s per frame (60 fps); weapon refire keeps the 30 fps rhythm");
     return true;
 }
 
