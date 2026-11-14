@@ -25,7 +25,7 @@ The game is fully playable. Please report problems in the issue tracker and incl
 ## Requirements
 
 **For Windows:**
-- Windows 10 or 11. The program is 32-bit and runs on 64-bit Windows.
+- Windows 8, 8.1, 10 or 11 (tested on 10). The program is 32-bit and runs on 64-bit Windows. Windows 8.0 lacks the shader compiler (d3dcompiler_47.dll): install the DirectX End-User Runtime (June 2010) or update to 8.1.
 - A graphics card with Direct3D 9 (Shader Model 3). On old laptops with Intel graphics (HD 4400 class) play at 30 fps.
 - Nothing else needs installing: the C runtime is built in, and Direct3D 9, the shader compiler and XAudio2 ship with Windows.
 
@@ -218,7 +218,7 @@ O jogo é totalmente jogável. Por favor, reporte problemas no rastreador de iss
 ## Requisitos
 
 **Para Windows:**
-- Windows 10 ou 11. O programa é de 32 bits e roda no Windows de 64 bits.
+- Windows 8, 8.1, 10 ou 11 (testado no 10). O programa é de 32 bits e roda no Windows de 64 bits. O Windows 8.0 não tem o compilador de shaders (d3dcompiler_47.dll): instale o DirectX End-User Runtime (junho de 2010) ou atualize para o 8.1.
 - Uma placa de vídeo com Direct3D 9 (Shader Model 3).
 - Nenhuma instalação extra é necessária (o Direct3D 9 e XAudio2 já vêm com o Windows).
 

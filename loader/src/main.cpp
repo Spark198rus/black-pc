@@ -26,6 +26,7 @@
 #include "input/sprint.h"
 #include "fe/settings_autosave.h"
 #include "hud_widescreen.h"
+#include "d3d/compiler.h"
 #include "input/inspect.h"
 #include "kernel/xboxkrnl.h"
 #include "xbe.h"
@@ -381,13 +382,18 @@ bool parse_args()
     return true;
 }
 
+// The create / hash / finish calls (Windows Vista and newer; BCryptHash in one call is Windows 10 only).
 std::string sha256_hex(const std::vector<uint8_t> &data)
 {
     BCRYPT_ALG_HANDLE alg = nullptr;
+    BCRYPT_HASH_HANDLE h = nullptr;
     uint8_t digest[32] = {};
     if (BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA256_ALGORITHM, nullptr, 0) != 0) return "?";
-    BCryptHash(alg, nullptr, 0, (PUCHAR)data.data(), (ULONG)data.size(), digest, 32);
+    bool ok = BCryptCreateHash(alg, &h, nullptr, 0, nullptr, 0, 0) == 0 &&
+              BCryptHashData(h, (PUCHAR)data.data(), (ULONG)data.size(), 0) == 0 && BCryptFinishHash(h, digest, 32, 0) == 0;
+    if (h) BCryptDestroyHash(h);
     BCryptCloseAlgorithmProvider(alg, 0);
+    if (!ok) return "?";
     char hex[65];
     for (int i = 0; i < 32; i++) snprintf(hex + i * 2, 3, "%02x", digest[i]);
     return hex;
@@ -499,6 +505,12 @@ int run(void *reserve, unsigned reserve_size)
         startup_error("This default.xbe is not one of the supported BLACK builds (its SHA-256 is " + hash +
                       "). This port supports the analyzed NTSC-U and PAL releases; --force tries another build without "
                       "build-specific hooks.");
+        return 1;
+    }
+
+    if (!xd3d::compiler_load()) { // Windows 8.1 and newer include it; Windows 8.0 does not (d3d/compiler.cpp)
+        startup_error("The Direct3D shader compiler (d3dcompiler_47.dll) is missing. Windows 8.1 and newer include it; on "
+                      "Windows 8, install the DirectX End-User Runtime (June 2010) from Microsoft, or update to Windows 8.1.");
         return 1;
     }
 

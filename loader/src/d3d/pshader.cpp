@@ -5,7 +5,7 @@
 #include "d3d/nv2a_psh.h"
 #include "d3d/state.h"
 
-#include <d3dcompiler.h>
+#include "d3d/compiler.h"
 
 #include <cstring>
 #include <string>
@@ -86,7 +86,7 @@ IDirect3DPixelShader9 *ps_host_shader()
     HRESULT hr = E_FAIL;
     for (const char *profile : {"ps_2_0", "ps_2_a", "ps_2_b"}) {
         if (errors) { errors->Release(); errors = nullptr; }
-        hr = D3DCompile(hlsl.data(), hlsl.size(), "nv2a_psh", nullptr, nullptr, "main", profile, D3DCOMPILE_OPTIMIZATION_LEVEL2, 0,
+        hr = xd3d::compile(hlsl.data(), hlsl.size(), "nv2a_psh", nullptr, nullptr, "main", profile, D3DCOMPILE_OPTIMIZATION_LEVEL2, 0,
                         &code, &errors);
         if (SUCCEEDED(hr)) break;
     }

@@ -5,7 +5,7 @@
 #include "d3d/nv2a_vsh.h"
 #include "kernel/kexports.h"
 
-#include <d3dcompiler.h>
+#include "d3d/compiler.h"
 
 #include <cstring>
 #include <string>
@@ -140,7 +140,7 @@ IDirect3DVertexShader9 *vs_host_shader(VertexShader *vs)
     HRESULT hr = E_FAIL;
     for (const char *profile : {"vs_2_0", "vs_2_a"}) {
         if (errors) { errors->Release(); errors = nullptr; }
-        hr = D3DCompile(hlsl.data(), hlsl.size(), "nv2a_vsh", nullptr, nullptr, "main", profile, D3DCOMPILE_OPTIMIZATION_LEVEL2, 0,
+        hr = xd3d::compile(hlsl.data(), hlsl.size(), "nv2a_vsh", nullptr, nullptr, "main", profile, D3DCOMPILE_OPTIMIZATION_LEVEL2, 0,
                         &code, &errors);
         if (SUCCEEDED(hr)) break;
     }

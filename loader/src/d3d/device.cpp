@@ -15,7 +15,7 @@
 #include "kernel/kexports.h"
 #include "xthread.h"
 
-#include <d3dcompiler.h>
+#include "d3d/compiler.h"
 #include <mmsystem.h>
 
 #include <algorithm>
@@ -235,7 +235,7 @@ IDirect3DPixelShader9 *compile_ps(const char *src, const char *name, const char 
 {
     IDirect3DPixelShader9 *ps = nullptr;
     ID3DBlob *code = nullptr, *errors = nullptr;
-    if (SUCCEEDED(D3DCompile(src, strlen(src), name, nullptr, nullptr, "main", profile, 0, 0, &code, &errors)))
+    if (SUCCEEDED(xd3d::compile(src, strlen(src), name, nullptr, nullptr, "main", profile, 0, 0, &code, &errors)))
         host3d::dev()->CreatePixelShader((const DWORD *)code->GetBufferPointer(), &ps);
     else
         logf("[d3d] %s shader: %s", name, errors ? (const char *)errors->GetBufferPointer() : "?");
