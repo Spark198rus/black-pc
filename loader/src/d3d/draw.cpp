@@ -718,7 +718,15 @@ void debug_draw(const char *what, const DrawCtx &ctx, uint32_t prim, uint32_t co
             logf("[draw]   v%u: pos %g %g %g %g | t0 %g %g %g %g | t1 %g %g %g %g | t2 %g %g %g %g", v, a[0], a[1], a[2], a[3], a[36],
                  a[37], a[38], a[39], a[40], a[41], a[42], a[43], a[44], a[45], a[46], a[47]);
         }
-    else if (verts)
+    else if (verts) {
+        float x0 = 1e30f, x1 = -1e30f, y0 = 1e30f, y1 = -1e30f; // every vertex's first two floats: the screen box of
+        for (uint32_t v = 0; v < count; v++) {                   // pre-transformed (HUD and UI) draws
+            const float *a = verts + v * stride_floats;
+            x0 = std::min(x0, a[0]), x1 = std::max(x1, a[0]), y0 = std::min(y0, a[1]), y1 = std::max(y1, a[1]);
+        }
+        if (count) logf("[draw]   box x %g..%g y %g..%g", x0, x1, y0, y1);
+    }
+    if (verts && stride_floats != 64)
         for (uint32_t v = 0; v < count && v < 3; v++) {
             std::string s;
             for (uint32_t f = 0; f < stride_floats && f < 16; f++) {

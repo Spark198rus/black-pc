@@ -25,6 +25,7 @@ add_library(blackrt SHARED
   src/hooks.cpp
   src/timing.cpp
   src/fov.cpp
+  src/hud_widescreen.cpp
   src/reload_blur.cpp
   src/cheats.cpp
   src/checkpoints.cpp
