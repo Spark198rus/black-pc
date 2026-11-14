@@ -96,6 +96,7 @@ void usage()
            "                    en es de fr it ja ko zh (NTSC-U is English only)\n"
            "  --no-reverb       do not mix the room reverb\n"
            "  --reverb-gain K   room reverb level (default 1.0)\n"
+           "  --speakers M      auto (5.1 on a device with 6 or more channels), stereo or 5.1 (default auto)\n"
            "  --background      (tests) start minimised without focus, audio muted\n"
            "  --wav <file>      record the audio output as a WAV file\n"
            "  --rawvideo <file> record the picture as raw BGRX frames from --shot-start for --clip-seconds (default 4)\n"
@@ -193,6 +194,12 @@ bool parse_args()
         else if (a == L"--no-aa") { g_cfg.aa = false; settings_mark_cli("aa"); }
         else if (a == L"--no-seamfill") { g_cfg.seam_fill = false; settings_mark_cli("seamfill"); }
         else if (a == L"--rescale-at") { if (!next(g_cfg.rescale_at)) return false; }
+        else if (a == L"--speakers") {
+            settings_mark_cli("speakers");
+            std::wstring v;
+            if (!next(v)) return false;
+            g_cfg.speakers = v == L"5.1" ? 6 : v == L"stereo" ? 2 : 0;
+        }
         else if (a == L"--reverb-gain") {
             settings_mark_cli("reverb_gain");
             std::wstring v;

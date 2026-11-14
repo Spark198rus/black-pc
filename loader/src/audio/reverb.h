@@ -22,7 +22,8 @@ struct Params {
 
 void set_params(const Params &p);
 void set_gain(float k); // overall level of the reverb (--reverb-gain)
-// in: mono send (n frames); out: interleaved stereo, the reverb is added to it.
-void process(const float *in, float *out, uint32_t n);
+// in: mono send (n frames); out: interleaved, ch = 2 (L R) or 6 (FL FR C LFE BL BR: the reverb goes to the four
+// corners, as the Xbox's effect 16 did, the rear pair from another combination of the delay lines), added to it.
+void process(const float *in, float *out, uint32_t n, uint32_t ch = 2);
 
 } // namespace reverb

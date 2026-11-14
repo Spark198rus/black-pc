@@ -298,12 +298,62 @@ Vec3 sub(Vec3 a, Vec3 b) { return {a.x - b.x, a.y - b.y, a.z - b.z}; }
 float dot(Vec3 a, Vec3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
 Vec3 cross(Vec3 a, Vec3 b) { return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x}; }
 
-// m[source channel][output L/R]; send[source channel] = level into the I3DL2 reverb (mix bin 11, FXSEND_0:
-// the DSP image's effect 16 reads it and writes the four corner speakers)
-void voice_gains(const Voice &v, float m[2][2], float send[2])
+// Output channels: stereo (L R) or 5.1 (FL FR C LFE BL BR; issue #20), audio_out::channels(). BLACK pans its
+// sounds itself, by the console's audio setting (XC_AUDIO, EEPROM setting 9; k_misc.cpp answers it from the
+// output): in stereo (0) each voice gets front left / right levels on mix bins 0 / 1 (music: FXSEND 19 / 20); in
+// surround (2) every voice gets six levels on effect sends, FL FR C LFE BL BR, which the game's DSP image
+// (Sound/DSP/BkXboxFx.bin, not emulated) filters and writes to the speakers. Its effect table (the image's last
+// 22 x 32 bytes; a state block holds the effect's input and output DSP addresses: mix bin n = X 0x1400 + 0x20 n,
+// speaker k = 0xC00 + 0x20 k in the order FL FR C LFE BL BR) gives: effects 2-14, one filter each, sends 25 and
+// 19 -> FL, 13 and 20 -> FR, 14 and 21 -> BL, 15 and 22 -> BR, 16 and 23 -> C, 24 -> LFE; effect 16, the I3DL2
+// reverb, bin 11 -> FL FR BL BR; effect 17, bins 6-9 -> FL FR BL BR. Checked in play: music L on 19 + 21, R on
+// 20 + 22; a sound on 19 / 20 / 23 / 24 / 14 / 22 with levels that follow the view (BL -34 dB facing it, -4 dB
+// with it behind). The game's DirectSound speaker query (GetSpeakerConfig, 0x8C36D) changes nothing seen. In 5.1
+// each send goes to its speaker (the filters are left out), DirectSound3D voices (none seen) are panned around the
+// four corners; in stereo the same table is folded to L / R (C at -3 dB to both, LFE left out).
+constexpr uint32_t MAXCH = audio_out::MAX_CHANNELS;
+enum { FL, FR, FC, LFE, BL, BR };
+
+// The speaker of a mix bin, -1 for none (11 = the reverb send, mixed apart; 17, 18, 26-30 feed other effects)
+int bin_speaker(uint32_t bin)
 {
+    switch (bin) {
+    case 0: case 6: case 19: case 25: return FL; // the speaker bin, effect 17 (bins 6-9), the filters (effects 2-14)
+    case 1: case 7: case 13: case 20: return FR;
+    case 2: case 16: case 23: return FC;
+    case 3: case 24: return LFE;
+    case 4: case 8: case 14: case 21: return BL;
+    case 5: case 9: case 15: case 22: return BR;
+    default: return -1;
+    }
+}
+
+// Constant-power gains on the four corner speakers for a direction: x to the right, y to the front (unit circle).
+void pan_corners(float x, float y, float g[MAXCH])
+{
+    static const float kAz[4] = {-30.0f, 30.0f, 110.0f, 250.0f}; // FL FR BR BL, clockwise from the front
+    static const int kSpk[4] = {FL, FR, BR, BL};
+    float az = atan2f(x, y) * 57.2957795f; // 0 = front, 90 = right
+    if (az < -30.0f) az += 360.0f;         // -30 .. 330
+    for (int i = 0; i < 4; i++) {
+        float a0 = kAz[i], a1 = i == 3 ? 330.0f : kAz[i + 1];
+        if (az >= a0 && az <= a1) {
+            float t = (az - a0) / (a1 - a0) * 1.5707963f;
+            g[kSpk[i]] = cosf(t);
+            g[kSpk[(i + 1) & 3]] = sinf(t);
+            return;
+        }
+    }
+    g[FL] = g[FR] = 0.70710678f;
+}
+
+// m[source channel][output channel]; send[source channel] = level into the I3DL2 reverb (mix bin 11, FXSEND_0:
+// the DSP image's effect 16 reads it and writes the four corner speakers)
+void voice_gains(const Voice &v, float m[2][MAXCH], float send[2])
+{
+    const uint32_t nch = audio_out::channels();
     float amp = db_to_amp(v.volume);
-    m[0][0] = m[0][1] = m[1][0] = m[1][1] = 0.0f;
+    memset(m, 0, sizeof(float) * 2 * MAXCH);
     send[0] = send[1] = 0.0f;
     for (uint32_t k = 0; k < v.nbins; k++)
         if (v.bins[k].dwMixBin == 11) {
@@ -322,6 +372,16 @@ void voice_gains(const Voice &v, float m[2][2], float send[2])
         float roll = g_listener.rolloff * (p.flRolloffFactor > 0 ? p.flRolloffFactor : 1.0f);
         float dd = std::clamp(d, mn, mx);
         float att = mn / (mn + roll * (dd - mn));
+        if (nch == 6) { // around the corners; a stereo source is folded to mono first
+            float fl = sqrtf(dot(g_listener.front, g_listener.front));
+            float y = (d > 1e-4f && fl > 1e-6f) ? dot(rel, g_listener.front) / (d * fl) : 1.0f;
+            float xx = d > 1e-4f ? x : 0.0f;
+            float g[MAXCH] = {};
+            pan_corners(xx, y, g);
+            float k = (channels(v.fmt) == 1 ? 1.0f : 0.5f) * amp * att;
+            for (uint32_t c = 0; c < nch; c++) m[0][c] = m[1][c] = k * g[c];
+            return;
+        }
         x = std::clamp(x, -1.0f, 1.0f);
         float l = sqrtf(0.5f * (1 - x)) * 1.41421356f, r = sqrtf(0.5f * (1 + x)) * 1.41421356f;
         m[0][0] = m[1][0] = 0.5f * amp * att * l; // a stereo source is folded to mono first
@@ -339,14 +399,12 @@ void voice_gains(const Voice &v, float m[2][2], float send[2])
     for (uint32_t k = 0; k < n; k++) {
         float a = amp * db_to_amp(bins[k].lVolume);
         int src = ch == 2 ? (int)(k & 1) : 0;
-        // The game's DSP effects image (not emulated) takes FXSEND_8-13 (bins 19-24) as FL/FR/C/LFE/BL/BR
-        // and carries them to the speakers; fold those to stereo like the speaker bins.
-        switch (bins[k].dwMixBin) {
-        case 0: case 4: case 6: case 8: case 19: case 23: m[src][0] += a; break; // front/back/3D left
-        case 1: case 5: case 7: case 9: case 20: case 24: m[src][1] += a; break; // front/back/3D right
-        case 2: case 21: m[src][0] += a * 0.7071f; m[src][1] += a * 0.7071f; break; // center
-        default: break; // LFE and the other effect sends are not mixed (11 = reverb, above)
-        }
+        int spk = bin_speaker(bins[k].dwMixBin);
+        if (spk < 0) continue;
+        if (nch == 6) m[src][spk] += a;
+        else if (spk == FL || spk == BL) m[src][0] += a;
+        else if (spk == FR || spk == BR) m[src][1] += a;
+        else if (spk == FC) m[src][0] += a * 0.7071f, m[src][1] += a * 0.7071f;
     }
 }
 
@@ -354,8 +412,9 @@ float g_send[audio_out::BLOCK]; // reverb input of the block being mixed
 
 template <typename Fetch> bool mix_voice(Voice &v, float *out, Fetch fetch)
 {
-    float m[2][2], send[2];
+    float m[2][MAXCH], send[2];
     voice_gains(v, m, send);
+    const uint32_t nch = audio_out::channels();
     bool wet = g_cfg.reverb && (send[0] > 0 || send[1] > 0);
     uint32_t rate = v.frequency ? v.frequency : v.fmt.nSamplesPerSec;
     double step = (rate ? rate : audio_out::RATE) / (double)audio_out::RATE;
@@ -368,8 +427,8 @@ template <typename Fetch> bool mix_voice(Voice &v, float *out, Fetch fetch)
     for (uint32_t i = 0; i < audio_out::BLOCK; i++) {
         float t = (float)v.phase;
         float a0 = v.s0[0] + (v.s1[0] - v.s0[0]) * t, a1 = v.s0[1] + (v.s1[1] - v.s0[1]) * t;
-        out[2 * i] += a0 * m[0][0] + a1 * m[1][0];
-        out[2 * i + 1] += a0 * m[0][1] + a1 * m[1][1];
+        float *o = out + nch * i;
+        for (uint32_t c = 0; c < nch; c++) o[c] += a0 * m[0][c] + a1 * m[1][c];
         if (wet) g_send[i] += a0 * send[0] + a1 * send[1];
         v.phase += step;
         while (v.phase >= 1.0) {
@@ -396,7 +455,7 @@ void mix_report(const float *out)
 {
     static uint64_t blocks;
     static float peak;
-    for (uint32_t i = 0; i < audio_out::BLOCK * 2; i++) peak = std::max(peak, fabsf(out[i]));
+    for (uint32_t i = 0; i < audio_out::BLOCK * audio_out::channels(); i++) peak = std::max(peak, fabsf(out[i]));
     uint64_t n = ++blocks;
     uint64_t every = n < 6000 ? 200 : 3000;
     if (n % every) return;
@@ -416,7 +475,8 @@ void mix_report(const float *out)
 
 void mix_block(float *out, std::vector<Completion> &done)
 {
-    memset(out, 0, sizeof(float) * audio_out::BLOCK * 2);
+    const uint32_t nch = audio_out::channels();
+    memset(out, 0, sizeof(float) * audio_out::BLOCK * nch);
     memset(g_send, 0, sizeof g_send);
     std::lock_guard<std::recursive_mutex> g(g_mutex);
     for (Buffer *b : g_buffers) {
@@ -430,10 +490,10 @@ void mix_block(float *out, std::vector<Completion> &done)
     if (g_cfg.reverb) {
         static float applied = -1.0f; // the menu can change the level while running
         if (applied != g_cfg.reverb_gain) reverb::set_gain(applied = g_cfg.reverb_gain);
-        reverb::process(g_send, out, audio_out::BLOCK);
+        reverb::process(g_send, out, audio_out::BLOCK, nch);
     }
     // soft knee above 0.8 instead of hard clipping (the MCPX/DSP stages that set final levels are not emulated)
-    for (uint32_t i = 0; i < audio_out::BLOCK * 2; i++) {
+    for (uint32_t i = 0; i < audio_out::BLOCK * nch; i++) {
         float x = out[i], a = fabsf(x);
         if (a > 0.8f) x = copysignf(0.8f + 0.2f * tanhf((a - 0.8f) / 0.2f), x);
         out[i] = x;
@@ -452,7 +512,7 @@ void __stdcall worker(void *)
     }
     audio_out::open(); // without a device the output asks for blocks by the clock
     std::vector<Completion> done;
-    static float block[audio_out::BLOCK * 2];
+    static float block[audio_out::BLOCK * audio_out::MAX_CHANNELS];
     for (;;) {
         Sleep(2);
         uint32_t want = audio_out::blocks_wanted();
@@ -677,7 +737,7 @@ void __stdcall DirectSoundDoWork() { STRACE(""); }
 HRESULT __stdcall IDirectSound_GetSpeakerConfig(Object *pThis, uint32_t *pdw)
 {
     STRACE("%p", pThis);
-    *pdw = 2; // stereo
+    *pdw = 2; // what the port always answered; the game's panning follows the console setting instead (XC_AUDIO)
     return S_OK;
 }
 

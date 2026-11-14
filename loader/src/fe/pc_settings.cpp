@@ -18,6 +18,7 @@
 #include "cheats.h"
 #include "input/sprint.h"
 #include "settings.h"
+#include "audio/output.h"
 
 #include <algorithm>
 #include <cmath>
@@ -244,10 +245,21 @@ const Row kRows[] = {
     {"FAST MENUS", 2, [] { return (int)g_cfg.fast_menus; }, [](int i) { g_cfg.fast_menus = i != 0; }, [](int i) { return on_off(i); }},
     // VIDEO (28): the render size as a share of the window (issue #40), live
     {"RENDER SCALE", kSteps, scale_get, scale_set, scale_text, true},
+    // AUDIO AND MOVIES (29): stereo or 5.1 output (audio/output.cpp; issue #20), from the next start
+    {"SPEAKERS", 3, [] { return g_cfg.speakers == 6 ? 2 : g_cfg.speakers == 2 ? 1 : 0; },
+     [](int i) { g_cfg.speakers = i == 2 ? 6 : i == 1 ? 2 : 0; },
+     [](int i) {
+         static const int at_start = g_cfg.speakers; // the output keeps its channels until the next start
+         int want = i == 2 ? 6 : i == 1 ? 2 : 0;
+         std::wstring s = i == 2 ? L"5.1 SURROUND" : i == 1 ? L"STEREO" : L"AUTO";
+         if (i == 0 && want == at_start) s += audio_out::channels() == 6 ? L" (5.1)" : L" (STEREO)";
+         return want != at_start ? s + L" (RESTART)" : s;
+     }},
 };
 constexpr int kRowN = sizeof kRows / sizeof kRows[0];
 constexpr int kKeyBindings = 15;
 constexpr int kLanguage = 16;
+constexpr int kSpeakers = 29;
 constexpr int kWeaponBuffers = 20;
 constexpr int kAimMode = 21;
 
@@ -259,7 +271,7 @@ const std::vector<Group> &groups()
         {"PCVideo", "VIDEO", {0, 28, 1, 2, 3, 4}},
         {"PCDisplay", "DISPLAY", {5, 6, 7, 8, 9}},
         {"PCTweaks", "TWEAKS", {11, 17, 18, 19, 27, kWeaponBuffers}},
-        {"PCAudio", "AUDIO AND MOVIES", {10, 12, kLanguage}},
+        {"PCAudio", "AUDIO AND MOVIES", {10, 12, kSpeakers, kLanguage}},
         {"PCControls", "CONTROLS", {13, 14, kAimMode, 26, kKeyBindings}},
         {"PCCheats", "CHEATS", {22, 23, 24, 25}},
     };
@@ -292,7 +304,7 @@ void step(int n, int dir)
 
 bool is_slider(int n) { return n >= 0 && n < kRowN && kRows[n].slider; }
 
-bool restart_only(int n) { return n == 6 || n == 7 || n == kLanguage || n == kWeaponBuffers; } // read by the game at boot
+bool restart_only(int n) { return n == 6 || n == 7 || n == kLanguage || n == kWeaponBuffers || n == kSpeakers; } // read at boot
 
 const char *link(int n) { return n == kKeyBindings ? "PCBindings" : nullptr; }
 

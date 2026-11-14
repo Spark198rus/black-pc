@@ -102,7 +102,7 @@ void set_params(const Params &p)
     g_dirty = true;
 }
 
-void process(const float *in, float *out, uint32_t n)
+void process(const float *in, float *out, uint32_t n, uint32_t ch)
 {
     static thread_local bool ftz = [] { // denormals in the decaying tail would cost a lot of CPU
         _mm_setcsr(_mm_getcsr() | 0x8040);
@@ -132,6 +132,7 @@ void process(const float *in, float *out, uint32_t n)
         }
         float v[LINES];
         for (int j = 0; j < LINES; j++) v[j] = s.damp[j].run(s.line[j][s.line_pos[j]] * s.line_gain[j]);
+        float bl = l + 0.5f * (v[0] + v[2] - v[4] - v[6]), br = r + 0.5f * (v[1] + v[3] - v[5] - v[7]);
         l += 0.5f * (v[0] - v[2] + v[4] - v[6]);
         r += 0.5f * (v[1] - v[3] + v[5] - v[7]);
         for (int h = 1; h < LINES; h <<= 1) // fast Hadamard transform, then 1/sqrt(8)
@@ -151,10 +152,18 @@ void process(const float *in, float *out, uint32_t n)
             memset(s.line, 0, sizeof s.line);
             for (OnePole &d : s.damp) d.y = 0;
             s.input_lp.y = 0;
-            l = r = 0;
+            l = r = bl = br = 0;
         }
-        out[2 * i] += l;
-        out[2 * i + 1] += r;
+        if (ch == 6) {
+            float *o = out + 6 * i;
+            o[0] += 0.70710678f * l;
+            o[1] += 0.70710678f * r;
+            o[4] += 0.70710678f * bl;
+            o[5] += 0.70710678f * br;
+        } else {
+            out[2 * i] += l;
+            out[2 * i + 1] += r;
+        }
         s.pos = (s.pos + 1) & (PRE - 1);
     }
 }

@@ -166,7 +166,7 @@ The port's settings are in the game's menus: Options > PC SETTINGS on the main m
 | VIDEO | render resolution (window size, or 480p as on the Xbox, 576p, 624p, 720p, 768p, 900p, 1080p, 1440p, 2160p; in fullscreen the display switches to that height when it has a mode of it in the desktop's shape), render scale (a slider: 50-200% of the window; moving it sets window size), anti-aliasing, field of view, brightness, gamma |
 | DISPLAY | fullscreen, aspect ratio, frame rate (main menu only), filling geometry seams, effects at Xbox size |
 | TWEAKS | auto-aim, reload blur, lean angle, lean distance, fast menus (menu animations twice as fast, at 60 fps), weapon buffers (bigger weapon files for mods; from the next start) |
-| AUDIO AND MOVIES | room reverb, skipping any movie, language (PAL disc; from the next start) |
+| AUDIO AND MOVIES | room reverb, skipping any movie, speakers (auto, stereo or 5.1 surround: the game's own surround mix, from the next start; auto picks 5.1 for a 5.1 / 7.1 device or headphones with Windows Sonic / Dolby Atmos), language (PAL disc; from the next start) |
 | CONTROLS | mouse sensitivity, mouse inversion, aim (toggle as the original, or hold), sprint (on: hold Left Shift to run faster forward; shooting stops it until Shift is pressed again; off as the original), key bindings |
 | (main menu) | CONTINUE LAST GAME: every checkpoint the game takes is kept in the save folder; after a restart this row starts that mission there (gone once the mission is complete or restarted) |
 | CHEATS | unlock all missions on easy, normal and hard (the save keeps your real progress), god mode, infinite ammo and grenades (yours only), damage to enemies (x2, x4, one-hit kill: your bullets; explosions and other damage enemies take are scaled whoever caused them) |
@@ -357,7 +357,7 @@ Os ajustes do port ficam dentro do menu do jogo: **Options > PC SETTINGS** e no 
 | VIDEO | Resolução (tamanho da janela, ou 480p como no Xbox, 576p, 624p, 720p, 768p, 900p, 1080p, 1440p, 2160p; em tela cheia o monitor muda para essa altura quando tem um modo dela no formato da área de trabalho), Escala de renderização (controle deslizante: 50-200% da janela; mexer nele volta para tamanho da janela), Anti-aliasing, FOV, Brilho, Gama |
 | DISPLAY | Tela Cheia, Proporção de tela, Taxa de Quadros, Preenchimento de costuras, Efeitos no tamanho do Xbox |
 | TWEAKS | Mira Automática, Desfoque ao recarregar, Ângulo e distância da inclinação, Menus rápidos (animações dos menus 2x mais rápidas, a 60 fps), Buffers de armas (arquivos de armas maiores para mods; na próxima inicialização) |
-| AUDIO AND MOVIES | Reverberação de ambiente, Pular qualquer cutscene, Idioma (disco PAL; na próxima inicialização) |
+| AUDIO AND MOVIES | Reverberação de ambiente, Pular qualquer cutscene, Alto-falantes (automático, estéreo ou 5.1 surround: a mixagem surround do próprio jogo, na próxima inicialização; o automático escolhe 5.1 para um dispositivo 5.1 / 7.1 ou fones com Windows Sonic / Dolby Atmos), Idioma (disco PAL; na próxima inicialização) |
 | CONTROLS | Sensibilidade do Mouse, Inversão do Mouse, Mira (alternar como no original, ou segurar), Corrida (ligada: segure Shift esquerdo para correr mais rápido; atirar interrompe até apertar Shift de novo; desligada como no original), Mapeamento de Teclas |
 | CHEATS | Desbloquear todas as missões no fácil, normal e difícil (o save mantém o progresso real), Modo Deus, Munição e granadas infinitas (só as suas), Dano aos inimigos (x2, x4, morte com um tiro) |
 

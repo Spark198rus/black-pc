@@ -1,6 +1,7 @@
 // Hardware-facing and miscellaneous kernel exports: AV, HAL, interrupts, EEPROM settings, crypto, data exports.
 // Most hardware calls only matter to the statically linked D3D/DSound code, which is being replaced; they
 // log and return values that keep XAPI going.
+#include "audio/output.h"
 #include "hooks.h"
 #include "kernel/kexports.h"
 #include "language.h"
@@ -99,7 +100,7 @@ NTSTATUS __stdcall ExQueryNonVolatileSetting(uint32_t ValueIndex, uint32_t *Type
     // port presents a progressive picture at 30 fps, so a PAL disc must not take its 50 Hz interlaced path
     // (its opening screen smears the falling casings over the top of the picture there).
     case 0x008: dword = (g_cfg.widescreen ? 0x00010000 : 0) | (g_cfg.pal_build ? 0x00400000 : 0); break;
-    case 0x009: dword = 0; break;                  // XC_AUDIO: stereo
+    case 0x009: dword = audio_out::choose_channels() == 6 ? 2 : 0; break; // XC_AUDIO: surround for 5.1 output, else stereo (audio/dsound.cpp)
     case 0x00A: dword = 0; break;                  // XC_P_CONTROL_GAMES: no limit
     case 0x00B: dword = 0; break;                  // XC_P_CONTROL_PASSWORD
     case 0x00C: dword = 0; break;                  // XC_P_CONTROL_MOVIES

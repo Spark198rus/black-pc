@@ -6,6 +6,10 @@
 // requests, the game's DirectSound buffers stopped playing and the game waited on its sound. So blocks_wanted
 // watches for that (the error, or no block taken for a second), closes XAudio2 and opens it again on the default
 // device once a second; meanwhile, and without XAudio2 at all, it asks for blocks by the clock (silent).
+// Speakers (issue #20): the mix is stereo or 5.1 (FL FR C LFE BL BR), chosen once at the start: SPEAKERS = STEREO,
+// 5.1 SURROUND, or AUTO (5.1 when the default device's mastering voice has 6 or more channels: a 5.1 or 7.1 setup,
+// or headphones with Windows Sonic / Dolby Atmos, where Windows renders it with HRTF). The source voice has that
+// many channels and XAudio2 maps it onto whatever device is open (also after a reopen to another device).
 #include "audio/output.h"
 
 #include "common.h"
@@ -28,7 +32,8 @@ PFN_Create g_create;
 IXAudio2 *g_xa;
 IXAudio2MasteringVoice *g_master;
 IXAudio2SourceVoice *g_src;
-float g_ring[RING][BLOCK * 2];
+uint32_t g_ch = 2; // channels of the mix
+float g_ring[RING][BLOCK * MAX_CHANNELS];
 uint32_t g_next;
 FILE *g_wav;
 uint32_t g_wav_frames;
@@ -45,13 +50,13 @@ struct EngineCallback : IXAudio2EngineCallback {
 
 void wav_header()
 {
-    uint32_t data = g_wav_frames * 4;
+    uint32_t data = g_wav_frames * 2 * g_ch;
     struct {
         char riff[4]; uint32_t size; char wave[4], fmt[4]; uint32_t fmt_size;
         uint16_t tag, ch; uint32_t rate, bytes_per_s; uint16_t align, bits;
         char data[4]; uint32_t data_size;
-    } h = {{'R', 'I', 'F', 'F'}, 36 + data, {'W', 'A', 'V', 'E'}, {'f', 'm', 't', ' '}, 16, 1, 2, RATE, RATE * 4, 4, 16,
-           {'d', 'a', 't', 'a'}, data};
+    } h = {{'R', 'I', 'F', 'F'}, 36 + data, {'W', 'A', 'V', 'E'}, {'f', 'm', 't', ' '}, 16, 1, (uint16_t)g_ch, RATE,
+           RATE * 2 * g_ch, (uint16_t)(2 * g_ch), 16, {'d', 'a', 't', 'a'}, data};
     fseek(g_wav, 0, SEEK_SET);
     fwrite(&h, sizeof h, 1, g_wav);
     fseek(g_wav, 0, SEEK_END);
@@ -76,15 +81,15 @@ HRESULT start_engine()
     g_error = S_OK;
     HRESULT hr = g_create(&g_xa, 0, XAUDIO2_DEFAULT_PROCESSOR);
     if (SUCCEEDED(hr)) hr = g_xa->RegisterForCallbacks(&g_callback);
-    if (SUCCEEDED(hr)) hr = g_xa->CreateMasteringVoice(&g_master, 2, RATE);
+    if (SUCCEEDED(hr)) hr = g_xa->CreateMasteringVoice(&g_master, XAUDIO2_DEFAULT_CHANNELS, RATE);
     if (SUCCEEDED(hr) && g_cfg.background) g_master->SetVolume(0.0f); // tests: keep the timing, not the sound
     WAVEFORMATEX wf = {};
     wf.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
-    wf.nChannels = 2;
+    wf.nChannels = (WORD)g_ch;
     wf.nSamplesPerSec = RATE;
     wf.wBitsPerSample = 32;
-    wf.nBlockAlign = 8;
-    wf.nAvgBytesPerSec = RATE * 8;
+    wf.nBlockAlign = (WORD)(4 * g_ch);
+    wf.nAvgBytesPerSec = RATE * 4 * g_ch;
     if (SUCCEEDED(hr)) hr = g_xa->CreateSourceVoice(&g_src, &wf, XAUDIO2_VOICE_NOPITCH);
     if (SUCCEEDED(hr)) hr = g_src->Start();
     if (FAILED(hr)) close_engine();
@@ -112,27 +117,88 @@ uint32_t clock_blocks()
 
 } // namespace
 
-bool open()
+namespace {
+
+bool load_xaudio()
 {
-    if (!g_cfg.wav_path.empty() && !_wfopen_s(&g_wav, g_cfg.wav_path.c_str(), L"wb")) {
-        wav_header();
-        logf("[audio] recording the mix to a WAV file"); // its log time = the WAV's start, to line up captures
-    }
+    if (g_create) return true;
     HMODULE m = LoadLibraryW(L"xaudio2_9.dll");
     if (!m) m = LoadLibraryW(L"xaudio2_8.dll");
     g_create = m ? (PFN_Create)GetProcAddress(m, "XAudio2Create") : nullptr;
-    if (!g_create) {
+    return g_create != nullptr;
+}
+
+// The device's channels (its default mastering voice), 0 if XAudio2 cannot open one.
+uint32_t device_channels()
+{
+    if (!load_xaudio()) return 0;
+    IXAudio2 *xa = nullptr;
+    IXAudio2MasteringVoice *mv = nullptr;
+    uint32_t n = 0;
+    if (SUCCEEDED(g_create(&xa, 0, XAUDIO2_DEFAULT_PROCESSOR)) &&
+        SUCCEEDED(xa->CreateMasteringVoice(&mv, XAUDIO2_DEFAULT_CHANNELS, RATE))) {
+        XAUDIO2_VOICE_DETAILS d = {};
+        mv->GetVoiceDetails(&d);
+        n = d.InputChannels;
+    }
+    if (mv) mv->DestroyVoice();
+    if (xa) xa->Release();
+    return n;
+}
+
+void open_wav()
+{
+    if (!g_cfg.wav_path.empty() && !_wfopen_s(&g_wav, g_cfg.wav_path.c_str(), L"wb")) {
+        wav_header();
+        logf("[audio] recording the mix to a WAV file (%u channels)", g_ch); // its log time = the WAV's start, to line up captures
+    }
+}
+
+} // namespace
+
+uint32_t channels() { return g_ch; }
+
+uint32_t choose_channels()
+{
+    static bool chosen;
+    if (chosen) return g_ch;
+    chosen = true;
+    uint32_t dev = 0;
+    if (g_cfg.speakers == 0) { // AUTO: ask the device, on a thread of its own (COM stays off the caller's thread)
+        HANDLE t = CreateThread(nullptr, 0, [](void *p) -> DWORD {
+            CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+            *(uint32_t *)p = device_channels();
+            CoUninitialize();
+            return 0;
+        }, &dev, 0, nullptr);
+        if (t) {
+            WaitForSingleObject(t, 5000);
+            CloseHandle(t);
+        }
+    }
+    g_ch = g_cfg.speakers == 6 ? 6 : g_cfg.speakers == 2 ? 2 : dev >= 6 ? 6 : 2;
+    logf("[audio] speakers: %s (%s%u)", g_ch == 6 ? "5.1" : "stereo", g_cfg.speakers ? "set; " : "auto: the device has ",
+         g_cfg.speakers ? g_cfg.speakers : dev);
+    return g_ch;
+}
+
+bool open()
+{
+    choose_channels();
+    if (!load_xaudio()) {
         logf("[audio] XAudio2 not available: no sound");
+        open_wav();
         return false;
     }
     CoInitializeEx(nullptr, COINIT_MULTITHREADED); // XAudio2 needs COM on the creating thread (the mixer's)
+    open_wav();
     HRESULT hr = start_engine();
     if (FAILED(hr)) {
         logf("[audio] XAudio2 setup failed 0x%08lx: no sound", hr);
         g_create = nullptr;
         return false;
     }
-    logf("[audio] XAudio2 output: %u Hz stereo, %u ms blocks, %u queued", RATE, BLOCK * 1000 / RATE, QUEUED);
+    logf("[audio] XAudio2 output: %u Hz %s, %u ms blocks, %u queued", RATE, g_ch == 6 ? "5.1" : "stereo", BLOCK * 1000 / RATE, QUEUED);
     return true;
 }
 
@@ -177,18 +243,18 @@ void simulate_lost()
 void submit(const float *lr)
 {
     if (g_wav) {
-        int16_t pcm[BLOCK * 2];
-        for (uint32_t i = 0; i < BLOCK * 2; i++) pcm[i] = (int16_t)(std::max(-1.0f, std::min(1.0f, lr[i])) * 32767.0f);
-        fwrite(pcm, sizeof pcm, 1, g_wav);
+        int16_t pcm[BLOCK * MAX_CHANNELS];
+        for (uint32_t i = 0; i < BLOCK * g_ch; i++) pcm[i] = (int16_t)(std::max(-1.0f, std::min(1.0f, lr[i])) * 32767.0f);
+        fwrite(pcm, 2, BLOCK * g_ch, g_wav);
         g_wav_frames += BLOCK;
         if (g_wav_frames % (RATE / 2) == 0) wav_header(); // keep the header valid if the process is killed
     }
     if (!g_src) return;
     float *b = g_ring[g_next];
     g_next = (g_next + 1) % RING;
-    memcpy(b, lr, sizeof g_ring[0]);
+    memcpy(b, lr, sizeof(float) * BLOCK * g_ch);
     XAUDIO2_BUFFER xb = {};
-    xb.AudioBytes = sizeof g_ring[0];
+    xb.AudioBytes = sizeof(float) * BLOCK * g_ch;
     xb.pAudioData = (const BYTE *)b;
     g_src->SubmitSourceBuffer(&xb);
 }

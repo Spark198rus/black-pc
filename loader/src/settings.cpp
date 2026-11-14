@@ -84,6 +84,7 @@ void settings_load()
         else if (k == "skipanymovie") g_cfg.skip_movies = v != 0;
         else if (k == "reverb") g_cfg.reverb = v != 0;
         else if (k == "reverb_gain") g_cfg.reverb_gain = std::clamp(v, 0.0f, 8.0f);
+        else if (k == "speakers") g_cfg.speakers = !strcmp(val, "5.1") ? 6 : !strcmp(val, "stereo") ? 2 : 0;
         else bindings::load_ini(k.c_str(), val); // key_<action> = Key[,Key]
     }
     fclose(f);
@@ -111,6 +112,7 @@ void settings_save()
     fprintf(f, "cheat_unlock = %d\ncheat_god = %d\ncheat_ammo = %d\ncheat_damage = %d\n", g_cfg.cheat_unlock ? 1 : 0,
             g_cfg.cheat_god ? 1 : 0, g_cfg.cheat_ammo ? 1 : 0, g_cfg.cheat_damage);
     fprintf(f, "reverb = %d\nreverb_gain = %.2f\n", g_cfg.reverb ? 1 : 0, g_cfg.reverb_gain);
+    fprintf(f, "speakers = %s\n", g_cfg.speakers == 6 ? "5.1" : g_cfg.speakers == 2 ? "stereo" : "auto");
     fprintf(f, "autoaim = %d\n", g_cfg.autoaim ? 1 : 0);
     fprintf(f, "reloadblur = %d\n", g_cfg.reload_blur ? 1 : 0);
     fprintf(f, "fast_menus = %d\n", g_cfg.fast_menus ? 1 : 0);
